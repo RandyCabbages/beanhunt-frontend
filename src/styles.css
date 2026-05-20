@@ -1,0 +1,46 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #111111;
+  --sur: #131313;
+  --card: #1a1a1a;
+  --lift: #222222;
+  --bdr: rgba(255,255,255,0.09);
+  --gold: #c6f135;
+  --green: #c6f135;
+  --red: #ff4444;
+  --t1: #ffffff;
+  --t2: #cccccc;
+  --t3: #666666;
+  --t4: #444444;
+  --font: 'Chakra Petch', sans-serif;
+  --mono: 'Chakra Petch', sans-serif;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+* { scrollbar-width: thin; scrollbar-color: #333 transparent; }
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+*::-webkit-scrollbar-thumb:hover { background: #555; }
+
+input, textarea, select, button {
+  font-family: var(--font);
+  color: inherit;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+
+a { color: inherit; }
+
+::selection { background: rgba(198,241,53,0.25); }
