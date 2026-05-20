@@ -459,6 +459,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             {canEdit && <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${obsCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:obsCopied?G.green:G.t3,cursor:'pointer',letterSpacing:'0.08em',opacity:.8}}>{obsCopied?'✓ OBS':'OBS'}</button>}
             {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:.8}}>+ CO-EDIT</button>}
             <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${shareCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:shareCopied?G.green:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:.8}}>{shareCopied?'✓ COPIED':'⇗ SHARE'}</button>
+            {canEdit && hunt.isLive && onEndHunt && (
+              <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:24,padding:'0 10px',background:'rgba(255,68,68,0.08)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.red,cursor:'pointer',letterSpacing:'0.06em'}}>END HUNT</button>
+            )}
+            {canEdit && onResetHunt && (
+              <button onClick={onResetHunt} style={{height:24,padding:'0 10px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em'}}>RESET</button>
+            )}
             <button onClick={onBack} style={{fontFamily:G.mono,fontSize:9,color:G.t3,background:'none',border:'none',cursor:'pointer',letterSpacing:'0.08em'}}>← HUB</button>
           </div>
         </div>
