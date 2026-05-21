@@ -5,9 +5,12 @@ import HuntTracker from '../components/HuntTracker';
 
 const VIP_HOSTS = ['bean','mcflurry','mihallimou','missingiscool','cuda','randycabbage'];
 
+const BEAN_EQUITY = { id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false };
+
 const EMPTY_HUNT = (user, huntType) => ({
   user: user || { id:'offline', displayName:'You', avatar:null },
-  isLive: false, huntType, bonuses: [], equity: [], calls: [], editors: []
+  isLive: false, huntType, bonuses: [], calls: [], editors: [],
+  equity: huntType === 'vip' ? [{ ...BEAN_EQUITY }] : [],
 });
 
 export default function MyHunt({ user }) {
@@ -23,7 +26,21 @@ export default function MyHunt({ user }) {
     if (!user) { setLoading(false); return; }
     apiFetch('/api/my-hunt')
       .then(data => {
-        if (data && data.huntType) { setHunt(data); setStarted(true); setOffline(false); }
+        if (data && data.huntType) {
+          // Ensure Bean is always in VIP equity
+          if (data.huntType === 'vip') {
+            const hasBean = (data.equity||[]).some(e => e.name === 'Bean' || e.id === 'bean_auto');
+            if (!hasBean) {
+              data.equity = [{ id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false }, ...(data.equity||[])];
+              // Save Bean back to server immediately
+              apiFetch('/api/my-hunt', {
+                method: 'PUT',
+                body: JSON.stringify({ equity: data.equity, bonuses: data.bonuses, calls: data.calls, huntType: data.huntType })
+              }).catch(()=>{});
+            }
+          }
+          setHunt(data); setStarted(true); setOffline(false);
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
