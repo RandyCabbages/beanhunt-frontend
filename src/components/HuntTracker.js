@@ -922,8 +922,28 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   const lines=discordText.split('\n'),winners=[],hosts=[];
                   lines.forEach(line=>{line=line.trim();if(!line)return;if(line[0]==='#'){const p=line.split(/\s+/);if(p.length>=2&&p[1].toLowerCase()!=='name')winners.push(p[1]);}else if(line.toLowerCase().startsWith('host:')){const p=line.split(/\s+/);if(p.length>=2)hosts.push(p[1]);}});
                   if(!winners.length&&!hosts.length){setParseHint('No names found.');return;}
-                  const newEq=[{id:uid(),name:'Bean',amount:beanAmt,isRollWinner:false},...(hosts[0]?[{id:uid(),name:hosts[0],amount:defAmt,isRollWinner:false,isMod:true}]:[]),...winners.map(n=>({id:uid(),name:n,amount:defAmt,isRollWinner:true}))];
-                  upd(h=>({...h,equity:newEq}));setParseHint(`✓ Imported ${newEq.length} people`);
+                  // Merge winners into existing equity — combine amounts if already present
+                  // Bean never gets rolled — protect his equity
+                  const allWinnerNames = new Set(winners.map(n=>n.toLowerCase().trim()));
+                  const mergedEq = equity.map(e => {
+                    const n = (e.name||'').toLowerCase().trim();
+                    if (n === 'bean' || e.id === 'bean_auto') return e; // Bean is untouchable
+                    if (n && allWinnerNames.has(n)) {
+                      allWinnerNames.delete(n); // mark as handled
+                      return {...e, amount: parseFloat((e.amount + defAmt).toFixed(2)), isRollWinner: true};
+                    }
+                    return e;
+                  });
+                  // Add host if not already there
+                  const existingNames = new Set(mergedEq.map(e=>(e.name||'').toLowerCase().trim()));
+                  const hostEntry = hosts[0] && !existingNames.has(hosts[0].toLowerCase().trim())
+                    ? [{id:uid(),name:hosts[0],amount:defAmt,isRollWinner:false,isMod:true}] : [];
+                  // Add brand new winners
+                  const newWinners = [...allWinnerNames]
+                    .map(n=>({id:uid(),name:winners.find(w=>w.toLowerCase().trim()===n)||n,amount:defAmt,isRollWinner:true}));
+                  const newEq = [...mergedEq, ...hostEntry, ...newWinners];
+                  const combined = equity.length - mergedEq.filter((e,i)=>e===equity[i]).length;
+                  upd(h=>({...h,equity:newEq}));setParseHint(`✓ ${newWinners.length} new, ${combined} combined, ${hostEntry.length} host`);
                 }} style={{height:26,padding:'0 10px',background:G.purple,color:'#000',border:'none',borderRadius:2,fontFamily:G.body,fontSize:11,fontWeight:700,cursor:'pointer'}}>Parse</button>
                 <button onClick={()=>{setDiscordText('');setParseHint('');}} style={{height:26,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.body,fontSize:11,color:G.t3,cursor:'pointer'}}>Clear</button>
                 {parseHint&&<span style={{fontFamily:G.mono,fontSize:10,color:parseHint.startsWith('✓')?G.green:G.red,alignSelf:'center'}}>{parseHint}</span>}
