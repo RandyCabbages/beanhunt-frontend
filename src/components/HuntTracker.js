@@ -443,7 +443,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
       {/* ── Top bar ── */}
       <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,position:'sticky',top:0,zIndex:40}}>
-        <div style={{maxWidth:1700,margin:'0 auto',padding:'0 1.25rem',height:54,display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:12}}>
+        <div style={{padding:'0 1.5rem',height:54,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           {/* Left: socials + title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
           {/* Bean socials */}
@@ -562,8 +562,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <button className="icon-btn-danger" onClick={()=>{if(window.confirm('Clear all slot calls?'))upd(h=>({...h,calls:[]}));}} title="Clear all" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
-                <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title="Set call limit per person" style={{height:24,padding:'0 8px',background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:3,cursor:'pointer',color:callLimit?accent:G.t3,fontFamily:G.mono,fontSize:10,fontWeight:700}}>
-                  {callLimit?`Limit: ${callLimit}`:'Set Limit'}
+                <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Call limit: ${callLimit} per person`:'Set call limit per person'}
+                  style={{height:28,width:28,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,position:'relative'}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {callLimit>0&&<span style={{position:'absolute',top:-5,right:-5,background:accent,color:'#000',borderRadius:'50%',width:14,height:14,fontSize:8,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
                 </button>
               </>}
               <span style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{pending.length}</span>
@@ -756,12 +758,17 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'flex',gap:5}}>
-              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} style={{height:28,padding:'0 10px',background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.4)',borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',opacity:dcWinners?0.5:1}}>
-                {dcWinners?'…':'⬇ Winners'}
+            {canEdit&&<div style={{display:'flex',gap:5,flexWrap:'wrap',justifyContent:'flex-end'}}>
+              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Scan Discord for the latest winners list and auto-import them" style={{height:30,padding:'0 11px',background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.45)',borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',opacity:dcWinners?0.5:1,display:'flex',alignItems:'center',gap:5}}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.75a4.85 4.85 0 0 1-1.01-.06z"/></svg>
+                {dcWinners?'Importing…':'Discord Winners'}
               </button>}
-              <button onClick={addRollWinner} style={{height:28,padding:'0 10px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer'}}>🎲 Roll Win</button>
-              <button onClick={addPerson} style={{height:28,padding:'0 10px',background:G.card,border:`1px solid ${G.bb}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer'}}>+ Person</button>
+              <button onClick={addRollWinner} title={`Add a roll winner — gets $${defAmt} equity (the standard per-person amount)`} style={{height:30,padding:'0 11px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+                🎲 Roll Winner <span style={{fontFamily:G.mono,fontSize:10,color:'rgba(198,241,53,0.6)',fontWeight:400}}>${defAmt}</span>
+              </button>
+              <button onClick={addPerson} title="Add someone with a custom equity amount — not part of the standard per-person pool" style={{height:30,padding:'0 11px',background:G.card,border:`1px solid ${G.bb}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+                + Extra Equity
+              </button>
             </div>}
           </div>
 
@@ -791,7 +798,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
                 <div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
               </div>
-              <div style={{overflowY:'auto',resize:'vertical',minHeight:80,maxHeight:600,padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start'}}>
+              <div style={{overflowY:'auto',minHeight:0,maxHeight:'calc(4 * 130px)',padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start'}}>
                 {equityDisplay.filter(e=>e.name||e.amount>0).map(e=>{
                   const pct=totalPot>0?(e.amount/totalPot)*100:0;
                   const share=totalPot>0?(e.amount/totalPot)*totalWon:0;
@@ -823,7 +830,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Equity inputs */}
           {canEdit&&(
-            <div style={{flex:1,overflowY:'auto',padding:'8px 12px'}}>
+            <div style={{flex:1,overflowY:'auto',maxHeight:'calc(4 * 50px + 180px)',padding:'8px 12px'}}>
               {(equity).map(e=>(
                 <div key={e.id}
                   draggable onDragStart={()=>setDragEquityId(e.id)}
@@ -855,6 +862,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   </div>
                 </div>
               ))}
+              {/* Starting balance inline */}
+              {canEdit && <div style={{margin:'10px 0 4px',padding:'10px 12px',background:G.bg2,border:`1px solid ${G.bdr}`,borderRadius:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:G.t3,letterSpacing:'0.06em',textTransform:'uppercase'}}>Starting Balance</span>
+                <span style={{fontFamily:G.display,fontSize:'1.8rem',fontWeight:700,color:G.gold}}>{fmt(totalPot)}</span>
+              </div>}
             </div>
           )}
 
@@ -872,12 +884,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             </div>
           )}
-
-          {/* Starting balance */}
-          <div style={{padding:'8px 12px',borderTop:`1px solid ${G.bdr}`,display:'flex',justifyContent:'space-between',alignItems:'center',background:G.bg2,flexShrink:0}}>
-            <span style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>STARTING BALANCE</span>
-            <span style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,color:G.gold,letterSpacing:'0.03em'}}>{fmt(totalPot)}</span>
-          </div>
 
           {/* Discord import */}
           {isVip&&canEdit&&(
