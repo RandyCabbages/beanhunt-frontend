@@ -4,12 +4,12 @@ import { socket, API, apiFetch } from '../api';
 
 // ── Design tokens — matches HuntTracker exactly ──────────────────
 const C = {
-  bg:'#111111', sur:'#131313', card:'#1a1a1a', lift:'#222222',
-  bdr:'rgba(255,255,255,0.09)', bb:'rgba(255,255,255,0.18)',
+  bg:'#161618', sur:'#222226', card:'#26262a', lift:'#2c2c32',
+  bdr:'rgba(255,255,255,0.15)', bb:'rgba(255,255,255,0.28)',
   gold:'#c6f135', gold2:'#d4f55a',
-  green:'#c6f135',
-  red:'#ff4444', purple:'#bb86fc',
-  txt:'#ffffff', txt2:'#cccccc', label:'#666666', faint:'#444444',
+  green:'#4ade80',
+  red:'#f87171', purple:'#c084fc',
+  txt:'#ffffff', txt2:'#e8e8e8', label:'#b0b0b0', faint:'#808080',
   font:"'Chakra Petch',sans-serif",
 };
 
@@ -220,7 +220,7 @@ export default function Hub({ user }) {
   const deleteHunt = async id => { if(!window.confirm('Delete permanently?')) return; await apiFetch(`/api/admin/hunts/${id}`,{method:'DELETE'}); };
 
   const archived = allHunts.filter(h=>!h.isLive&&h.archivedAt);
-  const display  = tab==='live'?hunts:tab==='archived'?archived:allHunts;
+  const display  = tab==='live'?hunts:tab==='archived'?archived:allHunts.filter(h=>h.isLive||h.archivedAt);
 
   return (
     <div style={{minHeight:'100vh',background:C.bg,fontFamily:C.font}}>
@@ -232,7 +232,7 @@ export default function Hub({ user }) {
 
       {/* Social links bar */}
       <div style={{background:C.sur,borderBottom:`1px solid rgba(255,255,255,0.07)`,padding:'0 1.5rem'}}>
-        <div style={{maxWidth:1200,margin:'0 auto',height:38,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
+        <div style={{padding:'0 1.5rem',height:38,display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
           <div style={{display:'flex',alignItems:'center',gap:4}}>
             {SOCIALS.map(s=>(
               <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
@@ -252,9 +252,14 @@ export default function Hub({ user }) {
 
       {/* Main nav */}
       <div style={{background:C.sur,borderBottom:`1px solid rgba(255,255,255,0.13)`,padding:'0 1.5rem'}}>
-        <div style={{maxWidth:1200,margin:'0 auto',height:56,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+        <div style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           <div style={{fontFamily:C.font,fontSize:26,fontWeight:700,letterSpacing:'0.04em',color:C.txt,lineHeight:1}}>
             BeanTards <span style={{color:C.gold}}>Hunt Tracker</span>
+          </div>
+          <div style={{textAlign:'center'}}>
+            <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
+              <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:16,fontWeight:700,letterSpacing:'0.1em',background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>#joinbeancore</span>
+            </a>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             {user ? (
@@ -296,7 +301,7 @@ export default function Hub({ user }) {
       )}
 
       {/* Content */}
-      <div style={{maxWidth:1200,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
+      <div style={{padding:'1.75rem 1.5rem 4rem'}}>
 
         {/* Page header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'1.25rem',flexWrap:'wrap',gap:10}}>

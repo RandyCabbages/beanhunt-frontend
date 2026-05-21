@@ -97,16 +97,19 @@ export default function MyHunt({ user }) {
 
   // Start screen
   if (!started || !hunt) return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:28, padding:'2rem', background:'#111111', fontFamily:"'Chakra Petch',sans-serif" }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:28, padding:'2rem', background:'#161618', fontFamily:"'Chakra Petch',sans-serif" }}>
       <div style={{ textAlign:'center' }}>
         <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:11, color:'#c6f135', letterSpacing:'0.15em', textTransform:'uppercase', opacity:.8, marginBottom:8 }}>Rainbet</div>
-        <h1 style={{ fontSize:'clamp(2rem,5vw,3rem)', fontWeight:700, letterSpacing:'0.02em', lineHeight:1, color:'#ffffff' }}>
+        <h1 style={{ fontSize:'clamp(2.4rem,5vw,3.4rem)', fontWeight:700, letterSpacing:'0.04em', lineHeight:1, color:'#ffffff' }}>
           Start a <span style={{ color:'#c6f135' }}>Hunt</span>
         </h1>
+        <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{ textDecoration:'none', display:'block', marginTop:10 }}>
+          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:15, fontWeight:700, letterSpacing:'0.1em', background:'linear-gradient(90deg,#9146ff,#c6f135)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>#joinbeancore</span>
+        </a>
       </div>
 
       {/* Online hunts */}
-      <div style={{ background:'#161616', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
+      <div style={{ background:'#222226', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
         <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'#555555', marginBottom:12 }}>
           Online — visible on hub, updates live
         </div>
@@ -141,7 +144,7 @@ export default function MyHunt({ user }) {
       </div>
 
       {/* Offline hunts */}
-      <div style={{ background:'#161616', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
+      <div style={{ background:'#222226', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
         <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'#555555', marginBottom:8 }}>
           Offline — local only, not on hub
         </div>
