@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { apiFetch, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
 
-const VIP_HOSTS = ['bean','mcflurry','mihallimou','missingiscool','cuda','randycabbage'];
-
 const BEAN_EQUITY = { id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false };
 
 const EMPTY_HUNT = (user, huntType) => ({
@@ -122,7 +120,7 @@ export default function MyHunt({ user }) {
               <button onClick={() => startOnlineHunt('community')} style={{ flex:1, height:46, background:'transparent', border:'2px solid #c6f135', borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#c6f135', cursor:'pointer' }}>
                 🎰 Community
               </button>
-              {user.isAdmin || VIP_HOSTS.includes((user.displayName||user.username||'').toLowerCase()) && (
+              {(user.isVipHost || user.isAdmin) && (
                 <button onClick={() => startOnlineHunt('vip')} style={{ flex:1, height:46, background:'transparent', border:'2px solid #bb86fc', borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#bb86fc', cursor:'pointer' }}>
                   👑 VIP
                 </button>
