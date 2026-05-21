@@ -820,7 +820,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   const share=totalPot>0?(e.amount/totalPot)*totalWon:0;
                   const pl=share-e.amount;const hw=totalWon>0;
                   return (
-                    <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px'}}>
+                    <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px',position:'relative'}}>
                       <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
                         {e.isRollWinner&&<span style={{fontSize:11,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
@@ -828,15 +828,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
                       <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
                       {hw&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
-                      {canEdit&&<button onClick={()=>{
+                      {canEdit&&<button onClick={e2=>{e2.stopPropagation();
                         const others=equity.filter(x=>x.id!==e.id&&x.name);
                         if(!others.length){alert('No other members to split to.');return;}
                         if(!window.confirm(`Divvy up ${e.name}'s ${fmt(e.amount)} equally among ${others.length} others?`))return;
                         const pp=parseFloat((e.amount/others.length).toFixed(2));
                         upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
-                      }} style={{marginTop:6,width:'100%',height:24,background:'rgba(198,241,53,0.1)',border:'1px solid rgba(198,241,53,0.3)',borderRadius:4,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer'}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.22)'}
-                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.1)'}>÷ Divvy Up</button>}
+                      }} title="Divvy up this person's equity among everyone else"
+                      style={{position:'absolute',top:6,right:6,width:22,height:22,background:'rgba(198,241,53,0.1)',border:'1px solid rgba(198,241,53,0.3)',borderRadius:3,fontFamily:G.mono,fontSize:12,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.25)'}
+                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.1)'}>÷</button>}
                     </div>
                   );
                 })}
