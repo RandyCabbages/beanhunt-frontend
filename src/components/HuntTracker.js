@@ -861,7 +861,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     upd(h=>{const a=h.equity.slice(),fi=a.findIndex(x=>x.id===dragEquityId),ti=a.findIndex(x=>x.id===e.id);const[m]=a.splice(fi,1);a.splice(ti,0,m);return{...h,equity:a};});
                     setDragEquityId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'14px 1fr 65px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
+                  style={{display:'grid',gridTemplateColumns:'14px 150px 1fr auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
                     <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?28:10}} />
@@ -873,20 +873,20 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     }
                   </div>
                   {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
-                    <div style={{display:'flex',flexDirection:'column',gap:3}}>
-                      <div style={{position:'relative'}}>
+                    <div style={{display:'flex',gap:3}}>
+                      <div style={{position:'relative',flex:1}}>
                         <input key={`${e.id}-base`} type="number"
                           defaultValue={(e.amount-e.rollAmount).toFixed(0)}
                           onChange={ev=>{const base=parseFloat(ev.target.value)||0;updatePerson(e.id,'amount',base+(e.rollAmount||0));}}
-                          style={{...inp,height:28,fontSize:11,paddingRight:38}} />
-                        <span style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontFamily:G.mono,fontSize:8,color:'#fb923c',pointerEvents:'none'}}>ADDED</span>
+                          style={{...inp,height:34,fontSize:11,paddingTop:12,width:'100%'}} />
+                        <span style={{position:'absolute',top:3,left:6,fontFamily:G.mono,fontSize:7,fontWeight:700,color:'#fb923c',pointerEvents:'none',letterSpacing:'0.05em'}}>ADDED</span>
                       </div>
-                      <div style={{position:'relative'}}>
+                      <div style={{position:'relative',flex:1}}>
                         <input key={`${e.id}-roll`} type="number"
                           defaultValue={e.rollAmount.toFixed(0)}
                           onChange={ev=>{const roll=parseFloat(ev.target.value)||0;const base=e.amount-(e.rollAmount||0);updatePerson(e.id,'amount',base+roll);upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,rollAmount:roll}:x)}));}}
-                          style={{...inp,height:28,fontSize:11,paddingRight:38}} />
-                        <span style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontFamily:G.mono,fontSize:8,color:G.gold,pointerEvents:'none'}}>ROLL WIN</span>
+                          style={{...inp,height:34,fontSize:11,paddingTop:12,width:'100%'}} />
+                        <span style={{position:'absolute',top:3,left:6,fontFamily:G.mono,fontSize:7,fontWeight:700,color:G.gold,pointerEvents:'none',letterSpacing:'0.05em'}}>ROLL WIN</span>
                       </div>
                     </div>
                   ) : (
