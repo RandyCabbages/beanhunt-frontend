@@ -827,11 +827,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       </div>
                       <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
                         {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
-                          ? <><span style={{color:'#fb923c'}}>{fmt(e.amount-e.rollAmount)}</span><span style={{color:G.t4}}> + </span><span style={{color:G.gold}}>{fmt(e.rollAmount)}</span></>
+                          ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
                           : fmt(e.amount)}
                       </div>
-                      <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
-                      {hw&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
+                      <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
+                      {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
                       {canEdit&&<button onClick={e2=>{e2.stopPropagation();
                         const others=equity.filter(x=>x.id!==e.id&&x.name);
                         if(!others.length){alert('No other members to split to.');return;}
@@ -872,16 +872,26 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
                     }
                   </div>
-                  <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                    <input key={`${e.id}-${e.amount}`} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
-                    {e.rollAmount>0 && (e.amount-e.rollAmount)>0 && (
-                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textAlign:'center',letterSpacing:'0.03em'}}>
-                        <span style={{color:'#fb923c'}}>${(e.amount-e.rollAmount).toFixed(0)}</span>
-                        <span style={{color:G.t4}}> + </span>
-                        <span style={{color:G.gold}}>${e.rollAmount.toFixed(0)}</span>
+                  {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
+                    <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                      <div style={{position:'relative'}}>
+                        <input key={`${e.id}-base`} type="number"
+                          defaultValue={(e.amount-e.rollAmount).toFixed(0)}
+                          onChange={ev=>{const base=parseFloat(ev.target.value)||0;updatePerson(e.id,'amount',base+(e.rollAmount||0));}}
+                          style={{...inp,height:28,fontSize:11,paddingRight:38}} />
+                        <span style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontFamily:G.mono,fontSize:8,color:'#fb923c',pointerEvents:'none'}}>ADDED</span>
                       </div>
-                    )}
-                  </div>
+                      <div style={{position:'relative'}}>
+                        <input key={`${e.id}-roll`} type="number"
+                          defaultValue={e.rollAmount.toFixed(0)}
+                          onChange={ev=>{const roll=parseFloat(ev.target.value)||0;const base=e.amount-(e.rollAmount||0);updatePerson(e.id,'amount',base+roll);upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,rollAmount:roll}:x)}));}}
+                          style={{...inp,height:28,fontSize:11,paddingRight:38}} />
+                        <span style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontFamily:G.mono,fontSize:8,color:G.gold,pointerEvents:'none'}}>ROLL WIN</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <input key={`${e.id}-${e.amount}`} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
+                  )}
                   <div style={{display:'flex',gap:2}}>
                     <button onClick={()=>{
                       const others=equity.filter(x=>x.id!==e.id&&x.name);
