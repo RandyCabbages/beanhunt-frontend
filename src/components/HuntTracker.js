@@ -205,6 +205,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
+  const [dcImporting,   setDcImporting]   = useState(false);
+  const [dcWinners,     setDcWinners]     = useState(false);
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
@@ -223,6 +225,33 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     socket.on('bean:live', setBeanLive);
     return () => socket.off('bean:live', setBeanLive);
   }, []);
+
+  const importDiscordCalls = useCallback(async () => {
+    setDcImporting(true);
+    try {
+      const data = await apiFetch('/api/discord/import-calls');
+      if (!data.imported?.length) { alert('No new slot calls found in the last 20 minutes.'); return; }
+      upd(h => ({ ...h, calls: [...(h.calls||[]), ...data.imported] }));
+      alert(`✅ Imported ${data.count} slot call${data.count!==1?'s':''} from Discord.`);
+    } catch(e) { alert(`Discord import failed: ${e.message}`); }
+    finally { setDcImporting(false); }
+  }, [upd]);
+
+  const parseDiscordWinners = useCallback(async (defAmt) => {
+    setDcWinners(true);
+    try {
+      const data = await apiFetch('/api/discord/parse-winners');
+      if (!data.winners?.length) { alert(data.raw || 'No winner results found.'); return; }
+      const existing = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()));
+      const newWinners = data.winners
+        .filter(w => !existing.has(w.name.toLowerCase().trim()))
+        .map(w => ({ id: `w_${w.place}_${Date.now()}`, name: w.name, amount: defAmt||100, isRollWinner: true, roll: w.roll, luck: w.luck }));
+      if (!newWinners.length) { alert('All winners are already in equity.'); return; }
+      upd(h => ({ ...h, equity: [...(h.equity||[]), ...newWinners] }));
+      alert(`✅ Added ${newWinners.length} winner${newWinners.length!==1?'s':''} to equity.`);
+    } catch(e) { alert(`Parse failed: ${e.message}`); }
+    finally { setDcWinners(false); }
+  }, [upd, hunt.equity]);
 
   const upd = useCallback(fn => {
     if (readOnly || !onUpdateHunt) return;
@@ -527,6 +556,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
             <div style={{display:'flex',alignItems:'center',gap:4}}>
               {canEdit && <>
+                {isVip && <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:22,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcImporting?0.5:1}}>
+                  {dcImporting?'…':'⬇ DISCORD'}
+                </button>}
                 <button className="icon-btn" onClick={()=>setSlotCountModal(true)} title="Generate random" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'2px',lineHeight:1}}>🎲</button>
                 <button className="icon-btn" onClick={randomizeCalls} title="Shuffle" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16l-4 4-1.4-1.4 2.6-2.6H3v-2h14.8l-2.6-2.6L16.6 10l4 4-4 4zm0-8l-4-4-1.4 1.4 2.6 2.6H3v2h14.8l-2.6 2.6L16.6 14l4-4z"/></svg>
@@ -703,6 +735,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
             {canEdit&&<div style={{display:'flex',gap:4}}>
+              <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Parse winners from Discord and add to equity" style={{height:24,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcWinners?0.5:1}}>
+                {dcWinners?'…':'⬇ WINNERS'}
+              </button>
               <button onClick={addRollWinner} title={`Add roll winner at ${fmt(defAmt)}`} style={{height:24,padding:'0 8px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.3)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,cursor:'pointer',letterSpacing:'0.05em'}}>🎲 +ROLL</button>
               <button onClick={addPerson} style={{height:24,padding:'0 10px',background:'transparent',border:`1px solid ${G.bb}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t2,cursor:'pointer',letterSpacing:'0.06em'}}>+ PERSON</button>
             </div>}
