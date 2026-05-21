@@ -825,7 +825,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         {e.isRollWinner&&<span style={{fontSize:11,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
-                      <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
+                      <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
+                        {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
+                          ? <><span style={{color:'#fb923c'}}>{fmt(e.amount-e.rollAmount)}</span><span style={{color:G.t4}}> + </span><span style={{color:G.gold}}>{fmt(e.rollAmount)}</span></>
+                          : fmt(e.amount)}
+                      </div>
                       <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
                       {hw&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
                       {canEdit&&<button onClick={e2=>{e2.stopPropagation();
@@ -868,7 +872,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
                     }
                   </div>
-                  <input type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
+                  <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                    <input key={`${e.id}-${e.amount}`} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
+                    {e.rollAmount>0 && (e.amount-e.rollAmount)>0 && (
+                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textAlign:'center',letterSpacing:'0.03em'}}>
+                        <span style={{color:'#fb923c'}}>${(e.amount-e.rollAmount).toFixed(0)}</span>
+                        <span style={{color:G.t4}}> + </span>
+                        <span style={{color:G.gold}}>${e.rollAmount.toFixed(0)}</span>
+                      </div>
+                    )}
+                  </div>
                   <div style={{display:'flex',gap:2}}>
                     <button onClick={()=>{
                       const others=equity.filter(x=>x.id!==e.id&&x.name);
@@ -939,7 +952,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     if (n === 'bean' || e.id === 'bean_auto') return e; // Bean is untouchable
                     if (n && allWinnerNames.has(n)) {
                       allWinnerNames.delete(n); // mark as handled
-                      return {...e, amount: parseFloat((e.amount + defAmt).toFixed(2)), isRollWinner: true};
+                      const rollAmt = defAmt;
+                      const prevRoll = e.rollAmount||0;
+                      return {...e, amount: parseFloat((e.amount + rollAmt).toFixed(2)), rollAmount: parseFloat((prevRoll + rollAmt).toFixed(2)), isRollWinner: true};
                     }
                     return e;
                   });
