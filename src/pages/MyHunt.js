@@ -5,11 +5,19 @@ import HuntTracker from '../components/HuntTracker';
 
 const BEAN_EQUITY = { id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false };
 
-const EMPTY_HUNT = (user, huntType) => ({
-  user: user || { id:'offline', displayName:'You', avatar:null },
-  isLive: false, huntType, bonuses: [], calls: [], editors: [],
-  equity: huntType === 'vip' ? [{ ...BEAN_EQUITY }] : [],
-});
+const EMPTY_HUNT = (user, huntType) => {
+  const creatorName = user?.displayName || user?.username || '';
+  const equity = huntType === 'vip'
+    ? [
+        { ...BEAN_EQUITY },
+        ...(creatorName ? [{ id:'creator_auto', name:creatorName, amount:100, isRollWinner:true }] : [])
+      ]
+    : [];
+  return {
+    user: user || { id:'offline', displayName:'You', avatar:null },
+    isLive: false, huntType, bonuses: [], calls: [], editors: [], equity,
+  };
+};
 
 export default function MyHunt({ user }) {
   const navigate   = useNavigate();
@@ -27,10 +35,19 @@ export default function MyHunt({ user }) {
         if (data && data.huntType) {
           // Ensure Bean is always in VIP equity
           if (data.huntType === 'vip') {
+            let changed = false;
             const hasBean = (data.equity||[]).some(e => e.name === 'Bean' || e.id === 'bean_auto');
             if (!hasBean) {
               data.equity = [{ id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false }, ...(data.equity||[])];
-              // Save Bean back to server immediately
+              changed = true;
+            }
+            const creatorName = data.user?.displayName || data.user?.username || '';
+            const hasCreator = !creatorName || (data.equity||[]).some(e => e.id === 'creator_auto' || (e.name && e.name.toLowerCase() === creatorName.toLowerCase()));
+            if (!hasCreator) {
+              data.equity = [...(data.equity||[]), { id:'creator_auto', name:creatorName, amount:100, isRollWinner:true }];
+              changed = true;
+            }
+            if (changed) {
               apiFetch('/api/my-hunt', {
                 method: 'PUT',
                 body: JSON.stringify({ equity: data.equity, bonuses: data.bonuses, calls: data.calls, huntType: data.huntType })
@@ -57,7 +74,15 @@ export default function MyHunt({ user }) {
 
   const startOnlineHunt = async (huntType) => {
     await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
-    setHunt(EMPTY_HUNT(user, huntType));
+    const emptyHunt = EMPTY_HUNT(user, huntType);
+    // Save initial equity (including creator) to server immediately
+    if (emptyHunt.equity.length > 0) {
+      await apiFetch('/api/my-hunt', {
+        method: 'PUT',
+        body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
+      }).catch(()=>{});
+    }
+    setHunt(emptyHunt);
     setStarted(true); setOffline(false);
   };
 
