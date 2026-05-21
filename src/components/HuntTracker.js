@@ -920,7 +920,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <div style={{display:'flex',gap:5,marginTop:5}}>
                 <button onClick={()=>{
                   const lines=discordText.split('\n'),winners=[],hosts=[];
-                  lines.forEach(line=>{line=line.trim();if(!line)return;if(line[0]==='#'){const p=line.split(/\s+/);if(p.length>=2&&p[1].toLowerCase()!=='name')winners.push(p[1]);}else if(line.toLowerCase().startsWith('host:')){const p=line.split(/\s+/);if(p.length>=2)hosts.push(p[1]);}});
+                  lines.forEach(line=>{
+                    line=line.trim();if(!line)return;
+                    if(line[0]==='#'){
+                      // Match: #N   Full Name Here   123.456   +X   Checked-In
+                      const m=line.match(/^#\d+\s+(.+?)\s+\d+\.\d+/);
+                      if(m&&m[1].toLowerCase()!=='name')winners.push(m[1].trim());
+                    }else if(line.toLowerCase().startsWith('host:')){
+                      const p=line.split(/\s+/);if(p.length>=2)hosts.push(p.slice(1).join(' '));
+                    }
+                  });
                   if(!winners.length&&!hosts.length){setParseHint('No names found.');return;}
                   // Merge winners into existing equity — combine amounts if already present
                   // Bean never gets rolled — protect his equity
