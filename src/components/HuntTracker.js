@@ -771,7 +771,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'flex',gap:5,flexWrap:'wrap',justifyContent:'flex-end'}}>
+            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
               {isVip && <button onClick={()=>setShowDcImport(v=>!v)} title="Import equity members from a pasted Discord message" style={{height:30,padding:'0 11px',background:showDcImport?'rgba(88,101,242,0.3)':'rgba(88,101,242,0.15)',border:`1px solid rgba(88,101,242,${showDcImport?'0.7':'0.45'})`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
                 Discord Import
@@ -859,10 +859,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 65px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:500,paddingLeft:(e.isRollWinner||e.name||e.amount>0)?28:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?28:10}} />
                     {e.isRollWinner
                       ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
-                      : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
+                      : e.isMod
+                        ? <svg style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 20 20" fill="#9146ff"><path d="M10 0L7 7H0l6 4.5L4 18l6-4 6 4-2-6.5L20 7h-7z"/></svg>
+                        : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
                     }
                   </div>
                   <input type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
@@ -919,7 +921,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   const lines=discordText.split('\n'),winners=[],hosts=[];
                   lines.forEach(line=>{line=line.trim();if(!line)return;if(line[0]==='#'){const p=line.split(/\s+/);if(p.length>=2&&p[1].toLowerCase()!=='name')winners.push(p[1]);}else if(line.toLowerCase().startsWith('host:')){const p=line.split(/\s+/);if(p.length>=2)hosts.push(p[1]);}});
                   if(!winners.length&&!hosts.length){setParseHint('No names found.');return;}
-                  const newEq=[{id:uid(),name:'Bean',amount:beanAmt,isRollWinner:false},...(hosts[0]?[{id:uid(),name:hosts[0]+' (mod)',amount:defAmt,isRollWinner:false}]:[]),...winners.map(n=>({id:uid(),name:n,amount:defAmt,isRollWinner:true}))];
+                  const newEq=[{id:uid(),name:'Bean',amount:beanAmt,isRollWinner:false},...(hosts[0]?[{id:uid(),name:hosts[0],amount:defAmt,isRollWinner:false,isMod:true}]:[]),...winners.map(n=>({id:uid(),name:n,amount:defAmt,isRollWinner:true}))];
                   upd(h=>({...h,equity:newEq}));setParseHint(`✓ Imported ${newEq.length} people`);
                 }} style={{height:26,padding:'0 10px',background:G.purple,color:'#000',border:'none',borderRadius:2,fontFamily:G.body,fontSize:11,fontWeight:700,cursor:'pointer'}}>Parse</button>
                 <button onClick={()=>{setDiscordText('');setParseHint('');}} style={{height:26,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.body,fontSize:11,color:G.t3,cursor:'pointer'}}>Clear</button>
