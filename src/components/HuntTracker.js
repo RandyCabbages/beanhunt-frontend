@@ -412,7 +412,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const btnGhost   = { height:36, padding:'0 14px', background:'transparent', border:`1px solid ${G.bdr}`, borderRadius:3, fontFamily:G.body, fontSize:13, color:G.t3, cursor:'pointer' };
 
   return (
-    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1}}>
+    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2}}>
       <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -520,33 +520,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
       </div>
 
-      {/* ── Stats strip — mode-aware ── */}
-      <div style={{background:G.bg2,borderBottom:`3px solid ${G.bdr}`,borderTop:`1px solid ${G.bdr}`,display:'flex',flexWrap:'wrap',maxWidth:'100%'}}>
-        {huntMode==='creating'&&<>
-          <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
-          <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
-          <StatTile label="Call Limit" value={callLimit>0?`${callLimit} per person`:'Unlimited'} color={callLimit>0?accent:G.t3} accent={acStr} />
-          <StatTile label="Slots Called" value={calls.length} color={calls.length>0?G.t1:G.t3} accent={acStr} />
-        </>}
-        {huntMode==='spinning'&&<>
-          <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
-          <StatTile label="Bonuses" value={bonuses.length} accent={acStr} />
-          <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
-          <StatTile label="Top Caller" value={topCaller?`${topCaller[0]}  ×${topCaller[1]}`:'—'} color={topCaller?G.green:G.t3} accent={G.green} wide />
-        </>}
-        {huntMode==='rolling'&&<>
-          <StatTile label="Balance" value={`${fmt(totalWon)} / ${fmt(totalPot)}`} color={totalWon>=totalPot?G.green:accent} accent={acStr} wide />
-          <StatTile label="Bonuses" value={`${rolledCount}/${bonuses.length}`} color={G.t1} accent={acStr} />
-          <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
-          <StatTile label="Avg X" value={avgX?avgX.toFixed(1)+'x':'—'} color={G.t2} accent={acStr} />
-          <StatTile label="Highest X" value={highX?highX.toFixed(1)+'x':'—'} color={highX?(highX>=100?G.green:G.red):G.t3} accent={acStr} />
-          <StatTile label="Best Slot" value={bestBonus?bestBonus.slot:'—'} color={accent} accent={acStr} wide />
-          <StatTile label="Top Roller" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
-        </>}
-      </div>
-
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:'220px 1fr 480px',height:'calc(100vh - 55px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -555,11 +530,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',gap:2}}>
               {[['creating','📋','CREATING'],['spinning','🎰','SPINNING'],['rolling','🎲','ROLLING']].map(([mode,icon,lbl])=>(
                 <button key={mode} onClick={()=>changeMode(mode)} style={{
-                  flex:1, height:28, border:`1px solid ${huntMode===mode?accent:G.bdr}`,
-                  borderRadius:2, fontFamily:G.mono, fontSize:9, fontWeight:700, cursor:'pointer',
+                  flex:1, height:32, border:`1px solid ${huntMode===mode?accent:G.bdr}`,
+                  borderRadius:4, fontFamily:G.mono, fontSize:11, fontWeight:700, cursor:'pointer',
                   background:huntMode===mode?acDim:'transparent',
-                  color:huntMode===mode?accent:'#999999',
-                  letterSpacing:'0.06em', transition:'all .1s'
+                  color:huntMode===mode?accent:G.t3,
+                  letterSpacing:'0.04em', transition:'all .1s'
                 }}>
                   {icon} {lbl}
                 </button>
@@ -570,15 +545,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>SLOT CALLS</span>
+              <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,letterSpacing:'0.04em',color:G.t1}}>SLOT CALLS</span>
               {pending.length>8&&huntMode!=='creating'&&(
                 <span style={{fontFamily:G.mono,fontSize:9,color:accent,background:acDim,border:`1px solid ${accent}44`,borderRadius:2,padding:'1px 6px',letterSpacing:'0.06em'}}>+{pending.length-8}</span>
               )}
             </div>
             <div style={{display:'flex',alignItems:'center',gap:4}}>
               {canEdit && <>
-                <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:22,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcImporting?0.5:1}}>
-                  {dcImporting?'…':'⬇ DISCORD'}
+                <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:24,padding:'0 9px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:3,fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#a5b4fc',cursor:'pointer',opacity:dcImporting?0.5:1}}>
+                  {dcImporting?'…':'⬇ Discord'}
                 </button>
                 <button className="icon-btn" onClick={()=>setSlotCountModal(true)} title="Generate random" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'2px',lineHeight:1}}>🎲</button>
                 <button className="icon-btn" onClick={randomizeCalls} title="Shuffle" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
@@ -587,8 +562,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <button className="icon-btn-danger" onClick={()=>{if(window.confirm('Clear all slot calls?'))upd(h=>({...h,calls:[]}));}} title="Clear all" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
-                <button className="icon-btn" onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Limit: ${callLimit}`:'Set limit'} style={{background:'none',border:'none',cursor:'pointer',color:callLimit?accent:G.t3,fontFamily:G.mono,fontSize:10,padding:'2px',letterSpacing:'0.04em'}}>
-                  {callLimit?`⌀${callLimit}`:'⌀'}
+                <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title="Set call limit per person" style={{height:24,padding:'0 8px',background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:3,cursor:'pointer',color:callLimit?accent:G.t3,fontFamily:G.mono,fontSize:10,fontWeight:700}}>
+                  {callLimit?`Limit: ${callLimit}`:'Set Limit'}
                 </button>
               </>}
               <span style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{pending.length}</span>
@@ -597,7 +572,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {canCall && (
             <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,flexShrink:0}}>
-              <button onClick={openCallModal} style={{width:'100%',height:28,background:'transparent',border:`1px solid ${G.bb}`,borderRadius:2,fontFamily:G.body,fontSize:12,fontWeight:600,color:G.t2,cursor:'pointer',letterSpacing:'0.02em'}}>
+              <button onClick={openCallModal} style={{width:'100%',height:36,background:'transparent',border:`1px solid ${G.bb}`,borderRadius:5,fontFamily:G.body,fontSize:14,fontWeight:600,color:G.t2,cursor:'pointer'}}>
                 + Add Call
               </button>
             </div>
@@ -634,12 +609,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit && !isLocked && <button className="icon-btn-danger" onClick={()=>removeCall(c.id)} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:12,lineHeight:1}}>×</button>}
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
-                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:G.t1,paddingRight:14}}>{c.slot}</div>
-                  <div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t3,marginTop:2,letterSpacing:'0.02em'}}>{c.user}</div>
+                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
+                  <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
                   {canCall&&(
                     <div style={{display:'flex',gap:4,marginTop:6}}>
-                      <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:22,padding:'0 10px',background:G.gndim,border:`1px solid ${G.green}44`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.green,cursor:'pointer',letterSpacing:'0.06em'}}>✓ GOT IN</button>
-                      <button onClick={()=>setCallStatus(c.id,'out')} style={{height:22,padding:'0 10px',background:G.rdim,border:`1px solid ${G.red}44`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.red,cursor:'pointer',letterSpacing:'0.06em'}}>✗ MISS</button>
+                      <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
+                      <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
                     </div>
                   )}
                 </div>
@@ -668,6 +643,32 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
         {/* ── MIDDLE: Bonuses ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+          {/* Stat tiles — centered above bonus tracker */}
+          <div style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0}}>
+            {huntMode==='creating'&&<>
+              <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
+              <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
+              <StatTile label="Call Limit" value={callLimit>0?`${callLimit} per person`:'Unlimited'} color={callLimit>0?accent:G.t3} accent={acStr} />
+              <StatTile label="Slots Called" value={calls.length} color={calls.length>0?G.t1:G.t3} accent={acStr} />
+            </>}
+            {huntMode==='spinning'&&<>
+              <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
+              <StatTile label="Bonuses" value={bonuses.length} accent={acStr} />
+              <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
+              <StatTile label="Top Caller" value={topCaller?`${topCaller[0]}  ×${topCaller[1]}`:'—'} color={topCaller?G.green:G.t3} accent={G.green} wide />
+            </>}
+            {huntMode==='rolling'&&<>
+              <StatTile label="Balance" value={`${fmt(totalWon)} / ${fmt(totalPot)}`} color={totalWon>=totalPot?G.green:accent} accent={acStr} wide />
+              <StatTile label="Bonuses" value={`${rolledCount}/${bonuses.length}`} color={G.t1} accent={acStr} />
+              <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
+              <StatTile label="Avg X" value={avgX?avgX.toFixed(1)+'x':'—'} color={G.t2} accent={acStr} />
+              <StatTile label="Highest X" value={highX?highX.toFixed(1)+'x':'—'} color={highX?(highX>=100?G.green:G.red):G.t3} accent={acStr} />
+              <StatTile label="Best Slot" value={bestBonus?bestBonus.slot:'—'} color={accent} accent={acStr} wide />
+              <StatTile label="Top Roller" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
+            </>}
+          </div>
+
           {/* Add bonus form */}
           {canEdit&&(
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 90px auto',gap:6,flexShrink:0,background:G.bg2}}>
@@ -694,7 +695,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Bonus rows */}
           <div style={{flex:1,overflowY:'auto'}}>
             {sortedBonuses.length===0?(
-              <div style={{fontFamily:G.mono,fontSize:10,color:G.t4,textAlign:'center',padding:'2rem',letterSpacing:'0.06em'}}>NO BONUSES YET</div>
+              <div style={{fontFamily:G.mono,fontSize:14,color:G.t4,textAlign:'center',padding:'3rem',letterSpacing:'0.04em'}}>No bonuses yet</div>
             ):sortedBonuses.map(b=>{
               const mult=b.bet>0&&b.win>0?b.win/b.bet:null;
               const mc=mult?(mult>=100?G.green:G.red):G.t3;
