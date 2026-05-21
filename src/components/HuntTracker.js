@@ -861,16 +861,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       </div>
                       <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
                       {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
-                      {canEdit&&<button onClick={e2=>{e2.stopPropagation();
-                        const others=equity.filter(x=>x.id!==e.id&&x.name);
-                        if(!others.length){alert('No other members to split to.');return;}
-                        if(!window.confirm(`Divvy up ${e.name}'s ${fmt(e.amount)} equally among ${others.length} others?`))return;
-                        const pp=parseFloat((e.amount/others.length).toFixed(2));
-                        upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
-                      }} title="Divvy up this person's equity among everyone else"
-                      style={{position:'absolute',top:6,right:6,width:22,height:22,background:'rgba(198,241,53,0.1)',border:'1px solid rgba(198,241,53,0.3)',borderRadius:3,fontFamily:G.mono,fontSize:12,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.25)'}
-                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.1)'}>÷</button>}
+
                     </div>
                   );
                 })}
