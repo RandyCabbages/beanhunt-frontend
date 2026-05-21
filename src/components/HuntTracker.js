@@ -763,7 +763,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Live winnings — scrollable, all together */}
-          {equityDisplay.length>0&&totalPot>0&&(
+          {equityDisplay.filter(e=>e.name||e.amount>0).length>0&&totalPot>0&&(
             <div style={{borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',flexDirection:'column'}}>
               <div style={{padding:'6px 12px 4px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:G.t4,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
@@ -783,6 +783,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
                       <div style={{fontFamily:G.display,fontSize:'1.1rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,marginTop:2,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
                       {hw&&<div style={{fontFamily:G.mono,fontSize:9,color:pl>=0?G.green:G.red}}>{fmtS(pl)}</div>}
+                      {canEdit&&<button onClick={()=>{
+                        const others=equity.filter(x=>x.id!==e.id&&x.name);
+                        if(!others.length){alert('No other members to split to.');return;}
+                        if(!window.confirm(`Divvy up ${e.name}'s ${fmt(e.amount)} equally among ${others.length} others?`))return;
+                        const pp=parseFloat((e.amount/others.length).toFixed(2));
+                        upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
+                      }} style={{marginTop:4,width:'100%',height:18,background:'rgba(198,241,53,0.08)',border:'1px solid rgba(198,241,53,0.2)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,cursor:'pointer',letterSpacing:'0.04em'}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.18)'}
+                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.08)'}>÷ divvy</button>}
                     </div>
                   );
                 })}
