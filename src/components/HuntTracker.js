@@ -160,9 +160,9 @@ function StatTile({ label, value, color, accent, wide }) {
       position:'relative', overflow:'hidden' }}>
       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2,
         background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
-      <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
+      <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:'#aaaaaa', letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:G.display, fontSize:'1.55rem', fontWeight:700, color:color||G.t1,
+      <div style={{ fontFamily:G.display, fontSize:'1.55rem', fontWeight:700, color:color||'#ffffff',
         letterSpacing:'0.02em', lineHeight:1 }}>{value}</div>
     </div>
   );
@@ -447,7 +447,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Left: title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div>
-              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t4,letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1}}>BeanTards</div>
+              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#888888',letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1}}>BeanTards</div>
               <div style={{fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,letterSpacing:'0.06em',lineHeight:1,color:G.t1}}>
                 {isVip
                   ? <><span style={{color:G.t2}}>VIP </span><span style={{color:G.purple}}>HUNT</span></>
@@ -461,20 +461,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <span style={{fontFamily:G.mono,fontSize:9,color:G.green,letterSpacing:'0.1em'}}>LIVE</span>
               </div>
             )}
-            {canEdit && !hunt.isLive && huntMode==='creating' && user?.isAdmin && (
-              <button onClick={()=>{
-                if(!window.confirm(`Switch to ${isVip?'Community':'VIP'} hunt? Your bonuses and equity will be kept.`))return;
-                upd(h=>({...h,huntType:isVip?'community':'vip'}));
-              }} style={{height:22,padding:'0 10px',background:isVip?'rgba(198,241,53,0.08)':'rgba(187,134,252,0.1)',border:`1px solid ${isVip?'rgba(198,241,53,0.3)':'rgba(187,134,252,0.35)'}`,borderRadius:3,fontFamily:G.mono,fontSize:9,fontWeight:700,color:isVip?G.gold:G.purple,cursor:'pointer',letterSpacing:'0.06em'}}>
-                SWITCH TO {isVip?'COMMUNITY':'VIP'}
-              </button>
-            )}
+
           </div>
 
           {/* Right: controls */}
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             {!readOnly && saveStatus && (
-              <span style={{fontFamily:G.mono,fontSize:9,color:saveStatus==='saved'?G.green:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>
+              <span style={{fontFamily:G.mono,fontSize:9,color:saveStatus==='saved'?G.green:'#aaaaaa',letterSpacing:'0.1em',textTransform:'uppercase'}}>
                 {saveStatus==='saving'?'SAVING…':'✓ SAVED'}
               </span>
             )}
@@ -483,11 +476,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 ↩ UNDO
               </button>
             )}
-            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>⏱ {huntTimer}</span>}
-            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>👁 {hunt.viewers}</span>}
-            {canEdit && <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${obsCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:obsCopied?G.green:G.t3,cursor:'pointer',letterSpacing:'0.08em',opacity:.8}}>{obsCopied?'✓ OBS':'OBS'}</button>}
-            {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:.8}}>+ CO-EDIT</button>}
-            <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${shareCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:shareCopied?G.green:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:.8}}>{shareCopied?'✓ COPIED':'⇗ SHARE'}</button>
+            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:11,color:'#aaaaaa'}}>⏱ {huntTimer}</span>}
+            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:11,color:'#aaaaaa'}}>👁 {hunt.viewers}</span>}
+            {canEdit && <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${obsCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:obsCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.08em',opacity:1}}>{obsCopied?'✓ OBS':'OBS'}</button>}
+            {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:'#aaaaaa',cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>+ CO-EDIT</button>}
+            <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${shareCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:shareCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>{shareCopied?'✓ COPIED':'⇗ SHARE'}</button>
             {canEdit && hunt.isLive && onEndHunt && (
               <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:24,padding:'0 10px',background:'rgba(255,68,68,0.08)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.red,cursor:'pointer',letterSpacing:'0.06em'}}>END HUNT</button>
             )}
@@ -537,7 +530,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   flex:1, height:28, border:`1px solid ${huntMode===mode?accent:G.bdr}`,
                   borderRadius:2, fontFamily:G.mono, fontSize:9, fontWeight:700, cursor:'pointer',
                   background:huntMode===mode?acDim:'transparent',
-                  color:huntMode===mode?accent:G.t3,
+                  color:huntMode===mode?accent:'#999999',
                   letterSpacing:'0.06em', transition:'all .1s'
                 }}>
                   {icon} {lbl}
@@ -556,9 +549,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
             <div style={{display:'flex',alignItems:'center',gap:4}}>
               {canEdit && <>
-                {isVip && <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:22,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcImporting?0.5:1}}>
+                <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:22,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcImporting?0.5:1}}>
                   {dcImporting?'…':'⬇ DISCORD'}
-                </button>}
+                </button>
                 <button className="icon-btn" onClick={()=>setSlotCountModal(true)} title="Generate random" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'2px',lineHeight:1}}>🎲</button>
                 <button className="icon-btn" onClick={randomizeCalls} title="Shuffle" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16l-4 4-1.4-1.4 2.6-2.6H3v-2h14.8l-2.6-2.6L16.6 10l4 4-4 4zm0-8l-4-4-1.4 1.4 2.6 2.6H3v2h14.8l-2.6 2.6L16.6 14l4-4z"/></svg>
@@ -634,7 +627,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 {done.map(c=>(
                   <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5}}>
                     <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{c.slot}</div>
-                    <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
+                    <div style={{fontFamily:G.mono,fontSize:9,color:'#aaaaaa',marginTop:1}}>{c.user}</div>
                   </div>
                 ))}
               </>
@@ -735,9 +728,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
             {canEdit&&<div style={{display:'flex',gap:4}}>
-              <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Parse winners from Discord and add to equity" style={{height:24,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcWinners?0.5:1}}>
+              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Parse winners from Discord and add to equity" style={{height:24,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcWinners?0.5:1}}>
                 {dcWinners?'…':'⬇ WINNERS'}
-              </button>
+              </button>}
               <button onClick={addRollWinner} title={`Add roll winner at ${fmt(defAmt)}`} style={{height:24,padding:'0 8px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.3)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,cursor:'pointer',letterSpacing:'0.05em'}}>🎲 +ROLL</button>
               <button onClick={addPerson} style={{height:24,padding:'0 10px',background:'transparent',border:`1px solid ${G.bb}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t2,cursor:'pointer',letterSpacing:'0.06em'}}>+ PERSON</button>
             </div>}
@@ -766,8 +759,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {equityDisplay.filter(e=>e.name||e.amount>0).length>0&&totalPot>0&&(
             <div style={{borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',flexDirection:'column'}}>
               <div style={{padding:'6px 12px 4px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:G.t4,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
-                <div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
+                <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:'#999999',letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
+                <div style={{fontFamily:G.mono,fontSize:8,color:'#888888'}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
               </div>
               <div style={{overflowY:'auto',resize:'vertical',minHeight:80,maxHeight:600,padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start'}}>
                 {equityDisplay.filter(e=>e.name||e.amount>0).map(e=>{
@@ -780,7 +773,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         {e.isRollWinner&&<span style={{fontSize:9,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
-                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
+                      <div style={{fontFamily:G.mono,fontSize:9,color:'#aaaaaa',marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
                       <div style={{fontFamily:G.display,fontSize:'1.1rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,marginTop:2,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
                       {hw&&<div style={{fontFamily:G.mono,fontSize:9,color:pl>=0?G.green:G.red}}>{fmtS(pl)}</div>}
                       {canEdit&&<button onClick={()=>{
