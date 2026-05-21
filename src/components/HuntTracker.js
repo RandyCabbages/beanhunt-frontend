@@ -155,14 +155,14 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
 /* ── Stat tile ───────────────────────────────────────────────────── */
 function StatTile({ label, value, color, accent, wide }) {
   return (
-    <div style={{ flex: wide ? '2 1 160px' : '1 1 110px', padding:'.6rem .85rem',
+    <div style={{ flex: wide ? '2 1 160px' : '1 1 110px', padding:'1rem 1.1rem',
       borderRight:`1px solid ${G.bdr}`, borderBottom:`1px solid ${G.bdr}`,
       position:'relative', overflow:'hidden' }}>
       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2,
         background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
       <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:G.display, fontSize:'1.55rem', fontWeight:700, color:color||'#ffffff',
+      <div style={{ fontFamily:G.display, fontSize:'1.9rem', fontWeight:700, color:color||'#ffffff',
         letterSpacing:'0.02em', lineHeight:1 }}>{value}</div>
     </div>
   );
@@ -443,7 +443,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
       {/* ── Top bar ── */}
       <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,position:'sticky',top:0,zIndex:40}}>
-        <div style={{maxWidth:1700,margin:'0 auto',padding:'0 1.25rem',height:50,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+        <div style={{maxWidth:1700,margin:'0 auto',padding:'0 1.25rem',height:54,display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:12}}>
           {/* Left: socials + title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
           {/* Bean socials */}
@@ -481,8 +481,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           </div>
 
+          {/* Center: announcement */}
+          <div style={{textAlign:'center',userSelect:'none'}}>
+            <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
+              <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:15,fontWeight:700,letterSpacing:'0.12em',
+                background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
+                backgroundClip:'text'}}>
+                #joinbeancore
+              </span>
+            </a>
+          </div>
+
           {/* Right: controls */}
-          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
             {!readOnly && saveStatus && (
               <span style={{fontFamily:G.mono,fontSize:10,color:saveStatus==='saved'?G.green:'#888',letterSpacing:'0.06em'}}>
                 {saveStatus==='saving'?'saving…':'✓ saved'}
@@ -510,7 +521,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Stats strip — mode-aware ── */}
-      <div style={{background:G.bg2,borderBottom:`1px solid ${G.bdr}`,display:'flex',flexWrap:'wrap',maxWidth:'100%'}}>
+      <div style={{background:G.bg2,borderBottom:`3px solid ${G.bdr}`,borderTop:`1px solid ${G.bdr}`,display:'flex',flexWrap:'wrap',maxWidth:'100%'}}>
         {huntMode==='creating'&&<>
           <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
           <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
@@ -535,7 +546,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:'280px 1fr 480px',height:'calc(100vh - 108px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'220px 1fr 480px',height:'calc(100vh - 55px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
