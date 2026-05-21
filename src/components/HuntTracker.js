@@ -482,29 +482,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           </div>
 
           {/* Right: controls */}
-          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
             {!readOnly && saveStatus && (
-              <span style={{fontFamily:G.mono,fontSize:9,color:saveStatus==='saved'?G.green:'#aaaaaa',letterSpacing:'0.1em',textTransform:'uppercase'}}>
-                {saveStatus==='saving'?'SAVING…':'✓ SAVED'}
+              <span style={{fontFamily:G.mono,fontSize:10,color:saveStatus==='saved'?G.green:'#888',letterSpacing:'0.06em'}}>
+                {saveStatus==='saving'?'saving…':'✓ saved'}
               </span>
             )}
+            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:12,color:G.t2,background:G.card,padding:'2px 8px',borderRadius:4}}>⏱ {huntTimer}</span>}
+            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:12,color:G.t2}}>👁 {hunt.viewers}</span>}
             {canEdit && huntHistory.length>0 && (
-              <button onClick={undo} title={`Undo (${huntHistory.length} steps)`} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t2,cursor:'pointer',letterSpacing:'0.06em',display:'flex',alignItems:'center',gap:4}}>
-                ↩ UNDO
+              <button onClick={undo} title="Undo last action" style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+                ↩ Undo
               </button>
             )}
-            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>⏱ {huntTimer}</span>}
-            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>👁 {hunt.viewers}</span>}
-            {canEdit && <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${obsCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:obsCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.08em',opacity:1}}>{obsCopied?'✓ OBS':'OBS'}</button>}
-            {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>+ CO-EDIT</button>}
-            <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${shareCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:shareCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>{shareCopied?'✓ COPIED':'⇗ SHARE'}</button>
+            {canEdit && <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:30,padding:'0 12px',background:obsCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${obsCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:obsCopied?G.gold:G.t2,cursor:'pointer'}}>{obsCopied?'✓ Copied':'OBS Link'}</button>}
+            {canEdit && <button onClick={()=>setInviteModal(true)} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer'}}>+ Co-Edit</button>}
+            <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Copied':'⇗ Share'}</button>
             {canEdit && hunt.isLive && onEndHunt && (
-              <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:24,padding:'0 10px',background:'rgba(255,68,68,0.08)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.red,cursor:'pointer',letterSpacing:'0.06em'}}>END HUNT</button>
+              <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:30,padding:'0 14px',background:'rgba(248,113,113,0.15)',border:`1px solid rgba(248,113,113,0.5)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#f87171',cursor:'pointer'}}>End Hunt</button>
             )}
             {canEdit && onResetHunt && (
-              <button onClick={onResetHunt} style={{height:24,padding:'0 10px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em'}}>RESET</button>
+              <button onClick={onResetHunt} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t3,cursor:'pointer'}}>Reset</button>
             )}
-            <button onClick={onBack} style={{fontFamily:G.mono,fontSize:9,color:G.t3,background:'none',border:'none',cursor:'pointer',letterSpacing:'0.08em'}}>← HUB</button>
+            <button onClick={onBack} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t2,cursor:'pointer'}}>← Hub</button>
           </div>
         </div>
       </div>
@@ -744,19 +744,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'flex',gap:4}}>
-              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Parse winners from Discord and add to equity" style={{height:24,padding:'0 7px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#5865f2',cursor:'pointer',letterSpacing:'0.04em',opacity:dcWinners?0.5:1}}>
-                {dcWinners?'…':'⬇ WINNERS'}
+            {canEdit&&<div style={{display:'flex',gap:5}}>
+              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} style={{height:28,padding:'0 10px',background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.4)',borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',opacity:dcWinners?0.5:1}}>
+                {dcWinners?'…':'⬇ Winners'}
               </button>}
-              <button onClick={addRollWinner} title={`Add roll winner at ${fmt(defAmt)}`} style={{height:24,padding:'0 8px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.3)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,cursor:'pointer',letterSpacing:'0.05em'}}>🎲 +ROLL</button>
-              <button onClick={addPerson} style={{height:24,padding:'0 10px',background:'transparent',border:`1px solid ${G.bb}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t2,cursor:'pointer',letterSpacing:'0.06em'}}>+ PERSON</button>
+              <button onClick={addRollWinner} style={{height:28,padding:'0 10px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer'}}>🎲 Roll Win</button>
+              <button onClick={addPerson} style={{height:28,padding:'0 10px',background:G.card,border:`1px solid ${G.bb}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer'}}>+ Person</button>
             </div>}
           </div>
 
           {/* Discord username notice */}
           {canEdit&&(
             <div style={{padding:'5px 12px',borderBottom:`1px solid ${G.bdr}`,background:G.bg2,flexShrink:0}}>
-              <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.06em'}}>⚠ Enter Discord usernames — controls edit permissions</div>
+              <div style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>Enter Discord usernames below — members can add slot calls</div>
             </div>
           )}
 
@@ -765,8 +765,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,flexShrink:0}}>
               {[['$ per Person',defAmt,v=>{setDefAmt(v);recalc(v,beanAmt);}],['Bean ($)',beanAmt,v=>{setBeanAmt(v);recalc(defAmt,v);}]].map(([lbl,val,setter])=>(
                 <div key={lbl}>
-                  <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>{lbl}</div>
-                  <input type="number" value={val} onChange={e=>setter(parseFloat(e.target.value)||0)} style={{...inp,height:30,fontSize:12}} />
+                  <div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t3,marginBottom:4}}>{lbl}</div>
+                  <input type="number" value={val} onChange={e=>setter(parseFloat(e.target.value)||0)} style={{...inp,height:34,fontSize:14,fontWeight:600}} />
                 </div>
               ))}
             </div>
@@ -785,23 +785,23 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   const share=totalPot>0?(e.amount/totalPot)*totalWon:0;
                   const pl=share-e.amount;const hw=totalWon>0;
                   return (
-                    <div key={e.id} style={{background:G.sur,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.15)':G.bdr}`,borderRadius:3,padding:'6px 8px'}}>
-                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:12,color:G.t1,display:'flex',alignItems:'center',gap:4,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-                        {e.isRollWinner&&<span style={{fontSize:9,flexShrink:0}}>🎲</span>}
+                    <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px'}}>
+                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
+                        {e.isRollWinner&&<span style={{fontSize:11,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
-                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
-                      <div style={{fontFamily:G.display,fontSize:'1.1rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,marginTop:2,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
-                      {hw&&<div style={{fontFamily:G.mono,fontSize:9,color:pl>=0?G.green:G.red}}>{fmtS(pl)}</div>}
+                      <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
+                      <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
+                      {hw&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
                       {canEdit&&<button onClick={()=>{
                         const others=equity.filter(x=>x.id!==e.id&&x.name);
                         if(!others.length){alert('No other members to split to.');return;}
                         if(!window.confirm(`Divvy up ${e.name}'s ${fmt(e.amount)} equally among ${others.length} others?`))return;
                         const pp=parseFloat((e.amount/others.length).toFixed(2));
                         upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
-                      }} style={{marginTop:4,width:'100%',height:18,background:'rgba(198,241,53,0.08)',border:'1px solid rgba(198,241,53,0.2)',borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,cursor:'pointer',letterSpacing:'0.04em'}}
-                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.18)'}
-                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.08)'}>÷ divvy</button>}
+                      }} style={{marginTop:6,width:'100%',height:24,background:'rgba(198,241,53,0.1)',border:'1px solid rgba(198,241,53,0.3)',borderRadius:4,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer'}}
+                      onMouseEnter={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.22)'}
+                      onMouseLeave={ev=>ev.currentTarget.style.background='rgba(198,241,53,0.1)'}>÷ Divvy Up</button>}
                     </div>
                   );
                 })}
@@ -824,10 +824,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 65px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,paddingLeft:e.isRollWinner?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:500,paddingLeft:e.isRollWinner?28:10}} />
                     {e.isRollWinner&&<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:11,pointerEvents:'none'}}>🎲</span>}
                   </div>
-                  <input type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:30,fontSize:12}} />
+                  <input type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
                   <div style={{display:'flex',gap:2}}>
                     <button onClick={()=>{
                       const others=equity.filter(x=>x.id!==e.id&&x.name);
@@ -836,7 +836,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const pp=parseFloat((e.amount/others.length).toFixed(2));
                       upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
                     }} title="Divvy up this person's equity among everyone else"
-                    style={{height:22,padding:'0 7px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.25)`,borderRadius:3,cursor:'pointer',color:G.gold,fontSize:11,fontFamily:G.mono,fontWeight:700,letterSpacing:'0.04em'}}
+                    style={{height:34,padding:'0 10px',background:'rgba(198,241,53,0.1)',border:`1px solid rgba(198,241,53,0.35)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:14,fontFamily:G.mono,fontWeight:700}}
                     onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.18)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.5)';}}
                     onMouseLeave={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.08)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.25)';}}>÷</button>
                     <button onClick={()=>removePerson(e.id)} className="icon-btn-danger" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'0 2px'}}>×</button>
