@@ -3,13 +3,13 @@ import { apiFetch, socket } from '../api';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
-  bg:'#111111', bg2:'#161616', sur:'#131313', card:'#1a1a1a', lift:'#222222', ridge:'#2a2a2a',
-  bdr:'rgba(255,255,255,0.09)', bb:'rgba(255,255,255,0.18)',
-  gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.09)',
-  green:'#c6f135', gndim:'rgba(198,241,53,0.09)',
-  red:'#ff4444', rdim:'rgba(255,68,68,0.09)',
-  purple:'#bb86fc', pdim:'rgba(187,134,252,0.09)',
-  t1:'#ffffff', t2:'#cccccc', t3:'#666666', t4:'#444444',
+  bg:'#0e0e0e', bg2:'#141414', sur:'#181818', card:'#1e1e1e', lift:'#242424', ridge:'#2e2e2e',
+  bdr:'rgba(255,255,255,0.12)', bb:'rgba(255,255,255,0.22)',
+  gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.12)',
+  green:'#c6f135', gndim:'rgba(198,241,53,0.12)',
+  red:'#ff5555', rdim:'rgba(255,85,85,0.12)',
+  purple:'#cc99ff', pdim:'rgba(204,153,255,0.12)',
+  t1:'#ffffff', t2:'#e0e0e0', t3:'#aaaaaa', t4:'#777777',
   display:"'Chakra Petch',sans-serif",
   body:"'Chakra Petch',sans-serif",
   mono:"'Chakra Petch',sans-serif",
@@ -160,7 +160,7 @@ function StatTile({ label, value, color, accent, wide }) {
       position:'relative', overflow:'hidden' }}>
       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2,
         background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
-      <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:'#aaaaaa', letterSpacing:'0.1em',
+      <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
       <div style={{ fontFamily:G.display, fontSize:'1.55rem', fontWeight:700, color:color||'#ffffff',
         letterSpacing:'0.02em', lineHeight:1 }}>{value}</div>
@@ -447,7 +447,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Left: title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div>
-              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#888888',letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1}}>BeanTards</div>
+              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t4,letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1}}>BeanTards</div>
               <div style={{fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,letterSpacing:'0.06em',lineHeight:1,color:G.t1}}>
                 {isVip
                   ? <><span style={{color:G.t2}}>VIP </span><span style={{color:G.purple}}>HUNT</span></>
@@ -476,10 +476,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 ↩ UNDO
               </button>
             )}
-            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:11,color:'#aaaaaa'}}>⏱ {huntTimer}</span>}
-            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:11,color:'#aaaaaa'}}>👁 {hunt.viewers}</span>}
+            {hunt.isLive && huntTimer && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>⏱ {huntTimer}</span>}
+            {hunt.viewers>0 && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3}}>👁 {hunt.viewers}</span>}
             {canEdit && <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${obsCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:obsCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.08em',opacity:1}}>{obsCopied?'✓ OBS':'OBS'}</button>}
-            {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:'#aaaaaa',cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>+ CO-EDIT</button>}
+            {canEdit && <button className="tag-btn" onClick={()=>setInviteModal(true)} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:G.t3,cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>+ CO-EDIT</button>}
             <button className="tag-btn" onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid ${shareCopied?G.green:G.bdr}`,borderRadius:2,fontFamily:G.mono,fontSize:9,color:shareCopied?G.green:'#aaaaaa',cursor:'pointer',letterSpacing:'0.06em',opacity:1}}>{shareCopied?'✓ COPIED':'⇗ SHARE'}</button>
             {canEdit && hunt.isLive && onEndHunt && (
               <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:24,padding:'0 10px',background:'rgba(255,68,68,0.08)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:2,fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.red,cursor:'pointer',letterSpacing:'0.06em'}}>END HUNT</button>
@@ -627,7 +627,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 {done.map(c=>(
                   <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5}}>
                     <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{c.slot}</div>
-                    <div style={{fontFamily:G.mono,fontSize:9,color:'#aaaaaa',marginTop:1}}>{c.user}</div>
+                    <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
                   </div>
                 ))}
               </>
@@ -759,8 +759,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {equityDisplay.filter(e=>e.name||e.amount>0).length>0&&totalPot>0&&(
             <div style={{borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',flexDirection:'column'}}>
               <div style={{padding:'6px 12px 4px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:'#999999',letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
-                <div style={{fontFamily:G.mono,fontSize:8,color:'#888888'}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
+                <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
+                <div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
               </div>
               <div style={{overflowY:'auto',resize:'vertical',minHeight:80,maxHeight:600,padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start'}}>
                 {equityDisplay.filter(e=>e.name||e.amount>0).map(e=>{
@@ -773,7 +773,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         {e.isRollWinner&&<span style={{fontSize:9,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
-                      <div style={{fontFamily:G.mono,fontSize:9,color:'#aaaaaa',marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
+                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{pct.toFixed(1)}% · {fmt(e.amount)}</div>
                       <div style={{fontFamily:G.display,fontSize:'1.1rem',fontWeight:700,color:hw?(share>=e.amount?G.green:G.red):G.t3,marginTop:2,letterSpacing:'0.02em'}}>{hw?fmt(share):'—'}</div>
                       {hw&&<div style={{fontFamily:G.mono,fontSize:9,color:pl>=0?G.green:G.red}}>{fmtS(pl)}</div>}
                       {canEdit&&<button onClick={()=>{
