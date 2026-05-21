@@ -226,6 +226,27 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     return () => socket.off('bean:live', setBeanLive);
   }, []);
 
+  const upd = useCallback(fn => {
+    if (readOnly || !onUpdateHunt) return;
+    setHuntHistory(prev => [...prev.slice(-29), huntRef.current]);
+    setSaveStatus('saving');
+    onUpdateHunt(fn);
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => setSaveStatus('saved'), 900);
+    setTimeout(() => setSaveStatus(''), 2800);
+  }, [readOnly, onUpdateHunt]);
+
+  const undo = useCallback(() => {
+    if (!huntHistory.length || !onUpdateHunt) return;
+    const prev = huntHistory[huntHistory.length - 1];
+    setHuntHistory(h => h.slice(0, -1));
+    setSaveStatus('saving');
+    onUpdateHunt(() => prev);
+    clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => setSaveStatus('saved'), 900);
+    setTimeout(() => setSaveStatus(''), 2800);
+  }, [huntHistory, onUpdateHunt]);
+
   const importDiscordCalls = useCallback(async () => {
     setDcImporting(true);
     try {
@@ -252,27 +273,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     } catch(e) { alert(`Parse failed: ${e.message}`); }
     finally { setDcWinners(false); }
   }, [upd, hunt.equity]);
-
-  const upd = useCallback(fn => {
-    if (readOnly || !onUpdateHunt) return;
-    setHuntHistory(prev => [...prev.slice(-29), huntRef.current]);
-    setSaveStatus('saving');
-    onUpdateHunt(fn);
-    clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => setSaveStatus('saved'), 900);
-    setTimeout(() => setSaveStatus(''), 2800);
-  }, [readOnly, onUpdateHunt]);
-
-  const undo = useCallback(() => {
-    if (!huntHistory.length || !onUpdateHunt) return;
-    const prev = huntHistory[huntHistory.length - 1];
-    setHuntHistory(h => h.slice(0, -1));
-    setSaveStatus('saving');
-    onUpdateHunt(() => prev);
-    clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => setSaveStatus('saved'), 900);
-    setTimeout(() => setSaveStatus(''), 2800);
-  }, [huntHistory, onUpdateHunt]);
 
   const changeMode = mode => { setHuntMode(mode); upd(h=>({...h, huntMode:mode})); };
 
