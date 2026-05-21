@@ -209,6 +209,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dcImporting,   setDcImporting]   = useState(false);
   const [dcWinners,     setDcWinners]     = useState(false);
   const [showDcImport,  setShowDcImport]  = useState(false);
+  const [eqTooltip,     setEqTooltip]     = useState(null);
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
@@ -771,19 +772,47 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
-              {isVip && <button onClick={()=>setShowDcImport(v=>!v)} title="Import equity members from a pasted Discord message" style={{height:30,padding:'0 11px',background:showDcImport?'rgba(88,101,242,0.3)':'rgba(88,101,242,0.15)',border:`1px solid rgba(88,101,242,${showDcImport?'0.7':'0.45'})`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,position:'relative'}}>
+              {isVip && <button
+                onMouseEnter={()=>setEqTooltip('discord')} onMouseLeave={()=>setEqTooltip(null)}
+                onClick={()=>{setShowDcImport(v=>!v);setEqTooltip(null);}}
+                style={{height:34,padding:'0 11px',background:showDcImport?'rgba(88,101,242,0.3)':'rgba(88,101,242,0.15)',border:`1px solid rgba(88,101,242,${showDcImport?'0.7':'0.45'})`,borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
                 Discord Import
+                {eqTooltip==='discord'&&<div style={{position:'absolute',top:'110%',left:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>Discord Import</div>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Paste the VIP Discord message to import all winners. Existing equity is preserved and combined.</div>
+                </div>}
               </button>}
-              {isVip && <button onClick={()=>parseDiscordWinners(defAmt)} disabled={dcWinners} title="Scan Discord for the latest roll winners post and auto-import" style={{height:30,padding:'0 11px',background:'rgba(145,70,255,0.15)',border:'1px solid rgba(145,70,255,0.45)',borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#d8b4fe',cursor:'pointer',opacity:dcWinners?0.5:1,display:'flex',alignItems:'center',gap:5}}>
+              {isVip && <button
+                onMouseEnter={()=>setEqTooltip('winners')} onMouseLeave={()=>setEqTooltip(null)}
+                onClick={()=>{parseDiscordWinners(defAmt);setEqTooltip(null);}} disabled={dcWinners}
+                style={{height:34,padding:'0 11px',background:'rgba(145,70,255,0.15)',border:'1px solid rgba(145,70,255,0.45)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#d8b4fe',cursor:'pointer',opacity:dcWinners?0.5:1,display:'flex',alignItems:'center',gap:6,position:'relative'}}>
                 🏆 {dcWinners?'Importing…':'Roll Winners'}
+                {eqTooltip==='winners'&&<div style={{position:'absolute',top:'110%',right:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>Auto-import Roll Winners</div>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Scans Discord for the latest winners list and adds them all automatically at ${'{'}defAmt{'}'} each.</div>
+                </div>}
               </button>}
-              {isVip&&<button onClick={addRollWinner} title={`Add a roll winner manually at $${defAmt}`} style={{height:30,padding:'0 11px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+              {isVip&&<button
+                onMouseEnter={()=>setEqTooltip('rollwin')} onMouseLeave={()=>setEqTooltip(null)}
+                onClick={()=>{addRollWinner();setEqTooltip(null);}}
+                style={{height:34,padding:'0 11px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',gap:6,position:'relative'}}>
                 🎲 Roll Win <span style={{fontSize:10,color:'rgba(198,241,53,0.6)',fontWeight:400}}>${defAmt}</span>
+                {eqTooltip==='rollwin'&&<div style={{position:'absolute',top:'110%',left:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>Manual Roll Winner</div>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Adds a blank roll winner row at the standard ${'{'}defAmt{'}'} per person amount. Enter their name after.</div>
+                </div>}
               </button>}
-              <button onClick={addPerson} title={isVip?'Add someone with custom equity — not part of the per-person pool':'Add a person to the equity split'} style={{height:30,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',gap:5}}>
+              <button
+                onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
+                onClick={()=>{addPerson();setEqTooltip(null);}}
+                style={{height:34,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',gap:6,position:'relative'}}>
                 💰 {isVip?'Extra Equity':'Add Equity'}
+                {eqTooltip==='extra'&&<div style={{position:'absolute',top:'110%',right:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>{isVip?'Extra Equity':'Add Equity'}</div>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>{isVip?'Add someone with a custom amount outside the roll pool — like Bean or a one-off contributor.':'Add a person to the equity split with a custom amount.'}</div>
+                </div>}
               </button>
             </div>}
           </div>
@@ -930,23 +959,32 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* Discord import — toggled by button */}
-          {isVip&&canEdit&&showDcImport&&(
-            <div style={{padding:'10px 12px',borderTop:`1px solid rgba(88,101,242,0.4)`,background:'rgba(88,101,242,0.06)',flexShrink:0}}>
-              <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <span>📋 Paste Discord Members Message</span>
-                <button onClick={()=>setShowDcImport(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:16,lineHeight:1}}>×</button>
+
+        </div>
+      </div>
+
+      {/* ── Discord Import Modal ── */}
+      {isVip&&canEdit&&showDcImport&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowDcImport(false)}>
+          <div style={{background:G.card,border:`1px solid rgba(88,101,242,0.5)`,borderRadius:10,padding:'1.5rem',width:500,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="#a5b4fc"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                <span style={{fontFamily:G.display,fontSize:20,fontWeight:700,color:'#a5b4fc',letterSpacing:'0.04em'}}>Discord Import</span>
               </div>
-              <textarea value={discordText} onChange={e=>setDiscordText(e.target.value)} rows={2}
-                placeholder="Paste VIP Discord message…"
-                style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:3,padding:'7px 10px',fontFamily:G.mono,fontSize:11,color:G.t1,resize:'none',lineHeight:1.5}} />
-              <div style={{display:'flex',gap:5,marginTop:5}}>
-                <button onClick={()=>{
+              <button onClick={()=>setShowDcImport(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:22,lineHeight:1,padding:'0 4px'}}>×</button>
+            </div>
+            <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:12,lineHeight:1.6}}>Paste the VIP Discord message below. Winners will be added at <span style={{color:G.gold}}>${'{'}defAmt{'}'} each</span>. Existing equity is preserved and combined.</p>
+            <textarea value={discordText} onChange={e=>setDiscordText(e.target.value)} rows={8}
+              placeholder="Paste VIP Discord message here…"
+              autoFocus
+              style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}} />
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <button onClick={()=>{
                   const lines=discordText.split('\n'),winners=[],hosts=[];
                   lines.forEach(line=>{
                     line=line.trim();if(!line)return;
                     if(line[0]==='#'){
-                      // Match: #N   Full Name Here   123.456   +X   Checked-In
                       const m=line.match(/^#\d+\s+(.+?)\s+\d+\.\d+/);
                       if(m&&m[1].toLowerCase()!=='name')winners.push(m[1].trim());
                     }else if(line.toLowerCase().startsWith('host:')){
@@ -954,38 +992,37 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     }
                   });
                   if(!winners.length&&!hosts.length){setParseHint('No names found.');return;}
-                  // Merge winners into existing equity — combine amounts if already present
-                  // Bean never gets rolled — protect his equity
                   const allWinnerNames = new Set(winners.map(n=>n.toLowerCase().trim()));
                   const mergedEq = equity.map(e => {
                     const n = (e.name||'').toLowerCase().trim();
-                    if (n === 'bean' || e.id === 'bean_auto') return e; // Bean is untouchable
+                    if (n === 'bean' || e.id === 'bean_auto') return e;
                     if (n && allWinnerNames.has(n)) {
-                      allWinnerNames.delete(n); // mark as handled
+                      allWinnerNames.delete(n);
                       const rollAmt = defAmt;
                       const prevRoll = e.rollAmount||0;
                       return {...e, amount: parseFloat((e.amount + rollAmt).toFixed(2)), rollAmount: parseFloat((prevRoll + rollAmt).toFixed(2)), isRollWinner: true};
                     }
                     return e;
                   });
-                  // Add host if not already there
                   const existingNames = new Set(mergedEq.map(e=>(e.name||'').toLowerCase().trim()));
                   const hostEntry = hosts[0] && !existingNames.has(hosts[0].toLowerCase().trim())
                     ? [{id:uid(),name:hosts[0],amount:defAmt,isRollWinner:false,isMod:true}] : [];
-                  // Add brand new winners
                   const newWinners = [...allWinnerNames]
                     .map(n=>({id:uid(),name:winners.find(w=>w.toLowerCase().trim()===n)||n,amount:defAmt,isRollWinner:true}));
                   const newEq = [...mergedEq, ...hostEntry, ...newWinners];
                   const combined = equity.length - mergedEq.filter((e,i)=>e===equity[i]).length;
-                  upd(h=>({...h,equity:newEq}));setParseHint(`✓ ${newWinners.length} new, ${combined} combined, ${hostEntry.length} host`);
-                }} style={{height:26,padding:'0 10px',background:G.purple,color:'#000',border:'none',borderRadius:2,fontFamily:G.body,fontSize:11,fontWeight:700,cursor:'pointer'}}>Parse</button>
-                <button onClick={()=>{setDiscordText('');setParseHint('');}} style={{height:26,padding:'0 8px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:2,fontFamily:G.body,fontSize:11,color:G.t3,cursor:'pointer'}}>Clear</button>
-                {parseHint&&<span style={{fontFamily:G.mono,fontSize:10,color:parseHint.startsWith('✓')?G.green:G.red,alignSelf:'center'}}>{parseHint}</span>}
-              </div>
+                  upd(h=>({...h,equity:newEq}));
+                  setParseHint(`✓ ${'{'}newWinners.length{'}'} new, ${'{'}combined{'}'} combined`);
+                  setTimeout(()=>{setShowDcImport(false);setDiscordText('');setParseHint('');},1200);
+              }} style={{height:38,padding:'0 20px',background:'rgba(88,101,242,0.8)',color:'#fff',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                Import
+              </button>
+              <button onClick={()=>{setDiscordText('');setParseHint('');}} style={{height:38,padding:'0 14px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:6,fontFamily:G.body,fontSize:13,color:G.t3,cursor:'pointer'}}>Clear</button>
+              {parseHint&&<span style={{fontFamily:G.mono,fontSize:11,color:parseHint.startsWith('✓')?G.green:G.red}}>{parseHint}</span>}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Winners ── */}
       {showWinners&&totalWon>0&&equityDisplay.length>0&&(
