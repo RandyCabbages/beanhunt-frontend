@@ -288,7 +288,7 @@ export default function Hub({ user }) {
       {/* Bean live banner */}
       {beanLive.isLive && (
         <div style={{background:'rgba(145,70,255,.08)',borderBottom:`1px solid rgba(145,70,255,.2)`,padding:'.6rem 1.5rem'}}>
-          <div style={{maxWidth:1200,margin:'0 auto',display:'flex',alignItems:'center',gap:10}}>
+          <div style={{maxWidth:1400,margin:'0 auto',padding:'0 1.5rem',display:'flex',alignItems:'center',gap:10}}>
             <span style={{width:8,height:8,borderRadius:'50%',background:'#9146ff',display:'inline-block',animation:'live-pulse 2s infinite',flexShrink:0}}/>
             <span style={{fontFamily:C.font,fontSize:15,fontWeight:700,color:'#9146ff',letterSpacing:'0.04em'}}>BEAN IS LIVE ON TWITCH</span>
             {beanLive.title && <span style={{fontFamily:C.font,fontSize:13,color:C.txt2,marginLeft:4}}>— {beanLive.title}</span>}
@@ -301,7 +301,7 @@ export default function Hub({ user }) {
       )}
 
       {/* Content */}
-      <div style={{padding:'1.75rem 1.5rem 4rem'}}>
+      <div style={{maxWidth:1400,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
 
         {/* Page header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'1.25rem',flexWrap:'wrap',gap:10}}>
