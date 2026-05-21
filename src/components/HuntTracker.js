@@ -3,13 +3,13 @@ import { apiFetch, socket } from '../api';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
-  bg:'#0e0e0e', bg2:'#141414', sur:'#181818', card:'#1e1e1e', lift:'#242424', ridge:'#2e2e2e',
-  bdr:'rgba(255,255,255,0.12)', bb:'rgba(255,255,255,0.22)',
-  gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.12)',
-  green:'#c6f135', gndim:'rgba(198,241,53,0.12)',
-  red:'#ff5555', rdim:'rgba(255,85,85,0.12)',
-  purple:'#cc99ff', pdim:'rgba(204,153,255,0.12)',
-  t1:'#ffffff', t2:'#e0e0e0', t3:'#aaaaaa', t4:'#777777',
+  bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
+  bdr:'rgba(255,255,255,0.15)', bb:'rgba(255,255,255,0.28)',
+  gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.14)',
+  green:'#4ade80', gndim:'rgba(74,222,128,0.12)',
+  red:'#f87171', rdim:'rgba(248,113,113,0.12)',
+  purple:'#c084fc', pdim:'rgba(192,132,252,0.12)',
+  t1:'#ffffff', t2:'#e8e8e8', t3:'#b0b0b0', t4:'#808080',
   display:"'Chakra Petch',sans-serif",
   body:"'Chakra Petch',sans-serif",
   mono:"'Chakra Petch',sans-serif",
