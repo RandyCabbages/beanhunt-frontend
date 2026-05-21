@@ -890,10 +890,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     upd(h=>{const a=h.equity.slice(),fi=a.findIndex(x=>x.id===dragEquityId),ti=a.findIndex(x=>x.id===e.id);const[m]=a.splice(fi,1);a.splice(ti,0,m);return{...h,equity:a};});
                     setDragEquityId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'14px 150px 1fr auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
+                  style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?28:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     {e.isRollWinner
                       ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
                       : e.isMod
@@ -904,24 +904,32 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
                     <div style={{display:'flex',gap:3}}>
                       <div style={{position:'relative',flex:1}}>
-                        <input key={`${e.id}-base`} type="number"
+                        <input key={`${e.id}-b`} type="number"
                           defaultValue={(e.amount-e.rollAmount).toFixed(0)}
                           onChange={ev=>{const base=parseFloat(ev.target.value)||0;updatePerson(e.id,'amount',base+(e.rollAmount||0));}}
-                          style={{...inp,height:34,fontSize:11,paddingTop:12,width:'100%'}} />
+                          style={{...inp,height:30,fontSize:11,paddingTop:10,width:'100%'}} />
                         <span style={{position:'absolute',top:3,left:6,fontFamily:G.mono,fontSize:7,fontWeight:700,color:'#fb923c',pointerEvents:'none',letterSpacing:'0.05em'}}>ADDED</span>
                       </div>
                       <div style={{position:'relative',flex:1}}>
-                        <input key={`${e.id}-roll`} type="number"
+                        <input key={`${e.id}-r`} type="number"
                           defaultValue={e.rollAmount.toFixed(0)}
                           onChange={ev=>{const roll=parseFloat(ev.target.value)||0;const base=e.amount-(e.rollAmount||0);updatePerson(e.id,'amount',base+roll);upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,rollAmount:roll}:x)}));}}
-                          style={{...inp,height:34,fontSize:11,paddingTop:12,width:'100%'}} />
+                          style={{...inp,height:30,fontSize:11,paddingTop:10,width:'100%'}} />
                         <span style={{position:'absolute',top:3,left:6,fontFamily:G.mono,fontSize:7,fontWeight:700,color:G.gold,pointerEvents:'none',letterSpacing:'0.05em'}}>ROLL WIN</span>
                       </div>
                     </div>
                   ) : (
-                    <input key={`${e.id}-${e.amount}`} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:34,fontSize:13,fontWeight:600}} />
+                    <input key={e.id} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:600}} />
                   )}
-                  <div style={{display:'flex',gap:2}}>
+                  <div style={{display:'flex',gap:2,alignItems:'center'}}>
+                    <button onClick={()=>{
+                      const add=parseFloat(window.prompt(`Add equity to ${e.name||'this person'} (current: ${fmt(e.amount)}):`, ''));
+                      if(!add||isNaN(add)||add<=0)return;
+                      upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,amount:parseFloat((x.amount+add).toFixed(2)),rollAmount:parseFloat(((x.rollAmount||0)+add).toFixed(2))}:x)}));
+                    }} title="Add more equity to this person"
+                    style={{height:30,width:26,background:'rgba(74,222,128,0.1)',border:`1px solid rgba(74,222,128,0.35)`,borderRadius:4,cursor:'pointer',color:G.green,fontSize:16,fontFamily:G.mono,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}
+                    onMouseEnter={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.22)'}
+                    onMouseLeave={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.1)'}>+</button>
                     <button onClick={()=>{
                       const others=equity.filter(x=>x.id!==e.id&&x.name);
                       if(!others.length){alert('No other members to split to.');return;}
@@ -929,10 +937,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const pp=parseFloat((e.amount/others.length).toFixed(2));
                       upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
                     }} title="Divvy up this person's equity among everyone else"
-                    style={{height:34,padding:'0 10px',background:'rgba(198,241,53,0.1)',border:`1px solid rgba(198,241,53,0.35)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:14,fontFamily:G.mono,fontWeight:700}}
+                    style={{height:30,width:30,background:'rgba(198,241,53,0.1)',border:`1px solid rgba(198,241,53,0.35)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:16,fontFamily:'serif',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center'}}
                     onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.18)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.5)';}}
                     onMouseLeave={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.08)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.25)';}}>÷</button>
-                    <button onClick={()=>removePerson(e.id)} className="icon-btn-danger" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'0 2px'}}>×</button>
+                    <button onClick={()=>removePerson(e.id)} className="icon-btn-danger" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:16,padding:'0 2px',height:30,display:'flex',alignItems:'center'}}>×</button>
                   </div>
                 </div>
               ))}
