@@ -124,7 +124,12 @@ export default function MyHunt({ user }) {
   if (!started || !hunt) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:28, padding:'2rem', background:'#161618', fontFamily:"'Chakra Petch',sans-serif" }}>
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:11, color:'#c6f135', letterSpacing:'0.15em', textTransform:'uppercase', opacity:.8, marginBottom:8 }}>Rainbet</div>
+        <div style={{ marginBottom:10, display:'flex', justifyContent:'center' }}>
+          <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
+            <svg width="22" height="16" viewBox="0 0 28 20" fill="none"><circle cx="10" cy="10" r="9" fill="#1a9d5a" stroke="#137a44" strokeWidth="1"/><text x="10" y="14" textAnchor="middle" fontSize="10" fontWeight="900" fill="white" fontFamily="Arial">R</text><path d="M18 4 Q26 10 18 16" stroke="#1a9d5a" strokeWidth="2.5" fill="none" strokeLinecap="round"/></svg>
+            <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:15, fontWeight:700, color:'#1a9d5a', letterSpacing:'0.04em' }}>Rainbet</span>
+          </span>
+        </div>
         <h1 style={{ fontSize:'clamp(2.4rem,5vw,3.4rem)', fontWeight:700, letterSpacing:'0.04em', lineHeight:1, color:'#ffffff' }}>
           Start a <span style={{ color:'#c6f135' }}>Hunt</span>
         </h1>
