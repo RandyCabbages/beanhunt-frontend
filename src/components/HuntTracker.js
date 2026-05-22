@@ -15,6 +15,17 @@ const G = {
   mono:"'Chakra Petch',sans-serif",
 };
 
+const RainbetLogo = ({size=14}) => (
+  <span style={{display:'inline-flex',alignItems:'center',gap:4}}>
+    <svg width={Math.round(size*1.6)} height={size} viewBox="0 0 28 20" fill="none">
+      <circle cx="10" cy="10" r="9" fill="#1a9d5a" stroke="#137a44" strokeWidth="1"/>
+      <text x="10" y="14" textAnchor="middle" fontSize="10" fontWeight="900" fill="white" fontFamily="Arial">R</text>
+      <path d="M18 4 Q26 10 18 16" stroke="#1a9d5a" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+    </svg>
+    <span style={{fontFamily:"'Chakra Petch',sans-serif",fontWeight:700,fontSize:size,color:'#1a9d5a',letterSpacing:'0.02em'}}>Rainbet</span>
+  </span>
+);
+
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
@@ -107,22 +118,30 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+  const searchTimer = useRef(null);
 
   const handleChange = v => {
     onChange(v);
+    clearTimeout(searchTimer.current);
     if (v.length >= 2) {
-      const lv = v.toLowerCase();
-      setSuggestions(RAINBET_SLOTS.filter(s => s.toLowerCase().startsWith(lv) || s.toLowerCase().includes(lv)).slice(0,7));
-      setOpen(true);
+      searchTimer.current = setTimeout(async () => {
+        try {
+          const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(v)}`);
+          setSuggestions(Array.isArray(res) ? res : []);
+          setOpen(true);
+        } catch {
+          setSuggestions([]);
+        }
+      }, 200);
     } else { setSuggestions([]); setOpen(false); }
   };
 
-  const pick = s => { onChange(s); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s); };
+  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={() => value.length >= 2 && setSuggestions(RAINBET_SLOTS.filter(s=>s.toLowerCase().includes(value.toLowerCase())).slice(0,7))}
+        onFocus={async () => { if (value.length >= 2) { try { const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(value)}`); setSuggestions(Array.isArray(res)?res:[]); setOpen(true); } catch {} }}}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
@@ -136,16 +155,22 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
       {open && suggestions.length > 0 && (
         <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
           border:`1px solid ${G.bb}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
-          {suggestions.map((s,i) => (
-            <div key={i} onMouseDown={() => pick(s)}
-              style={{ padding:'8px 12px', fontFamily:G.body, fontSize:13, color:G.t2,
-                cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
-                transition:'background .08s' }}
-              onMouseEnter={e => e.currentTarget.style.background = G.lift}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              {s}
-            </div>
-          ))}
+          {suggestions.map((s,i) => {
+            const name = typeof s === 'string' ? s : s.name;
+            const thumb = typeof s === 'object' ? s.thumb : null;
+            return (
+              <div key={i} onMouseDown={() => pick(name)}
+                style={{ padding:'6px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
+                  cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
+                  transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
+                onMouseEnter={e => e.currentTarget.style.background = G.lift}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                {thumb && <img src={thumb} alt="" width={36} height={27} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}}
+                  onError={e=>{e.target.style.display='none'}} />}
+                <span>{name}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -209,6 +234,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dcImporting,   setDcImporting]   = useState(false);
   const [dcWinners,     setDcWinners]     = useState(false);
   const [showDcImport,  setShowDcImport]  = useState(false);
+  const [callRequests,  setCallRequests]  = useState([]);
+  const [showReqPopup,  setShowReqPopup]  = useState(false);
+  const [reqStatus,     setReqStatus]     = useState(null); // null | 'pending' | 'granted' | 'denied'
   const [eqTooltip,     setEqTooltip]     = useState(null);
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
@@ -228,6 +256,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     socket.on('bean:live', setBeanLive);
     return () => socket.off('bean:live', setBeanLive);
   }, []);
+
+  useEffect(() => {
+    // Hunt owner: receive new requests
+    const onNewReq = (data) => setCallRequests(data.requests || []);
+    const onUpdate = (data) => setCallRequests(data.requests || []);
+    // Viewer: hear grant/deny
+    const onGranted = (data) => { if (user?.id === data.userId) setReqStatus('granted'); };
+    const onDenied  = (data) => { if (user?.id === data.userId) setReqStatus('denied'); };
+    socket.on('calls:request:new',    onNewReq);
+    socket.on('calls:request:update', onUpdate);
+    socket.on('calls:granted',        onGranted);
+    socket.on('calls:denied',         onDenied);
+    // Load existing requests if owner
+    if (canEdit && hunt.user?.id) {
+      apiFetch(`/api/hunts/${hunt.user.id}/call-requests`).then(setCallRequests).catch(()=>{});
+    }
+    return () => {
+      socket.off('calls:request:new', onNewReq);
+      socket.off('calls:request:update', onUpdate);
+      socket.off('calls:granted', onGranted);
+      socket.off('calls:denied', onDenied);
+    };
+  }, [canEdit, hunt.user?.id, user?.id]);
 
   const upd = useCallback(fn => {
     if (readOnly || !onUpdateHunt) return;
@@ -419,7 +470,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
-        @keyframes live-ring{0%{box-shadow:0 0 0 0 rgba(145,70,255,.6)}70%{box-shadow:0 0 0 6px rgba(145,70,255,0)}100%{box-shadow:0 0 0 0 rgba(145,70,255,0)}}
+        @keyframes pulse-orange{0%,100%{box-shadow:0 0 0 0 rgba(251,146,60,0.5)}60%{box-shadow:0 0 0 5px rgba(251,146,60,0)}} @keyframes live-ring{0%{box-shadow:0 0 0 0 rgba(145,70,255,.6)}70%{box-shadow:0 0 0 6px rgba(145,70,255,0)}100%{box-shadow:0 0 0 0 rgba(145,70,255,0)}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
         .call-card:hover{background:${G.lift}!important}
@@ -467,7 +518,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               ))}
             </div>
             <div>
-              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t4,letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1}}>BeanTards</div>
+              <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t4,letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1,display:'flex',alignItems:'center',gap:5}}><span>BeanTards on</span><RainbetLogo size={10}/></div>
               <div style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,letterSpacing:'0.06em',lineHeight:1,color:G.t1}}>
                 {isVip
                   ? <><span style={{color:G.t2}}>VIP </span><span style={{color:G.purple}}>HUNT</span></>
@@ -548,7 +599,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,letterSpacing:'0.04em',color:G.t1}}>SLOT CALLS</span>
+              {canEdit && callRequests.length>0 && (
+                <button onClick={()=>setShowReqPopup(true)} style={{position:'relative',height:24,padding:'0 8px',background:'rgba(251,146,60,0.2)',border:'1px solid rgba(251,146,60,0.6)',borderRadius:12,cursor:'pointer',display:'flex',alignItems:'center',gap:5,animation:'pulse-orange 2s infinite'}}>
+                  <span style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#fb923c'}}>🔔 {callRequests.length} request{callRequests.length!==1?'s':''}</span>
+                </button>
+              )}
+            </div>
               {pending.length>8&&huntMode!=='creating'&&(
                 <span style={{fontFamily:G.mono,fontSize:9,color:accent,background:acDim,border:`1px solid ${accent}44`,borderRadius:2,padding:'1px 6px',letterSpacing:'0.06em'}}>+{pending.length-8}</span>
               )}
@@ -571,6 +629,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {callLimit>0&&<span style={{position:'absolute',top:-5,right:-5,background:accent,color:'#000',borderRadius:'50%',width:14,height:14,fontSize:8,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
                 </button>
               </>}
+              {!canEdit && !canAddCalls && user && hunt.isLive && (huntMode==='creating'||huntMode==='spinning') && (
+                <button onClick={async()=>{
+                  if(reqStatus==='pending'){alert('Your request is already pending.');return;}
+                  if(reqStatus==='granted'){return;}
+                  try{
+                    const r=await apiFetch(`/api/hunts/${hunt.user?.id}/request-calls`,{method:'POST'});
+                    setReqStatus(r.status==='already_member'?'granted':r.status==='pending'?'pending':'pending');
+                    if(r.status!=='already_member') alert('✅ Request sent! Waiting for host approval.');
+                  }catch(e){alert('Failed to send request.');}
+                }} style={{height:26,padding:'0 10px',background:reqStatus==='granted'?'rgba(198,241,53,0.15)':reqStatus==='pending'?'rgba(251,146,60,0.12)':'rgba(88,101,242,0.12)',border:`1px solid ${reqStatus==='granted'?'rgba(198,241,53,0.4)':reqStatus==='pending'?'rgba(251,146,60,0.4)':'rgba(88,101,242,0.4)'}`,borderRadius:4,fontFamily:G.mono,fontSize:9,fontWeight:700,color:reqStatus==='granted'?G.gold:reqStatus==='pending'?'#fb923c':'#a5b4fc',cursor:reqStatus?'default':'pointer',whiteSpace:'nowrap'}}>
+                  {reqStatus==='granted'?'✓ Access Granted':reqStatus==='pending'?'⏳ Pending…':'🙋 Request to Add Calls'}
+                </button>
+              )}
               <span style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{pending.length}</span>
             </div>
           </div>
@@ -682,15 +753,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
                 placeholder="Bet $" style={{...inp, height:34}} />
               <div style={{display:'flex',gap:3,alignItems:'center'}}>
-                {[3,4,5].map(n=>(
-                  <button key={n} onClick={()=>setScatInput(n)} style={{
-                    height:34, width:34, border:`1px solid ${scatInput===n?accent:G.bdr}`,
-                    borderRadius:3, fontFamily:G.mono, fontSize:12, fontWeight:700, cursor:'pointer',
-                    background:scatInput===n?(n===5?G.gndim:n===4?G.gdim:acDim):'transparent',
-                    color:scatInput===n?(n===5?G.green:n===4?G.gold:accent):G.t3,
-                    transition:'all .1s'
-                  }}>{n}</button>
-                ))}
+                <button onClick={()=>setScatInput(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===3?accent:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===3?'scale(1.1)':'scale(1)'}}>
+                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/><polygon points="5,22 26,33 4,20 25,32"/><polygon points="67,22 46,33 68,20 47,32"/><polygon points="5,50 26,39 4,52 25,40"/><polygon points="67,50 46,39 68,52 47,40"/></g><circle cx="36" cy="36" r="22" fill="url(#sS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+                </button>
+                <button onClick={()=>setScatInput(4)} title="Super Bonus (4 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===4?G.gold:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===4?'scale(1.1)':'scale(1)'}}>
+                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#sG)" stroke="#cc44ff" strokeWidth="1.5"/><line x1="36" y1="10" x2="36" y2="62" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="14" y1="26" x2="58" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="58" y1="26" x2="14" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><ellipse cx="28" cy="24" rx="5" ry="3" fill="white" opacity="0.25" transform="rotate(-20,28,24)"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+                </button>
+                <button onClick={()=>setScatInput(5)} title="Super Super Bonus (5 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===5?G.green:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===5?'scale(1.1)':'scale(1)'}}>
+                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="sD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#sD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#sD2)" stroke="#0088cc" strokeWidth="1"/><polygon points="24,14 30,20 20,22 18,24 22,19" fill="white" opacity="0.4"/><line x1="36" y1="20" x2="36" y2="64" stroke="#aaeeff" strokeWidth="0.7" opacity="0.35"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+                </button>
               </div>
               <button onClick={()=>addBonus(null,null,scatInput)} style={{height:34,padding:'0 14px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
             </div>
@@ -807,7 +878,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button
                 onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{addPerson();setEqTooltip(null);}}
-                style={{height:34,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',gap:6,position:'relative'}}>
+                style={{height:34,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,position:'relative'}}>
                 💰 {isVip?'Extra Equity':'Add Equity'}
                 {eqTooltip==='extra'&&<div style={{position:'absolute',top:'110%',right:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
                   <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>{isVip?'Extra Equity':'Add Equity'}</div>
@@ -961,6 +1032,41 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
         </div>
       </div>
+
+      {/* ── Call Request Popup ── */}
+      {canEdit && showReqPopup && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowReqPopup(false)}>
+          <div style={{background:G.card,border:`1px solid rgba(251,146,60,0.4)`,borderRadius:10,padding:'1.5rem',width:420,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+              <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,color:'#fb923c',letterSpacing:'0.04em'}}>🔔 SLOT CALL REQUESTS</span>
+              <button onClick={()=>setShowReqPopup(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
+            </div>
+            {callRequests.length===0
+              ? <div style={{fontFamily:G.mono,fontSize:12,color:G.t3,textAlign:'center',padding:'1rem'}}>No pending requests</div>
+              : callRequests.map(req=>(
+                <div key={req.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:`1px solid ${G.bdr}`}}>
+                  {req.avatar
+                    ? <img src={req.avatar} alt="" style={{width:36,height:36,borderRadius:'50%',flexShrink:0}}/>
+                    : <div style={{width:36,height:36,borderRadius:'50%',background:G.lift,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.display,fontSize:16,color:G.t2,flexShrink:0}}>{(req.displayName||'?')[0].toUpperCase()}</div>
+                  }
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:G.t1}}>{req.displayName}</div>
+                    <div style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>wants to add slot calls</div>
+                  </div>
+                  <div style={{display:'flex',gap:6,flexShrink:0}}>
+                    <button onClick={async()=>{
+                      await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`,{method:'POST',body:JSON.stringify({action:'grant'})});
+                    }} style={{height:28,padding:'0 12px',background:'rgba(198,241,53,0.15)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>✓ Allow</button>
+                    <button onClick={async()=>{
+                      await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`,{method:'POST',body:JSON.stringify({action:'deny'})});
+                    }} style={{height:28,padding:'0 12px',background:'rgba(255,68,68,0.1)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Deny</button>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
 
       {/* ── Discord Import Modal ── */}
       {isVip&&canEdit&&showDcImport&&(
