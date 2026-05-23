@@ -611,22 +611,43 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <span style={{fontFamily:G.mono,fontSize:9,color:accent,background:acDim,border:`1px solid ${accent}44`,borderRadius:2,padding:'1px 6px',letterSpacing:'0.06em'}}>+{pending.length-8}</span>
               )}
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <div style={{display:'flex',alignItems:'center',gap:3}}>
               {canEdit && <>
-                <button onClick={()=>setShowPasteCalls(true)} title="Paste a list of slot calls" style={{height:24,padding:'0 9px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.3)`,borderRadius:3,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>
-                  📋 Parse Calls
+                {/* Parse Calls */}
+                <button onClick={()=>setShowPasteCalls(true)} title="Paste slot calls"
+                  style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t2,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.gold;e.currentTarget.style.color=G.gold;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t2;}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-3"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
                 </button>
-                <button className="icon-btn" onClick={()=>setSlotCountModal(true)} title="Generate random" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'2px',lineHeight:1}}>🎲</button>
-                <button className="icon-btn" onClick={randomizeCalls} title="Shuffle" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16l-4 4-1.4-1.4 2.6-2.6H3v-2h14.8l-2.6-2.6L16.6 10l4 4-4 4zm0-8l-4-4-1.4 1.4 2.6 2.6H3v2h14.8l-2.6 2.6L16.6 14l4-4z"/></svg>
+                {/* Random */}
+                <button onClick={()=>setSlotCountModal(true)} title="Add random slots"
+                  style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t2,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t2;}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-4 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-4 4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>
                 </button>
-                <button className="icon-btn-danger" onClick={()=>{if(window.confirm('Clear all slot calls?'))upd(h=>({...h,calls:[]}));}} title="Clear all" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                {/* Shuffle */}
+                <button onClick={randomizeCalls} title="Shuffle calls"
+                  style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t2,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t2;}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3h5v5l-1.5-1.5-4.5 4.5-3-3-6 6-1.5-1.5 6-6 3 3 3-3L16 3zm5 13l-5 5-1.41-1.41 2.58-2.59H3v-2h14.17l-2.58-2.59L16 11l5 5z"/></svg>
                 </button>
-                <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Call limit: ${callLimit} per person`:'Set call limit per person'}
-                  style={{height:28,width:28,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,position:'relative'}}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  {callLimit>0&&<span style={{position:'absolute',top:-5,right:-5,background:accent,color:'#000',borderRadius:'50%',width:14,height:14,fontSize:8,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
+                {/* Clear */}
+                <button onClick={()=>{if(window.confirm('Clear all slot calls?'))upd(h=>({...h,calls:[]}));}} title="Clear all calls"
+                  style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(248,113,113,0.5)';e.currentTarget.style.color=G.red;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+                {/* Call Limit */}
+                <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Limit: ${callLimit}/person`:'Set call limit'}
+                  style={{height:26,width:26,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',transition:'all .1s'}}
+                  onMouseEnter={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}}
+                  onMouseLeave={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  {callLimit>0&&<span style={{position:'absolute',top:-4,right:-4,background:accent,color:'#000',borderRadius:'50%',width:13,height:13,fontSize:7,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
                 </button>
               </>}
               {!canEdit && !canAddCalls && user && hunt.isLive && (huntMode==='creating'||huntMode==='spinning') && (
