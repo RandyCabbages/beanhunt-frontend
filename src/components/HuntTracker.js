@@ -232,6 +232,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
+  const [showPasteCalls, setShowPasteCalls] = useState(false);
+  const [pasteCallsText, setPasteCallsText] = useState('');
   const [dcWinners,     setDcWinners]     = useState(false);
   const [showDcImport,  setShowDcImport]  = useState(false);
   const [callRequests,  setCallRequests]  = useState([]);
@@ -611,8 +613,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
             <div style={{display:'flex',alignItems:'center',gap:4}}>
               {canEdit && <>
-                <button onClick={importDiscordCalls} disabled={dcImporting} title="Import slot calls from Discord (last 20 mins)" style={{height:24,padding:'0 9px',background:'rgba(88,101,242,0.1)',border:'1px solid rgba(88,101,242,0.35)',borderRadius:3,fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#a5b4fc',cursor:'pointer',opacity:dcImporting?0.5:1}}>
-                  {dcImporting?'…':'⬇ Discord'}
+                <button onClick={()=>setShowPasteCalls(true)} title="Paste a list of slot calls" style={{height:24,padding:'0 9px',background:'rgba(198,241,53,0.08)',border:`1px solid rgba(198,241,53,0.3)`,borderRadius:3,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>
+                  📋 Parse Calls
                 </button>
                 <button className="icon-btn" onClick={()=>setSlotCountModal(true)} title="Generate random" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:15,padding:'2px',lineHeight:1}}>🎲</button>
                 <button className="icon-btn" onClick={randomizeCalls} title="Shuffle" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,padding:'2px'}}>
@@ -1030,6 +1032,42 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
         </div>
       </div>
+
+      {/* ── Paste Slot Calls Modal ── */}
+      {canEdit && showPasteCalls && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowPasteCalls(false)}>
+          <div style={{background:G.card,border:`1px solid rgba(198,241,53,0.3)`,borderRadius:10,padding:'1.5rem',width:500,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,color:G.gold,letterSpacing:'0.04em'}}>📋 PARSE SLOT CALLS</span>
+              <button onClick={()=>setShowPasteCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
+            </div>
+            <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:10,lineHeight:1.6}}>
+              Paste any format — one per line, comma separated, or mixed. Duplicates are skipped automatically.
+            </p>
+            <textarea value={pasteCallsText} onChange={e=>setPasteCallsText(e.target.value)} rows={10} autoFocus
+              placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
+              style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}}/>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <button onClick={()=>{
+                const existing = new Set((hunt.calls||[]).map(c=>(c.slot||'').toLowerCase().trim()));
+                const raw = pasteCallsText
+                  .split(/[\n,]/)
+                  .map(s=>s.replace(/^[#\-•*\d.]+\s*/, '').trim())
+                  .filter(s=>s.length>1 && s.length<80 && !existing.has(s.toLowerCase().trim()));
+                const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
+                if(!unique.length){alert('No new slot calls found.');return;}
+                upd(h=>({...h,calls:[...(h.calls||[]),...unique.map(slot=>({id:uid(),slot,status:'pending',user:''}))]}));
+                setPasteCallsText('');
+                setShowPasteCalls(false);
+                alert(`✅ Added ${unique.length} slot call${unique.length!==1?'s':''}`);
+              }} style={{height:38,padding:'0 20px',background:G.gold,color:'#000',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                Import Calls
+              </button>
+              <button onClick={()=>{setPasteCallsText('');}} style={{height:38,padding:'0 14px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:6,fontFamily:G.body,fontSize:13,color:G.t3,cursor:'pointer'}}>Clear</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Call Request Popup ── */}
       {canEdit && showReqPopup && (
