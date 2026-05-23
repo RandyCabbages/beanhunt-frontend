@@ -257,28 +257,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     return () => socket.off('bean:live', setBeanLive);
   }, []);
 
-  useEffect(() => {
-    // Hunt owner: receive new requests
-    const onNewReq = (data) => setCallRequests(data.requests || []);
-    const onUpdate = (data) => setCallRequests(data.requests || []);
-    // Viewer: hear grant/deny
-    const onGranted = (data) => { if (user?.id === data.userId) setReqStatus('granted'); };
-    const onDenied  = (data) => { if (user?.id === data.userId) setReqStatus('denied'); };
-    socket.on('calls:request:new',    onNewReq);
-    socket.on('calls:request:update', onUpdate);
-    socket.on('calls:granted',        onGranted);
-    socket.on('calls:denied',         onDenied);
-    // Load existing requests if owner
-    if (canEdit && hunt.user?.id) {
-      apiFetch(`/api/hunts/${hunt.user.id}/call-requests`).then(setCallRequests).catch(()=>{});
-    }
-    return () => {
-      socket.off('calls:request:new', onNewReq);
-      socket.off('calls:request:update', onUpdate);
-      socket.off('calls:granted', onGranted);
-      socket.off('calls:denied', onDenied);
-    };
-  }, [canEdit, hunt.user?.id, user?.id]);
+
 
   const upd = useCallback(fn => {
     if (readOnly || !onUpdateHunt) return;
@@ -456,6 +435,25 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const pending = queue.filter(c=>c.status==='pending');
   const done    = queue.filter(c=>c.status==='out');
   const canEdit = !readOnly && !!onUpdateHunt;
+  useEffect(() => {
+    const onNewReq = (data) => setCallRequests(data.requests || []);
+    const onUpdate = (data) => setCallRequests(data.requests || []);
+    const onGranted = (data) => { if (user?.id === data.userId) setReqStatus('granted'); };
+    const onDenied  = (data) => { if (user?.id === data.userId) setReqStatus('denied'); };
+    socket.on('calls:request:new',    onNewReq);
+    socket.on('calls:request:update', onUpdate);
+    socket.on('calls:granted',        onGranted);
+    socket.on('calls:denied',         onDenied);
+    if (!readOnly && onUpdateHunt && hunt.user?.id) {
+      apiFetch(`/api/hunts/${hunt.user.id}/call-requests`).then(setCallRequests).catch(()=>{});
+    }
+    return () => {
+      socket.off('calls:request:new', onNewReq);
+      socket.off('calls:request:update', onUpdate);
+      socket.off('calls:granted', onGranted);
+      socket.off('calls:denied', onDenied);
+    };
+  }, [readOnly, hunt.user?.id, user?.id]);
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
   /* ── Modal base style ── */
