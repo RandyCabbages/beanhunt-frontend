@@ -5,6 +5,7 @@ import Hub from './pages/Hub';
 import MyHunt from './pages/MyHunt';
 import WatchHunt from './pages/WatchHunt';
 import Overlay from './pages/Overlay';
+import HuntHistory from './pages/HuntHistory';
 
 export default function App() {
   const [user, setUser] = useState(undefined);
@@ -39,6 +40,7 @@ export default function App() {
     <Routes>
       <Route path="/"               element={<Hub user={user} />} />
       <Route path="/hunt"           element={<MyHunt user={user} />} />
+      <Route path="/hunt-history"   element={<HuntHistory user={user} />} />
       <Route path="/hunt/:userId"   element={<WatchHunt user={user} />} />
       <Route path="/overlay/:userId" element={<Overlay />} />
     </Routes>
