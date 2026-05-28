@@ -19,8 +19,6 @@ export default function HuntHistory({ user }) {
   const [slotStats, setSlotStats] = useState({});
   const [mitchSlotStats, setMitchSlotStats] = useState({});
   const [view, setView] = useState('your-slots'); // 'your-slots', 'mitch-slots', 'all-hunts'
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/my-hunts')
@@ -36,10 +34,27 @@ export default function HuntHistory({ user }) {
       .then(data => {
         if (data.hunts && data.hunts.length > 0) {
           calculateMitchSlotStats(data.hunts);
+        } else {
+          // If Mitch hunts don't exist, auto-fetch them (admin only)
+          if (user?.isMod || user?.role === 'mod') {
+            apiFetch('/api/admin/fetch-and-import-mitch-hunts', { method: 'POST' })
+              .then(res => {
+                if (res.ok || res.huntsImported) {
+                  // Reload Mitch data
+                  return apiFetch('/api/admin/mitch-hunts');
+                }
+              })
+              .then(data => {
+                if (data && data.hunts) {
+                  calculateMitchSlotStats(data.hunts);
+                }
+              })
+              .catch(() => {}); // Silently fail if not an admin
+          }
         }
       })
       .catch(() => {}); // Silently fail if endpoint doesn't exist
-  }, []);
+  }, [user]);
 
   const calculateSlotStats = (huntList) => {
     const stats = {};
@@ -115,28 +130,6 @@ export default function HuntHistory({ user }) {
     setMitchSlotStats(stats);
   };
 
-  const handleFetchMitchData = async () => {
-    setImporting(true);
-    try {
-      const response = await apiFetch('/api/admin/fetch-and-import-mitch-hunts', {
-        method: 'POST',
-      });
-      if (response.ok || response.huntsImported) {
-        // Reload Mitch data
-        const data = await apiFetch('/api/admin/mitch-hunts');
-        if (data.hunts) {
-          calculateMitchSlotStats(data.hunts);
-        }
-        setShowImportModal(false);
-      }
-    } catch (err) {
-      console.error('Import failed:', err);
-      alert('Failed to import: ' + err.message);
-    } finally {
-      setImporting(false);
-    }
-  };
-
   const sortSlots = (stats) => {
     return Object.values(stats)
       .filter(s => s.bonusCount >= 2)
@@ -158,20 +151,10 @@ export default function HuntHistory({ user }) {
       {/* Header */}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem'}}>
         <h1 style={{margin:0, fontSize:'2rem', fontWeight:700}}>📊 Hunt History</h1>
-        <div style={{display:'flex', gap:'1rem'}}>
-          {(user?.isMod || user?.role === 'mod') && Object.keys(mitchSlotStats).length === 0 && (
-            <button onClick={() => setShowImportModal(true)} style={{
-              padding:'8px 16px', background:G.purple, color:G.t1, border:'none', borderRadius:6,
-              fontFamily:G.display, fontWeight:700, cursor:'pointer'
-            }}>
-              🍌 Import Mitch's Hunts
-            </button>
-          )}
-          <button onClick={() => navigate('/hunt')} style={{
-            padding:'8px 16px', background:G.gold, color:'#111111', border:'none', borderRadius:6,
-            fontFamily:G.display, fontWeight:700, cursor:'pointer'
-          }}>← Back to Hunt</button>
-        </div>
+        <button onClick={() => navigate('/hunt')} style={{
+          padding:'8px 16px', background:G.gold, color:'#111111', border:'none', borderRadius:6,
+          fontFamily:G.display, fontWeight:700, cursor:'pointer'
+        }}>← Back to Hunt</button>
       </div>
 
       {/* View Selector */}
@@ -275,35 +258,6 @@ export default function HuntHistory({ user }) {
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Import Modal */}
-      {showImportModal && (
-        <div style={{
-          position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)',
-          display:'flex', alignItems:'center', justifyContent:'center', fontFamily:G.display
-        }}>
-          <div style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:8, padding:'2rem', maxWidth:'500px'}}>
-            <h2 style={{margin:'0 0 1rem 0', color:G.purple}}>🍌 Import Mitch's Hunt Data</h2>
-            <p style={{color:G.t2, margin:'0 0 1.5rem 0'}}>
-              This will fetch all of Mitch's bonus hunt data from mitchjones.vip and analyze his top performing slots.
-            </p>
-            <div style={{display:'flex', gap:'1rem'}}>
-              <button onClick={handleFetchMitchData} disabled={importing} style={{
-                flex:1, padding:'10px 20px', background:G.purple, color:G.t1, border:'none',
-                borderRadius:6, fontWeight:700, cursor:'pointer', opacity:importing?0.6:1
-              }}>
-                {importing ? '⏳ Importing...' : '✅ Start Import'}
-              </button>
-              <button onClick={() => setShowImportModal(false)} style={{
-                flex:1, padding:'10px 20px', background:'transparent', color:G.t1, border:`1px solid ${G.bdr}`,
-                borderRadius:6, fontWeight:700, cursor:'pointer'
-              }}>
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
