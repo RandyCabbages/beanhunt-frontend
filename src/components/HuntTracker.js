@@ -473,7 +473,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const btnGhost   = { height:36, padding:'0 14px', background:'transparent', border:`1px solid ${G.bdr}`, borderRadius:3, fontFamily:G.body, fontSize:13, color:G.t3, cursor:'pointer' };
 
   return (
-    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2}}>
+    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2, paddingBottom:'60px'}}>
       <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -574,8 +574,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           </div>
 
-          {/* Center: announcement */}
-          <div style={{textAlign:'center',userSelect:'none'}}>
+          {/* Center: announcement with mustache */}
+          <div style={{textAlign:'center',userSelect:'none',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
             <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
               <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:15,fontWeight:700,letterSpacing:'0.12em',
                 background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
@@ -583,6 +583,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 #joinbeancore
               </span>
             </a>
+            <img src="/mustache.png" alt="mustache" style={{height:'2.2rem',width:'auto',opacity:0.85}} />
           </div>
 
           {/* Right: controls */}
