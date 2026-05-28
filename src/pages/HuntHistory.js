@@ -21,40 +21,49 @@ export default function HuntHistory({ user }) {
   const [view, setView] = useState('your-slots'); // 'your-slots', 'mitch-slots', 'all-hunts'
 
   useEffect(() => {
-    apiFetch('/api/my-hunts')
-      .then(data => {
-        setHunts(data.hunts || []);
-        calculateSlotStats(data.hunts || []);
-      })
-      .catch(e => console.error(e))
-      .finally(() => setLoading(false));
+    const loadData = async () => {
+      try {
+        const myHuntsData = await apiFetch('/api/my-hunts');
+        setHunts(myHuntsData.hunts || []);
+        calculateSlotStats(myHuntsData.hunts || []);
+      } catch (e) {
+        console.error('Error loading my hunts:', e);
+      }
+    };
 
-    // Try to load Mitch's hunts if they exist
-    apiFetch('/api/admin/mitch-hunts')
-      .then(data => {
-        if (data.hunts && data.hunts.length > 0) {
-          calculateMitchSlotStats(data.hunts);
+    const loadMitchData = async () => {
+      try {
+        // Try to get existing Mitch hunts
+        const existingData = await apiFetch('/api/admin/mitch-hunts').catch(() => null);
+        
+        if (existingData?.hunts && existingData.hunts.length > 0) {
+          calculateMitchSlotStats(existingData.hunts);
         } else {
-          // If Mitch hunts don't exist, auto-fetch them (admin only)
-          if (user?.isMod || user?.role === 'mod') {
-            apiFetch('/api/admin/fetch-and-import-mitch-hunts', { method: 'POST' })
-              .then(res => {
-                if (res.ok || res.huntsImported) {
-                  // Reload Mitch data
-                  return apiFetch('/api/admin/mitch-hunts');
-                }
-              })
-              .then(data => {
-                if (data && data.hunts) {
-                  calculateMitchSlotStats(data.hunts);
-                }
-              })
-              .catch(() => {}); // Silently fail if not an admin
+          // If none exist, try to fetch them
+          try {
+            const fetchResult = await apiFetch('/api/admin/fetch-and-import-mitch-hunts', { method: 'POST' });
+            if (fetchResult.huntsImported) {
+              // Reload Mitch data after import
+              const freshData = await apiFetch('/api/admin/mitch-hunts');
+              if (freshData.hunts) {
+                calculateMitchSlotStats(freshData.hunts);
+              }
+            }
+          } catch (importErr) {
+            console.log('Mitch import not available or failed:', importErr.message);
           }
         }
-      })
-      .catch(() => {}); // Silently fail if endpoint doesn't exist
-  }, [user]);
+      } catch (e) {
+        console.error('Error loading Mitch data:', e);
+      }
+    };
+
+    loadData();
+    setLoading(false);
+    
+    // Load Mitch data independently
+    loadMitchData();
+  }, []);
 
   const calculateSlotStats = (huntList) => {
     const stats = {};
