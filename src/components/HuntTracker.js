@@ -240,6 +240,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [showReqPopup,  setShowReqPopup]  = useState(false);
   const [reqStatus,     setReqStatus]     = useState(null); // null | 'pending' | 'granted' | 'denied'
   const [eqTooltip,     setEqTooltip]     = useState(null);
+  const [editingCallId, setEditingCallId] = useState(null);
+  const [editingCallUser, setEditingCallUser] = useState('');
+  const [editingCallSlot, setEditingCallSlot] = useState('');
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
@@ -407,6 +410,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const setCallStatus  = (id,status) => upd(h=>({...h,calls:h.calls.map(c=>c.id===id?{...c,status}:c)}));
   const removeCall     = id          => upd(h=>({...h,calls:h.calls.filter(c=>c.id!==id)}));
+  const updateCall     = (id, user, slot) => {
+    upd(h=>({...h,calls:h.calls.map(c=>c.id===id?{...c,user,slot}:c)}));
+    setEditingCallId(null);
+  };
   const clearMissed    = ()          => upd(h=>({...h,calls:h.calls.filter(c=>c.status!=='out')}));
   const randomizeCalls = ()          => upd(h=>({...h,calls:shuffle(h.calls)}));
   const setLimit       = ()          => { upd(h=>({...h,callLimit:parseInt(limitInput)||0})); setLimitModal(false); };
@@ -478,6 +485,34 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         .icon-btn:hover{color:${G.t1}!important}
         .icon-btn-danger:hover{color:${G.red}!important}
         .tag-btn:hover{opacity:1!important}
+        
+        /* Mobile responsive */
+        @media (max-width: 1024px) {
+          .hunt-three-col {
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          html, body, * { zoom: 0.95 !important; }
+          .hunt-three-col {
+            grid-template-columns: 1fr !important;
+            height: auto !important;
+          }
+          .hunt-three-col > div {
+            border-right: none !important;
+            border-bottom: 1px solid ${G.bdr} !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+        }
+        
+        @media (max-width: 640px) {
+          html, body, * { zoom: 0.80 !important; }
+          input, select, textarea, button { min-height: 44px !important; }
+          button { padding: 10px 14px !important; }
+          .hunt-header { flex-direction: column !important; align-items: flex-start !important; }
+        }
       `}</style>
 
       {/* ── Bean live banner ── */}
@@ -497,7 +532,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
       {/* ── Top bar ── */}
       <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,position:'sticky',top:0,zIndex:40}}>
-        <div style={{padding:'0 1.5rem',height:54,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
+        <div style={{padding:'0 1.5rem',height:'auto',minHeight:74,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           {/* Left: socials + title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
           {/* Bean socials */}
@@ -524,6 +559,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   ? <><span style={{color:G.t2}}>VIP </span><span style={{color:G.purple}}>HUNT</span></>
                   : <><span style={{color:G.t2}}>COMMUNITY </span><span style={{color:G.gold}}>HUNT</span></>
                 }
+              </div>
+              {/* Mustache below Bean Core */}
+              <div style={{display:'flex',justifyContent:'flex-start',marginTop:'4px'}}>
+                <img src="/mustache.png" alt="mustache" style={{height:'1.8rem',opacity:0.7}} />
               </div>
             </div>
             {hunt.isLive && (
@@ -562,7 +601,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             )}
             {canEdit && <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:30,padding:'0 12px',background:obsCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${obsCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:obsCopied?G.gold:G.t2,cursor:'pointer'}}>{obsCopied?'✓ Copied':'OBS Link'}</button>}
             {canEdit && <button onClick={()=>setInviteModal(true)} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer'}}>+ Co-Edit</button>}
-            <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/hunt/${hunt.user?.id}`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Copied':'⇗ Share'}</button>
+            {canEdit && <a href="/hunt-history" style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer',display:'flex',alignItems:'center',textDecoration:'none'}}>📊 Hunt History</a>}
+            <button onClick={async()=>{
+              try{
+                const boardEl=document.querySelector('[data-board="stats"]');
+                if(!boardEl){alert('Board not found');return;}
+                const script=document.createElement('script');
+                script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload=async()=>{
+                  const canvas=await window.html2canvas(boardEl,{backgroundColor:'#161618',scale:2,useCORS:true});
+                  canvas.toBlob(blob=>{
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement('a');
+                    a.href=url;
+                    a.download=`hunt-board-${new Date().toISOString().split('T')[0]}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    setShareCopied(true);
+                    setTimeout(()=>setShareCopied(false),2000);
+                  });
+                };
+                document.head.appendChild(script);
+              }catch(e){alert('Screenshot failed: '+e.message);}
+            }} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Downloaded':'📸 Screenshot'}</button>
             {canEdit && hunt.isLive && onEndHunt && (
               <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:30,padding:'0 14px',background:'rgba(248,113,113,0.15)',border:`1px solid rgba(248,113,113,0.5)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#f87171',cursor:'pointer'}}>End Hunt</button>
             )}
@@ -574,7 +637,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
       </div>
 
-      {/* ── Three-column layout ── */}
+      {/* ── Three-column layout with sticky board ── */}
       <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
@@ -706,10 +769,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit && !isLocked && <button className="icon-btn-danger" onClick={()=>removeCall(c.id)} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:12,lineHeight:1}}>×</button>}
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
-                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
-                  <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
-                  {canEdit&&(
+                  {editingCallId===c.id?(
+                    <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                      <input type="text" value={editingCallSlot} onChange={e=>setEditingCallSlot(e.target.value)} placeholder="Slot" style={{height:26,padding:'0 6px',background:G.sur,border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,color:G.t1}} />
+                      <input type="text" value={editingCallUser} onChange={e=>setEditingCallUser(e.target.value)} placeholder="Person" style={{height:26,padding:'0 6px',background:G.sur,border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,color:G.t1}} />
+                      <div style={{display:'flex',gap:3}}>
+                        <button onClick={()=>updateCall(c.id,editingCallUser,editingCallSlot)} style={{flex:1,height:24,background:G.green,color:'#000',border:'none',borderRadius:2,fontFamily:G.mono,fontSize:10,fontWeight:700,cursor:'pointer'}}>✓ Save</button>
+                        <button onClick={()=>setEditingCallId(null)} style={{flex:1,height:24,background:G.red,color:'#000',border:'none',borderRadius:2,fontFamily:G.mono,fontSize:10,fontWeight:700,cursor:'pointer'}}>✗ Cancel</button>
+                      </div>
+                    </div>
+                  ):(
+                    <>
+                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
+                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                    </>
+                  )}
+                  {canEdit&&editingCallId!==c.id&&(
                     <div style={{display:'flex',gap:4,marginTop:6}}>
+                      <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,padding:'0 12px',background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer'}}>✏️ Edit</button>
                       <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
                       <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
                     </div>
@@ -722,12 +799,18 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.1em',textTransform:'uppercase',margin:'8px 0 4px',paddingTop:8,borderTop:`1px solid ${G.bdr}`}}>
                   <span>MISSED</span>
-                  {canEdit&&<button onClick={clearMissed} style={{background:'none',border:'none',color:G.t4,fontFamily:G.mono,fontSize:9,cursor:'pointer'}}>Clear</button>}
+                  <div style={{display:'flex',gap:4}}>
+                    {canEdit&&done.length>0&&<button onClick={()=>{upd(h=>({...h,calls:[...h.calls,...done.map(c=>({...c,status:'pending',id:uid()}))]}))}} style={{background:'none',border:'none',color:G.green,fontFamily:G.mono,fontSize:9,cursor:'pointer',fontWeight:700}}>+ Re-add All</button>}
+                    {canEdit&&<button onClick={clearMissed} style={{background:'none',border:'none',color:G.t4,fontFamily:G.mono,fontSize:9,cursor:'pointer'}}>Clear</button>}
+                  </div>
                 </div>
                 {done.map(c=>(
-                  <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5}}>
-                    <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{c.slot}</div>
-                    <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
+                  <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{c.slot}</div>
+                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
+                    </div>
+                    {canEdit&&<button onClick={()=>{upd(h=>({...h,calls:[...h.calls,{...c,status:'pending',id:uid()}]}))}} style={{background:'none',border:'none',color:G.green,fontFamily:G.mono,fontSize:10,cursor:'pointer',fontWeight:700,marginLeft:4,whiteSpace:'nowrap'}}>↩ Readd</button>}
                   </div>
                 ))}
               </>
@@ -741,8 +824,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         {/* ── MIDDLE: Bonuses ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
-          {/* Stat tiles — centered above bonus tracker */}
-          <div style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0}}>
+          {/* Stat tiles — centered above bonus tracker - STICKY */}
+          <div data-board="stats" style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0,position:'sticky',top:0,zIndex:30}}>
             {huntMode==='creating'&&<>
               <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
               <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
@@ -824,7 +907,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
                     }
-                    {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
+                    {b.scat>3&&(
+                      b.scat===3?(
+                        <svg width="20" height="20" viewBox="0 0 72 72" style={{marginLeft:5,display:'inline-block',verticalAlign:'middle'}}><defs><radialGradient id="sS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/><polygon points="5,22 26,33 4,20 25,32"/><polygon points="67,22 46,33 68,20 47,32"/><polygon points="5,50 26,39 4,52 25,40"/><polygon points="67,50 46,39 68,52 47,40"/></g><circle cx="36" cy="36" r="22" fill="url(#sS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+                      ):b.scat===4?(
+                        <svg width="20" height="20" viewBox="0 0 72 72" style={{marginLeft:5,display:'inline-block',verticalAlign:'middle'}}><defs><radialGradient id="sG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#sG)" stroke="#cc44ff" strokeWidth="1.5"/><line x1="36" y1="10" x2="36" y2="62" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="14" y1="26" x2="58" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="58" y1="26" x2="14" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><ellipse cx="28" cy="24" rx="5" ry="3" fill="white" opacity="0.25" transform="rotate(-20,28,24)"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+                      ):(
+                        <svg width="20" height="20" viewBox="0 0 72 72" style={{marginLeft:5,display:'inline-block',verticalAlign:'middle'}}><defs><radialGradient id="sD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="sD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#sD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#sD2)" stroke="#0088cc" strokeWidth="1"/><polygon points="24,14 30,20 20,22 18,24 22,19" fill="white" opacity="0.4"/><line x1="36" y1="20" x2="36" y2="64" stroke="#aaeeff" strokeWidth="0.7" opacity="0.35"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+                      )
+                    )}
                     {b.caller&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:2,letterSpacing:'0.03em'}}>({b.caller})</div>}
                   </div>
                   <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
