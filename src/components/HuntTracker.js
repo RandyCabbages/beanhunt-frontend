@@ -473,7 +473,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const btnGhost   = { height:36, padding:'0 14px', background:'transparent', border:`1px solid ${G.bdr}`, borderRadius:3, fontFamily:G.body, fontSize:13, color:G.t3, cursor:'pointer' };
 
   return (
-    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2, paddingBottom:'60px'}}>
+    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2, paddingBottom:'60px', overflow:'auto'}}>
       <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -893,9 +893,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <div key={b.id} className="row-hover"
                   style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',
                     borderBottom:`1px solid ${G.bdr}`,
-                    background:isP?`${acDim}`:undefined,
+                    background:isP?`${acDim}40`:undefined,
+                    border:isP?`2px solid ${accent}`:undefined,
+                    boxShadow:isP?`inset 0 0 12px ${accent}22`:undefined,
                     opacity:b.win>0?1:.5,
-                    transition:'background .08s'}}>
+                    transition:'all .12s'}}>
                   <div style={{padding:'8px',fontFamily:G.mono,fontSize:14,color:isP?accent:G.t4,cursor:'pointer',userSelect:'none',alignSelf:'center',textAlign:'center'}}
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
@@ -903,7 +905,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{padding:'7px 6px',alignSelf:'center'}}>
                     {canEdit
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
-                      : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
+                      : <span style={{fontFamily:G.body,fontSize:14,fontWeight:900,color:isP?accent:G.t1,letterSpacing:'0.02em'}}>{b.slot}</span>
                     }
                     {b.scat>3&&(
                       b.scat===3?(
@@ -951,9 +953,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         {/* ── RIGHT: Equity ── */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* Header */}
-          <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
+          <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0,gap:10,flexWrap:'wrap'}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,position:'relative',marginLeft:'auto'}}>
+            {canEdit&&<div style={{display:'flex',gap:5,position:'relative',marginLeft:'auto',flexWrap:'wrap',justifyContent:'flex-end'}}>
               {isVip && <button
                 onMouseEnter={()=>setEqTooltip('discord')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{setShowDcImport(v=>!v);setEqTooltip(null);}}
@@ -1316,8 +1318,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>SCATTER COUNT</div>
             <div style={{display:'flex',gap:4,marginBottom:12}}>
               {[3,4,5].map(n=>(
-                <button key={n} onClick={()=>setActiveScat(n)} style={{flex:1,height:30,border:`1px solid ${activeScat===n?accent:`${G.bdr}`}`,borderRadius:2,background:activeScat===n?acDim:'transparent',fontFamily:G.mono,fontSize:11,color:activeScat===n?accent:G.t3,cursor:'pointer',letterSpacing:'0.06em'}}>
-                  {n} SCAT
+                <button key={n} onClick={()=>setActiveScat(n)} style={{flex:1,height:30,border:`1px solid ${activeScat===n?accent:`${G.bdr}`}`,borderRadius:2,background:activeScat===n?acDim:'transparent',fontFamily:G.mono,fontSize:11,color:activeScat===n?accent:G.t3,cursor:'pointer',letterSpacing:'0.06em',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {n===3?(
+                    <svg width="18" height="18" viewBox="0 0 72 72" style={{opacity:activeScat===3?1:0.5}}><defs><radialGradient id="sS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/><polygon points="5,22 26,33 4,20 25,32"/><polygon points="67,22 46,33 68,20 47,32"/><polygon points="5,50 26,39 4,52 25,40"/><polygon points="67,50 46,39 68,52 47,40"/></g><circle cx="36" cy="36" r="22" fill="url(#sS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+                  ):n===4?(
+                    <svg width="18" height="18" viewBox="0 0 72 72" style={{opacity:activeScat===4?1:0.5}}><defs><radialGradient id="sG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#sG)" stroke="#cc44ff" strokeWidth="1.5"/><line x1="36" y1="10" x2="36" y2="62" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="14" y1="26" x2="58" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="58" y1="26" x2="14" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><ellipse cx="28" cy="24" rx="5" ry="3" fill="white" opacity="0.25" transform="rotate(-20,28,24)"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+                  ):(
+                    <svg width="18" height="18" viewBox="0 0 72 72" style={{opacity:activeScat===5?1:0.5}}><defs><radialGradient id="sD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="sD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#sD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#sD2)" stroke="#0088cc" strokeWidth="1"/><polygon points="24,14 30,20 20,22 18,24 22,19" fill="white" opacity="0.4"/><line x1="36" y1="20" x2="36" y2="64" stroke="#aaeeff" strokeWidth="0.7" opacity="0.35"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+                  )}
                 </button>
               ))}
             </div>
