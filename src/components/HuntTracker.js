@@ -531,7 +531,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       )}
 
       {/* ── Top bar ── */}
-      <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,position:'sticky',top:0,zIndex:40}}>
+      <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,zIndex:40}}>
         <div style={{padding:'0 1.5rem',height:'auto',minHeight:74,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           {/* Left: socials + title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
@@ -560,10 +560,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   : <><span style={{color:G.t2}}>COMMUNITY </span><span style={{color:G.gold}}>HUNT</span></>
                 }
               </div>
-              {/* Mustache below Bean Core */}
-              <div style={{display:'flex',justifyContent:'flex-start',marginTop:'4px'}}>
-                <img src="/mustache.png" alt="mustache" style={{height:'1.8rem',opacity:0.7}} />
-              </div>
             </div>
             {hunt.isLive && (
               <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(0,230,118,.07)',border:'1px solid rgba(0,230,118,.2)',borderRadius:3,padding:'3px 10px',marginLeft:4}}>
@@ -574,8 +570,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           </div>
 
-          {/* Center: announcement with mustache */}
-          <div style={{textAlign:'center',userSelect:'none',display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+          {/* Center: announcement */}
+          <div style={{textAlign:'center',userSelect:'none'}}>
             <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
               <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:15,fontWeight:700,letterSpacing:'0.12em',
                 background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
@@ -583,7 +579,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 #joinbeancore
               </span>
             </a>
-            <img src="/mustache.png" alt="mustache" style={{height:'2.2rem',width:'auto',opacity:0.85}} />
           </div>
 
           {/* Right: controls */}
@@ -786,10 +781,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     </>
                   )}
                   {canEdit&&editingCallId!==c.id&&(
-                    <div style={{display:'flex',gap:4,marginTop:6}}>
-                      <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,padding:'0 12px',background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#a5b4fc',cursor:'pointer'}}>✏️ Edit</button>
-                      <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
-                      <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
+                    <div style={{display:'flex',gap:4,marginTop:6,justifyContent:'space-between',alignItems:'center'}}>
+                      <div style={{display:'flex',gap:4}}>
+                        <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
+                        <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
+                      </div>
+                      <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,width:26,padding:0,background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>
                     </div>
                   )}
                 </div>
@@ -826,7 +823,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
           {/* Stat tiles — centered above bonus tracker - STICKY */}
-          <div data-board="stats" style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0,position:'sticky',top:0,zIndex:30}}>
+          <div data-board="stats" style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0,zIndex:30}}>
             {huntMode==='creating'&&<>
               <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
               <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
@@ -956,7 +953,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,position:'relative'}}>
+            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,position:'relative',marginLeft:'auto'}}>
               {isVip && <button
                 onMouseEnter={()=>setEqTooltip('discord')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{setShowDcImport(v=>!v);setEqTooltip(null);}}
