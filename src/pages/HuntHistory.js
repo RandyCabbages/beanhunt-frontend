@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32',
   bdr:'rgba(255,255,255,0.15)',
-  gold:'#c6f135', green:'#4ade80', red:'#f87171', blue:'#5865f2',
+  gold:'#c6f135', green:'#4ade80', red:'#f87171', blue:'#5865f2', purple:'#c084fc',
   t1:'#ffffff', t2:'#e8e8e8', t3:'#b0b0b0', t4:'#808080',
   display:"'Chakra Petch',sans-serif",
 };
@@ -17,10 +17,12 @@ export default function HuntHistory({ user }) {
   const [hunts, setHunts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [slotStats, setSlotStats] = useState({});
-  const [view, setView] = useState('slots'); // 'slots' or 'hunts'
+  const [mitchSlotStats, setMitchSlotStats] = useState({});
+  const [view, setView] = useState('your-slots'); // 'your-slots', 'mitch-slots', 'all-hunts'
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
-    // Fetch all hunts and calculate statistics
     apiFetch('/api/my-hunts')
       .then(data => {
         setHunts(data.hunts || []);
@@ -28,6 +30,15 @@ export default function HuntHistory({ user }) {
       })
       .catch(e => console.error(e))
       .finally(() => setLoading(false));
+
+    // Try to load Mitch's hunts if they exist
+    apiFetch('/api/admin/mitch-hunts')
+      .then(data => {
+        if (data.hunts && data.hunts.length > 0) {
+          calculateMitchSlotStats(data.hunts);
+        }
+      })
+      .catch(() => {}); // Silently fail if endpoint doesn't exist
   }, []);
 
   const calculateSlotStats = (huntList) => {
@@ -53,12 +64,13 @@ export default function HuntHistory({ user }) {
         stats[slot].totalBets += bonus.bet || 0;
         stats[slot].bonusCount += 1;
         
-        if (bonus.result === 'Won') {
+        if (bonus.win && bonus.win > 0) {
           stats[slot].wins += 1;
-          stats[slot].totalWinnings += (bonus.winnings || 0);
+          stats[slot].totalWinnings += (bonus.win - (bonus.bet || 0));
           if (bonus.multiplier) stats[slot].multipliers.push(bonus.multiplier);
-        } else if (bonus.result === 'Lost') {
+        } else {
           stats[slot].losses += 1;
+          stats[slot].totalWinnings -= (bonus.bet || 0);
         }
       });
     });
@@ -66,13 +78,78 @@ export default function HuntHistory({ user }) {
     setSlotStats(stats);
   };
 
-  const sortedSlots = Object.values(slotStats).sort((a, b) => b.wins - a.wins);
-  const bestSlots = sortedSlots.slice(0, 10);
-  const worstSlots = sortedSlots.slice(-10).reverse();
+  const calculateMitchSlotStats = (huntList) => {
+    const stats = {};
+    
+    huntList.forEach(hunt => {
+      if (!hunt.bonuses) return;
+      
+      hunt.bonuses.forEach(bonus => {
+        const slot = bonus.slot || 'Unknown';
+        if (!stats[slot]) {
+          stats[slot] = {
+            name: slot,
+            totalBets: 0,
+            bonusCount: 0,
+            wins: 0,
+            losses: 0,
+            totalWinnings: 0,
+            multipliers: [],
+          };
+        }
+        
+        stats[slot].totalBets += bonus.bet || 0;
+        stats[slot].bonusCount += 1;
+        
+        if (bonus.win && bonus.win > 0) {
+          stats[slot].wins += 1;
+          stats[slot].totalWinnings += (bonus.win - (bonus.bet || 0));
+          if (bonus.multiplier) stats[slot].multipliers.push(bonus.multiplier);
+        } else {
+          stats[slot].losses += 1;
+          stats[slot].totalWinnings -= (bonus.bet || 0);
+        }
+      });
+    });
+    
+    setMitchSlotStats(stats);
+  };
+
+  const handleFetchMitchData = async () => {
+    setImporting(true);
+    try {
+      const response = await apiFetch('/api/admin/fetch-and-import-mitch-hunts', {
+        method: 'POST',
+      });
+      if (response.ok || response.huntsImported) {
+        // Reload Mitch data
+        const data = await apiFetch('/api/admin/mitch-hunts');
+        if (data.hunts) {
+          calculateMitchSlotStats(data.hunts);
+        }
+        setShowImportModal(false);
+      }
+    } catch (err) {
+      console.error('Import failed:', err);
+      alert('Failed to import: ' + err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const sortSlots = (stats) => {
+    return Object.values(stats)
+      .filter(s => s.bonusCount >= 2)
+      .sort((a, b) => (b.totalWinnings || 0) - (a.totalWinnings || 0));
+  };
+
+  const topYourSlots = sortSlots(slotStats).slice(0, 10);
+  const bottomYourSlots = sortSlots(slotStats).slice(-10).reverse();
+  const topMitchSlots = sortSlots(mitchSlotStats).slice(0, 10);
 
   if (loading) return (
     <div style={{background:G.bg, minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:G.display, color:G.t1}}>
-      Loading hunt history...
+      Loading...
     </div>
   );
 
@@ -81,60 +158,71 @@ export default function HuntHistory({ user }) {
       {/* Header */}
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem'}}>
         <h1 style={{margin:0, fontSize:'2rem', fontWeight:700}}>📊 Hunt History</h1>
-        <button onClick={() => navigate('/hunt')} style={{
-          padding:'8px 16px', background:G.gold, color:'#111111', border:'none', borderRadius:6,
-          fontFamily:G.display, fontWeight:700, cursor:'pointer'
-        }}>← Back to Hunt</button>
+        <div style={{display:'flex', gap:'1rem'}}>
+          {(user?.isMod || user?.role === 'mod') && Object.keys(mitchSlotStats).length === 0 && (
+            <button onClick={() => setShowImportModal(true)} style={{
+              padding:'8px 16px', background:G.purple, color:G.t1, border:'none', borderRadius:6,
+              fontFamily:G.display, fontWeight:700, cursor:'pointer'
+            }}>
+              🍌 Import Mitch's Hunts
+            </button>
+          )}
+          <button onClick={() => navigate('/hunt')} style={{
+            padding:'8px 16px', background:G.gold, color:'#111111', border:'none', borderRadius:6,
+            fontFamily:G.display, fontWeight:700, cursor:'pointer'
+          }}>← Back to Hunt</button>
+        </div>
       </div>
 
       {/* View Selector */}
-      <div style={{display:'flex', gap:'1rem', marginBottom:'2rem'}}>
-        <button onClick={() => setView('slots')} style={{
-          padding:'10px 20px', background:view==='slots'?G.gold:'transparent', color:view==='slots'?'#111111':G.t1,
+      <div style={{display:'flex', gap:'1rem', marginBottom:'2rem', flexWrap:'wrap'}}>
+        <button onClick={() => setView('your-slots')} style={{
+          padding:'10px 20px', background:view==='your-slots'?G.gold:'transparent', color:view==='your-slots'?'#111111':G.t1,
           border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
-        }}>🎰 Slot Performance</button>
-        <button onClick={() => setView('hunts')} style={{
-          padding:'10px 20px', background:view==='hunts'?G.gold:'transparent', color:view==='hunts'?'#111111':G.t1,
+        }}>🏆 Your Top Slots</button>
+        {Object.keys(mitchSlotStats).length > 0 && (
+          <button onClick={() => setView('mitch-slots')} style={{
+            padding:'10px 20px', background:view==='mitch-slots'?G.gold:'transparent', color:view==='mitch-slots'?'#111111':G.t1,
+            border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
+          }}>🍌 Mitch's Top Slots</button>
+        )}
+        <button onClick={() => setView('all-hunts')} style={{
+          padding:'10px 20px', background:view==='all-hunts'?G.gold:'transparent', color:view==='all-hunts'?'#111111':G.t1,
           border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
         }}>📋 All Hunts</button>
       </div>
 
-      {view === 'slots' && (
+      {/* Your Top Slots */}
+      {view === 'your-slots' && (
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2rem'}}>
-          {/* Best Performing Slots */}
           <div>
-            <h2 style={{margin:'0 0 1rem 0', fontSize:'1.3rem', color:G.gold}}>✅ Best Performing Slots</h2>
+            <h2 style={{margin:'0 0 1rem 0', fontSize:'1.3rem', color:G.gold}}>✅ Best Performing</h2>
             <div style={{display:'flex', flexDirection:'column', gap:'0.8rem'}}>
-              {bestSlots.map((slot, i) => (
-                <div key={i} style={{
-                  background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'
-                }}>
+              {topYourSlots.map((slot, i) => (
+                <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'}}>
                   <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem'}}>{i+1}. {slot.name}</div>
                   <div style={{fontSize:'0.85rem', color:G.t3, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem'}}>
                     <div>💰 Wins: {slot.wins}/{slot.bonusCount}</div>
                     <div>🎲 Bet: {fmt(slot.totalBets)}</div>
-                    <div>💵 Total Win: {fmt(slot.totalWinnings)}</div>
-                    <div>📈 Win Rate: {((slot.wins/slot.bonusCount)*100).toFixed(1)}%</div>
+                    <div>💵 Profit: {fmt(slot.totalWinnings)}</div>
+                    <div>📈 ROI: {(slot.totalBets > 0 ? (slot.totalWinnings/slot.totalBets*100).toFixed(1) : 0)}%</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Worst Performing Slots */}
           <div>
-            <h2 style={{margin:'0 0 1rem 0', fontSize:'1.3rem', color:G.red}}>❌ Worst Performing Slots</h2>
+            <h2 style={{margin:'0 0 1rem 0', fontSize:'1.3rem', color:G.red}}>❌ Worst Performing</h2>
             <div style={{display:'flex', flexDirection:'column', gap:'0.8rem'}}>
-              {worstSlots.map((slot, i) => (
-                <div key={i} style={{
-                  background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'
-                }}>
+              {bottomYourSlots.map((slot, i) => (
+                <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'}}>
                   <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem'}}>{slot.name}</div>
                   <div style={{fontSize:'0.85rem', color:G.t3, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem'}}>
                     <div>💔 Losses: {slot.losses}/{slot.bonusCount}</div>
                     <div>🎲 Bet: {fmt(slot.totalBets)}</div>
-                    <div>💵 Total Loss: {fmt(slot.totalWinnings)}</div>
-                    <div>📈 Win Rate: {((slot.wins/slot.bonusCount)*100).toFixed(1)}%</div>
+                    <div>💸 Loss: {fmt(slot.totalWinnings)}</div>
+                    <div>📉 ROI: {(slot.totalBets > 0 ? (slot.totalWinnings/slot.totalBets*100).toFixed(1) : 0)}%</div>
                   </div>
                 </div>
               ))}
@@ -143,12 +231,34 @@ export default function HuntHistory({ user }) {
         </div>
       )}
 
-      {view === 'hunts' && (
+      {/* Mitch's Top Slots */}
+      {view === 'mitch-slots' && (
+        <div>
+          <h2 style={{margin:'0 0 1rem 0', fontSize:'1.3rem', color:G.purple}}>🍌 Mitch's Best Slots ({topMitchSlots.length})</h2>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:'1rem'}}>
+            {topMitchSlots.map((slot, i) => (
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'}}>
+                <div style={{fontWeight:700, marginBottom:'0.8rem', fontSize:'1rem'}}>{slot.name}</div>
+                <div style={{fontSize:'0.85rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.5rem'}}>
+                  <div>🎯 Bonuses: {slot.bonusCount}</div>
+                  <div>💰 Total Bet: {fmt(slot.totalBets)}</div>
+                  <div>💵 Total Profit: <span style={{color:slot.totalWinnings >= 0 ? G.green : G.red, fontWeight:700}}>{fmt(slot.totalWinnings)}</span></div>
+                  <div>🏆 Win Rate: {((slot.wins/slot.bonusCount)*100).toFixed(1)}%</div>
+                  <div>📊 Avg Mult: {(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Hunts */}
+      {view === 'all-hunts' && (
         <div style={{display:'flex', flexDirection:'column', gap:'1rem'}}>
           {hunts.map((hunt, i) => (
             <div key={i} style={{
               background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1.5rem',
-              cursor:'pointer', transition:'all 0.2s'
+              transition:'all 0.2s'
             }} onMouseEnter={e => e.currentTarget.style.background = G.lift} onMouseLeave={e => e.currentTarget.style.background = G.card}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                 <div>
@@ -165,6 +275,35 @@ export default function HuntHistory({ user }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div style={{
+          position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)',
+          display:'flex', alignItems:'center', justifyContent:'center', fontFamily:G.display
+        }}>
+          <div style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:8, padding:'2rem', maxWidth:'500px'}}>
+            <h2 style={{margin:'0 0 1rem 0', color:G.purple}}>🍌 Import Mitch's Hunt Data</h2>
+            <p style={{color:G.t2, margin:'0 0 1.5rem 0'}}>
+              This will fetch all of Mitch's bonus hunt data from mitchjones.vip and analyze his top performing slots.
+            </p>
+            <div style={{display:'flex', gap:'1rem'}}>
+              <button onClick={handleFetchMitchData} disabled={importing} style={{
+                flex:1, padding:'10px 20px', background:G.purple, color:G.t1, border:'none',
+                borderRadius:6, fontWeight:700, cursor:'pointer', opacity:importing?0.6:1
+              }}>
+                {importing ? '⏳ Importing...' : '✅ Start Import'}
+              </button>
+              <button onClick={() => setShowImportModal(false)} style={{
+                flex:1, padding:'10px 20px', background:'transparent', color:G.t1, border:`1px solid ${G.bdr}`,
+                borderRadius:6, fontWeight:700, cursor:'pointer'
+              }}>
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
