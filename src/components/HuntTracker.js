@@ -823,7 +823,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
           {/* Stat tiles — centered above bonus tracker - STICKY */}
-          <div data-board="stats" style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0,zIndex:30}}>
+          <div data-board="stats" style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0,zIndex:30,position:'sticky',top:0}}>
             {huntMode==='creating'&&<>
               <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
               <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
@@ -868,6 +868,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button onClick={()=>addBonus(null,null,scatInput)} style={{height:34,padding:'0 14px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
             </div>
           )}
+
+          {/* Slot Caller display */}
+          <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0,display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontFamily:G.mono,fontSize:11,color:G.t4,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>Slot Caller:</span>
+            <span style={{fontFamily:G.body,fontSize:13,color:G.t1,fontWeight:600}}>—</span>
+          </div>
 
           {/* Table header */}
           <div style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
