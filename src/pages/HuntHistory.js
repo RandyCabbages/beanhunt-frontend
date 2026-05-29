@@ -63,6 +63,8 @@ const calculateSlotStats = hunts => {
         bonusCount: 0, 
         requiredMultipliers: [],
         multipliers: [],
+        minMultiplier: Infinity,
+        maxMultiplier: -Infinity,
         totalBet: 0,
         totalWin: 0
       };
@@ -72,7 +74,12 @@ const calculateSlotStats = hunts => {
       const reqMult = b.requiredMultiplier ? parseFloat(b.requiredMultiplier) : 0;
       const earnedMult = b.multiplier ? parseFloat(b.multiplier) : 0;
       if (reqMult > 0) stats[normalized].requiredMultipliers.push(reqMult);
-      if (earnedMult > 0) stats[normalized].multipliers.push(earnedMult);
+      if (earnedMult > 0) {
+        stats[normalized].multipliers.push(earnedMult);
+        // Track min and max
+        stats[normalized].minMultiplier = Math.min(stats[normalized].minMultiplier, earnedMult);
+        stats[normalized].maxMultiplier = Math.max(stats[normalized].maxMultiplier, earnedMult);
+      }
       
       // Track bet and win amounts
       const bet = b.bet ? parseFloat(b.bet) : 0;
@@ -267,8 +274,10 @@ export default function HuntHistory() {
                 <thead>
                   <tr style={{borderBottom:`2px solid ${G.bdr}`, background:G.bg2}}>
                     <th style={{padding:'12px', textAlign:'left', color:G.t1, fontWeight:700, fontSize:'0.9rem'}}>Slot Name</th>
-                    <th style={{padding:'12px', textAlign:'center', color:G.t1, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Plays</th>
-                    <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Avg Multiplier</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.t1, fontWeight:700, fontSize:'0.9rem', width:'80px'}}>Plays</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'100px'}}>Avg X</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'100px'}}>High X</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'100px'}}>Low X</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -301,6 +310,8 @@ export default function HuntHistory() {
                         <td style={{padding:'12px', color:G.t1, fontSize:'0.9rem'}}>{slot.name}</td>
                         <td style={{padding:'12px', textAlign:'center', color:G.t2, fontSize:'0.9rem'}}>{slot.bonusCount}</td>
                         <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem'}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</td>
+                        <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem'}}>{slot.maxMultiplier !== -Infinity ? slot.maxMultiplier.toFixed(2) : 'N/A'}x</td>
+                        <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem'}}>{slot.minMultiplier !== Infinity ? slot.minMultiplier.toFixed(2) : 'N/A'}x</td>
                       </tr>
                     ));
                   })()}
