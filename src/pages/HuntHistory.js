@@ -17,14 +17,29 @@ const calculateSlotStats = hunts => {
     if (!h.bonuses) return;
     h.bonuses.forEach(b => {
       const rawSlot = b.slot || 'Unknown';
-      const normalized = rawSlot
+      // Normalize for deduplication: lowercase, trim, normalize connectors
+      let normalized = rawSlot
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
-        .replace(/\s+/g, ' ')      // Normalize multiple spaces to single space
+        .replace(/\s*&\s*/g, ' and ') // Convert & to ' and '
+        .replace(/[^\w\s]/g, ' ')     // Replace remaining punctuation with spaces
+        .replace(/\s+/g, ' ')          // Normalize multiple spaces to single space
         .trim();
       
-      if (!stats[normalized]) stats[normalized] = {name: rawSlot, bonusCount: 0, multipliers: []};
+      // Normalize plurals: remove trailing 's' from last word to catch variants
+      const words = normalized.split(' ');
+      if (words.length > 0 && words[words.length - 1].endsWith('s') && words[words.length - 1].length > 1) {
+        words[words.length - 1] = words[words.length - 1].slice(0, -1);
+        normalized = words.join(' ');
+      }
+      
+      // Title case for display
+      const titleCased = normalized
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      
+      if (!stats[normalized]) stats[normalized] = {name: titleCased, bonusCount: 0, multipliers: []};
       stats[normalized].bonusCount++;
       const mult = b.multiplier ? parseFloat(b.multiplier) : 0;
       if (mult > 0) stats[normalized].multipliers.push(mult);
@@ -46,13 +61,52 @@ const getFilteredSlots = (stats, filter) => {
   return filter === 'all' ? slots : slots.slice(0, 100);
 };
 
+const calculateOverallStats = (slotStats, hunts) => {
+  const slots = Object.values(slotStats);
+  const totalBonuses = slots.reduce((sum, s) => sum + s.bonusCount, 0);
+  const totalHunts = hunts.length;
+  
+  // Calculate best and worst slots
+  let bestSlot = null, worstSlot = null;
+  let bestRatio = -Infinity, worstRatio = Infinity;
+  
+  slots.forEach(slot => {
+    if (slot.multipliers.length === 0) return;
+    const avgMult = slot.multipliers.reduce((a, b) => a + b, 0) / slot.multipliers.length;
+    const ratio = avgMult / slot.bonusCount; // Avg multiplier per play
+    if (ratio > bestRatio) { bestRatio = ratio; bestSlot = slot; }
+    if (ratio < worstRatio) { worstRatio = ratio; worstSlot = slot; }
+  });
+  
+  // Calculate average multipliers
+  const allMultipliers = slots.flatMap(s => s.multipliers);
+  const avgReqMult = allMultipliers.length > 0 ? allMultipliers.reduce((a, b) => a + b, 0) / allMultipliers.length : 0;
+  
+  // Calculate profit/loss (assuming avg bet, since we don't have individual bet data)
+  // For now, we'll estimate based on multiplier data
+  const totalWon = allMultipliers.length > 0 ? allMultipliers.reduce((a, b) => a + b, 0) : 0;
+  const avgWon = allMultipliers.length > 0 ? totalWon / allMultipliers.length : 0;
+  
+  return {
+    totalHunts,
+    totalBonuses,
+    bestSlot,
+    worstSlot,
+    avgReqMult: avgReqMult.toFixed(2),
+    avgEarned: avgWon.toFixed(2),
+    bestRatio: bestRatio.toFixed(4)
+  };
+};
+
 export default function HuntHistory() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [hunts, setHunts] = useState([]);
   const [slotStats, setSlotStats] = useState({});
+  const [mitchHunts, setMitchHunts] = useState([]);
   const [mitchSlotStats, setMitchSlotStats] = useState({});
+  const [cdewHunts, setCdewHunts] = useState([]);
   const [cdewSlotStats, setCdewSlotStats] = useState({});
   const [view, setView] = useState('your');
   const [yourFilter, setYourFilter] = useState('best');
@@ -76,22 +130,30 @@ export default function HuntHistory() {
       try {
         const res = await apiFetch('/api/admin/mitch-hunts');
         if (res && res.hunts && res.hunts.length > 0) {
+          setMitchHunts(res.hunts);
           setMitchSlotStats(calculateMitchSlotStats(res.hunts));
         } else {
           await apiFetch('/api/admin/fetch-and-import-mitch-hunts', {method: 'POST'});
           const retry = await apiFetch('/api/admin/mitch-hunts');
-          if (retry && retry.hunts) setMitchSlotStats(calculateMitchSlotStats(retry.hunts));
+          if (retry && retry.hunts) {
+            setMitchHunts(retry.hunts);
+            setMitchSlotStats(calculateMitchSlotStats(retry.hunts));
+          }
         }
       } catch (e) { console.error('Load Mitch:', e); }
 
       try {
         const res = await apiFetch('/api/admin/cdew-hunts');
         if (res && res.hunts && res.hunts.length > 0) {
+          setCdewHunts(res.hunts);
           setCdewSlotStats(calculateCdewSlotStats(res.hunts));
         } else {
           await apiFetch('/api/admin/fetch-and-import-cdew-hunts', {method: 'POST'});
           const retry = await apiFetch('/api/admin/cdew-hunts');
-          if (retry && retry.hunts) setCdewSlotStats(calculateCdewSlotStats(retry.hunts));
+          if (retry && retry.hunts) {
+            setCdewHunts(retry.hunts);
+            setCdewSlotStats(calculateCdewSlotStats(retry.hunts));
+          }
         }
       } catch (e) { console.error('Load Cdew:', e); }
 
@@ -142,58 +204,111 @@ export default function HuntHistory() {
       )}
 
       {view === 'mitch' && (
-        <div>
-          <div style={{display:'flex', gap:'0.8rem', marginBottom:'1.5rem', flexWrap:'wrap'}}>
-            <button onClick={() => setMitchFilter('alpha')} style={{padding:'8px 16px', background:mitchFilter==='alpha'?G.gold:'transparent', color:mitchFilter==='alpha'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>A-Z Alphabetical</button>
-            <button onClick={() => setMitchFilter('most')} style={{padding:'8px 16px', background:mitchFilter==='most'?G.gold:'transparent', color:mitchFilter==='most'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📈 Most Played</button>
-            <button onClick={() => setMitchFilter('least')} style={{padding:'8px 16px', background:mitchFilter==='least'?G.gold:'transparent', color:mitchFilter==='least'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📉 Least Played</button>
-            <button onClick={() => setMitchFilter('highMult')} style={{padding:'8px 16px', background:mitchFilter==='highMult'?G.gold:'transparent', color:mitchFilter==='highMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬆️ Highest Mult</button>
-            <button onClick={() => setMitchFilter('lowMult')} style={{padding:'8px 16px', background:mitchFilter==='lowMult'?G.gold:'transparent', color:mitchFilter==='lowMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬇️ Lowest Mult</button>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 340px', gap:'2rem', alignItems:'start'}}>
+          <div>
+            <div style={{display:'flex', gap:'0.8rem', marginBottom:'1.5rem', flexWrap:'wrap'}}>
+              <button onClick={() => setMitchFilter('alpha')} style={{padding:'8px 16px', background:mitchFilter==='alpha'?G.gold:'transparent', color:mitchFilter==='alpha'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>A-Z Alphabetical</button>
+              <button onClick={() => setMitchFilter('most')} style={{padding:'8px 16px', background:mitchFilter==='most'?G.gold:'transparent', color:mitchFilter==='most'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📈 Most Played</button>
+              <button onClick={() => setMitchFilter('least')} style={{padding:'8px 16px', background:mitchFilter==='least'?G.gold:'transparent', color:mitchFilter==='least'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📉 Least Played</button>
+              <button onClick={() => setMitchFilter('highMult')} style={{padding:'8px 16px', background:mitchFilter==='highMult'?G.gold:'transparent', color:mitchFilter==='highMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬆️ Highest Mult</button>
+              <button onClick={() => setMitchFilter('lowMult')} style={{padding:'8px 16px', background:mitchFilter==='lowMult'?G.gold:'transparent', color:mitchFilter==='lowMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬇️ Lowest Mult</button>
+            </div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%', borderCollapse:'collapse', fontFamily:G.display}}>
+                <thead>
+                  <tr style={{borderBottom:`2px solid ${G.bdr}`, background:G.bg2}}>
+                    <th style={{padding:'12px', textAlign:'left', color:G.t1, fontWeight:700, fontSize:'0.9rem'}}>Slot Name</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.t1, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Plays</th>
+                    <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Avg Multiplier</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const slots = Object.values(mitchSlotStats);
+                    let sorted = [...slots];
+                    
+                    if (mitchFilter === 'most') {
+                      sorted.sort((a, b) => b.bonusCount - a.bonusCount);
+                    } else if (mitchFilter === 'least') {
+                      sorted.sort((a, b) => a.bonusCount - b.bonusCount);
+                    } else if (mitchFilter === 'highMult') {
+                      sorted.sort((a, b) => {
+                        const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
+                        const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
+                        return avgB - avgA;
+                      });
+                    } else if (mitchFilter === 'lowMult') {
+                      sorted.sort((a, b) => {
+                        const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
+                        const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
+                        return avgA - avgB;
+                      });
+                    } else {
+                      sorted.sort((a, b) => a.name.localeCompare(b.name));
+                    }
+                    
+                    return sorted.map((slot, i) => (
+                      <tr key={i} style={{borderBottom:`1px solid ${G.bdr}`, background:i % 2 === 0 ? G.bg : G.bg2, transition:'all 0.2s'}} onMouseEnter={e => e.currentTarget.style.background = G.card} onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? G.bg : G.bg2}>
+                        <td style={{padding:'12px', color:G.t1, fontSize:'0.9rem'}}>{slot.name}</td>
+                        <td style={{padding:'12px', textAlign:'center', color:G.t2, fontSize:'0.9rem'}}>{slot.bonusCount}</td>
+                        <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem'}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%', borderCollapse:'collapse', fontFamily:G.display}}>
-              <thead>
-                <tr style={{borderBottom:`2px solid ${G.bdr}`, background:G.bg2}}>
-                  <th style={{padding:'12px', textAlign:'left', color:G.t1, fontWeight:700, fontSize:'0.9rem'}}>Slot Name</th>
-                  <th style={{padding:'12px', textAlign:'center', color:G.t1, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Plays</th>
-                  <th style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem', width:'120px'}}>Avg Multiplier</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const slots = Object.values(mitchSlotStats);
-                  let sorted = [...slots];
+
+          <div style={{position:'sticky', top:'2rem'}}>
+            {(() => {
+              const stats = calculateOverallStats(mitchSlotStats, mitchHunts);
+              return (
+                <div style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:8, padding:'1.5rem', display:'flex', flexDirection:'column', gap:'1rem'}}>
+                  <h3 style={{margin:'0 0 0.5rem 0', fontSize:'1rem', fontWeight:700, color:G.gold}}>📊 Mitch's Stats</h3>
                   
-                  if (mitchFilter === 'most') {
-                    sorted.sort((a, b) => b.bonusCount - a.bonusCount);
-                  } else if (mitchFilter === 'least') {
-                    sorted.sort((a, b) => a.bonusCount - b.bonusCount);
-                  } else if (mitchFilter === 'highMult') {
-                    sorted.sort((a, b) => {
-                      const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
-                      const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
-                      return avgB - avgA;
-                    });
-                  } else if (mitchFilter === 'lowMult') {
-                    sorted.sort((a, b) => {
-                      const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
-                      const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
-                      return avgA - avgB;
-                    });
-                  } else {
-                    sorted.sort((a, b) => a.name.localeCompare(b.name));
-                  }
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Total Hunts</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.t1}}>{stats.totalHunts}</span>
+                  </div>
                   
-                  return sorted.map((slot, i) => (
-                    <tr key={i} style={{borderBottom:`1px solid ${G.bdr}`, background:i % 2 === 0 ? G.bg : G.bg2, transition:'all 0.2s'}} onMouseEnter={e => e.currentTarget.style.background = G.card} onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? G.bg : G.bg2}>
-                      <td style={{padding:'12px', color:G.t1, fontSize:'0.9rem'}}>{slot.name}</td>
-                      <td style={{padding:'12px', textAlign:'center', color:G.t2, fontSize:'0.9rem'}}>{slot.bonusCount}</td>
-                      <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.9rem'}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Total Bonuses</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.t1}}>{stats.totalBonuses}</span>
+                  </div>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Avg Req X</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.green}}>{stats.avgReqMult}x</span>
+                  </div>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Avg X (Earned)</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.gold}}>{stats.avgEarned}x</span>
+                  </div>
+                  
+                  {stats.bestSlot && (
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                      <span style={{fontSize:'0.85rem', color:G.t3}}>Best Slot</span>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:'0.8rem', fontWeight:700, color:G.green}}>{stats.bestSlot.name}</div>
+                        <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {stats.bestRatio}</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {stats.worstSlot && (
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
+                      <span style={{fontSize:'0.85rem', color:G.t3}}>Worst Slot</span>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:'0.8rem', fontWeight:700, color:G.red}}>{stats.worstSlot.name}</div>
+                        <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {(stats.worstRatio ?? 0).toFixed(4)}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
