@@ -848,7 +848,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </>}
           </div>
 
-          {/* Add bonus form */}
+          {/* Add bonus form — Slot input on top */}
           {canEdit&&(
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
@@ -870,14 +870,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* Slot Caller input */}
-          <div style={{padding:'0',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0}}>
+          {/* Slot Caller input — beneath slot input */}
+          <div style={{padding:'8px 10px', borderBottom:`1px solid ${G.bdr}`, background:G.bg, flexShrink:0}}>
             <input 
               type="text" 
               value={slotCaller} 
               onChange={e=>setSlotCaller(e.target.value)}
               placeholder="e.g. TheOnlyWalker"
-              style={{width:'100%',background:G.bg2,border:'none',borderRadius:0,padding:'8px 10px',fontFamily:G.body,fontSize:12,color:G.t1,outline:'none'}}
+              style={{width:'100%', background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none'}}
             />
           </div>
 
