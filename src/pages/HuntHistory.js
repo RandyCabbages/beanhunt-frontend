@@ -78,26 +78,18 @@ export default function HuntHistory({ user }) {
         if (!stats[slot]) {
           stats[slot] = {
             name: slot,
-            totalBets: 0,
             bonusCount: 0,
             wins: 0,
-            losses: 0,
-            totalWinnings: 0,
             multipliers: [],
           };
         }
         
-        stats[slot].totalBets += bonus.bet || 0;
         stats[slot].bonusCount += 1;
         
-        if (bonus.win && bonus.win > 0) {
+        const mult = parseFloat(bonus.multiplier) || 0;
+        if (mult > 0) {
+          stats[slot].multipliers.push(mult);
           stats[slot].wins += 1;
-          stats[slot].totalWinnings += (bonus.win - (bonus.bet || 0));
-          const mult = parseFloat(bonus.multiplier) || 0;
-          if (mult > 0) stats[slot].multipliers.push(mult);
-        } else {
-          stats[slot].losses += 1;
-          stats[slot].totalWinnings -= (bonus.bet || 0);
         }
       });
     });
@@ -116,26 +108,18 @@ export default function HuntHistory({ user }) {
         if (!stats[slot]) {
           stats[slot] = {
             name: slot,
-            totalBets: 0,
             bonusCount: 0,
             wins: 0,
-            losses: 0,
-            totalWinnings: 0,
             multipliers: [],
           };
         }
         
-        stats[slot].totalBets += bonus.bet || 0;
         stats[slot].bonusCount += 1;
         
-        if (bonus.win && bonus.win > 0) {
+        const mult = parseFloat(bonus.multiplier) || 0;
+        if (mult > 0) {
+          stats[slot].multipliers.push(mult);
           stats[slot].wins += 1;
-          stats[slot].totalWinnings += (bonus.win - (bonus.bet || 0));
-          const mult = parseFloat(bonus.multiplier) || 0;
-          if (mult > 0) stats[slot].multipliers.push(mult);
-        } else {
-          stats[slot].losses += 1;
-          stats[slot].totalWinnings -= (bonus.bet || 0);
         }
       });
     });
@@ -155,12 +139,19 @@ export default function HuntHistory({ user }) {
 
   const getFilteredSlots = (stats, filter) => {
     const all = Object.values(stats).filter(s => s.bonusCount >= 2);
+    
+    // Calculate avg mult for sorting
+    const withAvgMult = all.map(s => ({
+      ...s,
+      avgMult: s.multipliers.length > 0 ? s.multipliers.reduce((a,b)=>a+b,0)/s.multipliers.length : 0
+    }));
+    
     if (filter === 'best') {
-      return all.sort((a, b) => (b.totalWinnings || 0) - (a.totalWinnings || 0)).slice(0, 100);
+      return withAvgMult.sort((a, b) => (b.avgMult || 0) - (a.avgMult || 0)).slice(0, 100);
     } else if (filter === 'worst') {
-      return all.sort((a, b) => (a.totalWinnings || 0) - (b.totalWinnings || 0)).slice(0, 100);
+      return withAvgMult.sort((a, b) => (a.avgMult || 0) - (b.avgMult || 0)).slice(0, 100);
     }
-    return all.sort((a, b) => (b.totalWinnings || 0) - (a.totalWinnings || 0));
+    return withAvgMult.sort((a, b) => (b.avgMult || 0) - (a.avgMult || 0));
   };
 
   if (loading) return (
@@ -222,10 +213,8 @@ export default function HuntHistory({ user }) {
                 <div style={{fontWeight:700, marginBottom:'0.8rem', fontSize:'1rem'}}>{slot.name}</div>
                 <div style={{fontSize:'0.85rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.4rem', marginBottom:'0.8rem'}}>
                   <div>🎯 Bonuses: {slot.bonusCount}</div>
-                  <div>💰 Total Bet: {fmt(slot.totalBets)}</div>
-                  <div>💵 Profit: <span style={{color:slot.totalWinnings >= 0 ? G.green : G.red, fontWeight:700}}>{fmt(slot.totalWinnings)}</span></div>
-                  <div>🏆 Win Rate: {((slot.wins/slot.bonusCount)*100).toFixed(1)}%</div>
-                  <div>📊 Avg Mult: {(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                  <div>📊 Avg Mult: <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
+                  <div>🏆 Win Rate: <span style={{color:G.green, fontWeight:700}}>{((slot.wins/slot.bonusCount)*100).toFixed(1)}%</span></div>
                 </div>
                 <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
                   width:'100%', padding:'8px 12px', background:G.purple, color:G.t1, border:'none', borderRadius:4,
@@ -261,10 +250,8 @@ export default function HuntHistory({ user }) {
                 <div style={{fontWeight:700, marginBottom:'0.8rem', fontSize:'1rem'}}>{slot.name}</div>
                 <div style={{fontSize:'0.85rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.4rem', marginBottom:'0.8rem'}}>
                   <div>🎯 Bonuses: {slot.bonusCount}</div>
-                  <div>💰 Total Bet: {fmt(slot.totalBets)}</div>
-                  <div>💵 Profit: <span style={{color:slot.totalWinnings >= 0 ? G.green : G.red, fontWeight:700}}>{fmt(slot.totalWinnings)}</span></div>
-                  <div>🏆 Win Rate: {((slot.wins/slot.bonusCount)*100).toFixed(1)}%</div>
-                  <div>📊 Avg Mult: {(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                  <div>📊 Avg Mult: <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
+                  <div>🏆 Win Rate: <span style={{color:G.green, fontWeight:700}}>{((slot.wins/slot.bonusCount)*100).toFixed(1)}%</span></div>
                 </div>
                 <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
                   width:'100%', padding:'8px 12px', background:G.purple, color:G.t1, border:'none', borderRadius:4,
