@@ -871,13 +871,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Slot Caller input */}
-          <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0}}>
+          <div style={{padding:'0',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0}}>
             <input 
               type="text" 
               value={slotCaller} 
               onChange={e=>setSlotCaller(e.target.value)}
               placeholder="e.g. TheOnlyWalker"
-              style={{width:'100%',background:G.bg2,border:`1px solid ${G.bdr}`,borderRadius:4,padding:'8px 10px',fontFamily:G.body,fontSize:13,color:G.t1,placeholder:{color:G.t4}}}
+              style={{width:'100%',background:G.bg2,border:'none',borderRadius:0,padding:'8px 10px',fontFamily:G.body,fontSize:12,color:G.t1,outline:'none'}}
             />
           </div>
 
