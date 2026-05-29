@@ -117,23 +117,33 @@ function buildQueue(calls){
 function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const wrapRef = useRef(null);
   const searchTimer = useRef(null);
 
   const handleChange = v => {
     onChange(v);
     clearTimeout(searchTimer.current);
-    if (v.length >= 2) {
+    if (v.length >= 1) {
+      setLoading(true);
       searchTimer.current = setTimeout(async () => {
         try {
           const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(v)}`);
-          setSuggestions(Array.isArray(res) ? res : []);
-          setOpen(true);
-        } catch {
+          const results = Array.isArray(res) ? res : [];
+          setSuggestions(results);
+          setOpen(results.length > 0);
+          setLoading(false);
+        } catch (e) {
+          console.error('Slot search error:', e);
           setSuggestions([]);
+          setLoading(false);
         }
-      }, 200);
-    } else { setSuggestions([]); setOpen(false); }
+      }, 100);
+    } else { 
+      setSuggestions([]); 
+      setOpen(false); 
+      setLoading(false);
+    }
   };
 
   const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
@@ -141,7 +151,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={async () => { if (value.length >= 2) { try { const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(value)}`); setSuggestions(Array.isArray(res)?res:[]); setOpen(true); } catch {} }}}
+        onFocus={() => { if (value.length >= 1) { handleChange(value); } }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
@@ -152,9 +162,10 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
         style={{ width:'100%', height:34, background:G.sur, border:`1px solid ${G.bdr}`,
           borderRadius:3, padding:'0 10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none' }}
       />
+      {loading && value.length >= 1 && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:11,color:G.t3}}>🔍</span>}
       {open && suggestions.length > 0 && (
         <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
-          border:`1px solid ${G.bb}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
+          border:`1px solid ${G.bdr}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
           {suggestions.map((s,i) => {
             const name = typeof s === 'string' ? s : s.name;
             const thumb = typeof s === 'object' ? s.thumb : null;
