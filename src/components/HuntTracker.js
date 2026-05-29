@@ -224,6 +224,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [currentSlot,   setCurrentSlot]   = useState(null);
   const [slotCountModal,setSlotCountModal]= useState(false);
   const [scatInput,     setScatInput]     = useState(3);
+  const [slotCaller,    setSlotCaller]    = useState('');
   const [slotCountInput,setSlotCountInput]= useState('35');
   const [limitModal,    setLimitModal]    = useState(false);
   const [limitInput,    setLimitInput]    = useState(String(hunt.callLimit||0));
@@ -869,10 +870,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* Slot Caller display */}
-          <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0,display:'flex',alignItems:'center',gap:8}}>
-            <span style={{fontFamily:G.mono,fontSize:11,color:G.t4,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>Slot Caller:</span>
-            <span style={{fontFamily:G.body,fontSize:13,color:G.t1,fontWeight:600}}>—</span>
+          {/* Slot Caller input */}
+          <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,background:G.bg,flexShrink:0}}>
+            <input 
+              type="text" 
+              value={slotCaller} 
+              onChange={e=>setSlotCaller(e.target.value)}
+              placeholder="e.g. TheOnlyWalker"
+              style={{width:'100%',background:G.bg2,border:`1px solid ${G.bdr}`,borderRadius:4,padding:'8px 10px',fontFamily:G.body,fontSize:13,color:G.t1,placeholder:{color:G.t4}}}
+            />
           </div>
 
           {/* Table header */}
