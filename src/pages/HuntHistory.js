@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiFetch from '../api';
+import { apiFetch } from '../api';
 
 const G = {
   bg: '#161618', bg2: '#1c1c1f', sur: '#222226', card: '#26262a', lift: '#2c2c32',
