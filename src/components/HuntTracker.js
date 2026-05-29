@@ -177,6 +177,61 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   );
 }
 
+function CallerInput({ value, onChange, onCommit, equityNames, placeholder, style }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const handleChange = v => {
+    onChange(v);
+    if (v.length >= 1) {
+      const filtered = equityNames.filter(name => name.toLowerCase().includes(v.toLowerCase()));
+      setSuggestions(filtered);
+      setOpen(filtered.length > 0);
+    } else { 
+      setSuggestions([]); 
+      setOpen(false); 
+    }
+  };
+
+  const pick = name => { onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
+  
+  const inputStyle = { width:'100%', height:34, background:G.sur, border:`1px solid ${G.bdr}`,
+    borderRadius:3, padding:'0 10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none',
+    fontWeight:500, ...style };
+
+  return (
+    <div ref={wrapRef} style={{ position:'relative' }}>
+      <input value={value} onChange={e => handleChange(e.target.value)}
+        onFocus={() => { if (value.length >= 1) { const filtered = equityNames.filter(n => n.toLowerCase().includes(value.toLowerCase())); setSuggestions(filtered); setOpen(filtered.length > 0); } }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
+          else if (e.key === 'Enter' && onCommit) { onCommit(value); }
+          if (e.key === 'Escape') { setSuggestions([]); setOpen(false); }
+        }}
+        placeholder={placeholder || 'Type caller name…'}
+        style={inputStyle}
+      />
+      {open && suggestions.length > 0 && (
+        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
+          border:`1px solid ${G.bdr}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
+          {suggestions.map((name,i) => (
+            <div key={i} onMouseDown={() => pick(name)}
+              style={{ padding:'6px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
+                cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
+                transition:'background .08s' }}
+              onMouseEnter={e => e.currentTarget.style.background = G.lift}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {name}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Stat tile ───────────────────────────────────────────────────── */
 function StatTile({ label, value, color, accent, wide }) {
   return (
@@ -209,6 +264,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [callModal,     setCallModal]     = useState(false);
   const [callName,      setCallName]      = useState('');
   const [callSlot,      setCallSlot]      = useState('');
+  const [allUsers,      setAllUsers]      = useState([]);
   const [discordText,   setDiscordText]   = useState('');
   const [parseHint,     setParseHint]     = useState('');
   const [defAmt,        setDefAmt]        = useState(100);
@@ -261,6 +317,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     apiFetch('/api/bean-live').then(setBeanLive).catch(()=>{});
     socket.on('bean:live', setBeanLive);
     return () => socket.off('bean:live', setBeanLive);
+  }, []);
+
+  useEffect(() => {
+    apiFetch('/api/autocomplete/users').then(data => {
+      if (data?.users) setAllUsers(data.users);
+    }).catch(() => {});
   }, []);
 
 
@@ -967,7 +1029,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',gap:8,background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))',gap:6}}>
+            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
               {isVip && <button
                 onMouseEnter={()=>setEqTooltip('winners')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{parseDiscordWinners(defAmt);setEqTooltip(null);}} disabled={dcWinners}
@@ -988,16 +1050,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Adds a blank roll winner row at the standard ${'{'}defAmt{'}'} per person amount. Enter their name after.</div>
                 </div>}
               </button>}
-              <button
-                onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
-                onClick={()=>{addPerson();setEqTooltip(null);}}
-                style={{height:34,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,position:'relative'}}>
-                💰 {isVip?'Extra Equity':'Add Equity'}
-                {eqTooltip==='extra'&&<div style={{position:'absolute',top:'110%',right:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
-                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>{isVip?'Extra Equity':'Add Equity'}</div>
-                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>{isVip?'Add someone with a custom amount outside the roll pool — like Bean or a one-off contributor.':'Add a person to the equity split with a custom amount.'}</div>
-                </div>}
-              </button>
               {isVip && <button
                 onMouseEnter={()=>setEqTooltip('discord')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{setShowDcImport(v=>!v);setEqTooltip(null);}}
@@ -1009,6 +1061,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Paste the VIP Discord message to import all winners. Existing equity is preserved and combined.</div>
                 </div>}
               </button>}
+              <button
+                onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
+                onClick={()=>{addPerson();setEqTooltip(null);}}
+                style={{height:34,padding:'0 11px',background:'rgba(251,146,60,0.15)',border:'1px solid rgba(251,146,60,0.4)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#fb923c',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6,position:'relative'}}>
+                💰 {isVip?'Extra Equity':'Add Equity'}
+                {eqTooltip==='extra'&&<div style={{position:'absolute',top:'110%',right:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+                  <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>{isVip?'Extra Equity':'Add Equity'}</div>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>{isVip?'Add someone with a custom amount outside the roll pool — like Bean or a one-off contributor.':'Add a person to the equity split with a custom amount.'}</div>
+                </div>}
+              </button>
             </div>}
           </div>
 
@@ -1079,7 +1141,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <CallerInput value={e.name} onChange={v=>updatePerson(e.id,'name',v)} equityNames={allUsers} placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} style={{height:30,fontSize:12,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10,marginBottom:0}} />
                     {e.isRollWinner
                       ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
                       : e.isMod
@@ -1361,16 +1423,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             {canEdit?(
               <>
                 <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>WHO'S CALLING?</div>
-                <select value={equity.map(e=>e.name).filter(Boolean).includes(callName)?callName:'__custom__'}
-                  onChange={e=>{if(e.target.value!=='__custom__')setCallName(e.target.value);else setCallName('');}}
-                  style={{...inp,height:36,marginBottom:6}}>
-                  <option value="">Select caller…</option>
-                  {equity.map(e=>e.name).filter(Boolean).map(n=><option key={n} value={n}>{n}</option>)}
-                  <option value="__custom__">+ Add username…</option>
-                </select>
-                {!equity.map(e=>e.name).filter(Boolean).includes(callName)&&(
-                  <input value={callName} onChange={e=>setCallName(e.target.value)} placeholder="Type caller name…" style={{...inp,height:34,marginBottom:8}} />
-                )}
+                <CallerInput value={callName} onChange={setCallName} equityNames={allUsers} placeholder="Type or search caller name…" style={{marginBottom:8}} />
               </>
             ):(
               <div style={{fontFamily:G.body,fontSize:13,color:G.t2,background:G.sur,border:`1px solid ${G.bdr}`,borderRadius:3,padding:'8px 10px',marginBottom:8}}>
