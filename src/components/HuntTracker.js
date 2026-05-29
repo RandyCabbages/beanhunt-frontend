@@ -347,7 +347,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   /* ── Actions ── */
   const addBonus = (slot, bet, scat=3, caller=null) => {
     upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller}]}));
-    setSlotInput(''); setBetInput('');
+    setSlotInput(''); setBetInput(''); setSlotCaller('');
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
     if(b.id!==id)return b;const num=parseFloat(val)||0;
@@ -853,7 +853,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
+                onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput,slotCaller)}
                 placeholder="Bet $" style={{...inp, height:34}} />
               <div style={{display:'flex',gap:3,alignItems:'center'}}>
                 <button onClick={()=>setScatInput(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===3?accent:'transparent'}`,borderRadius:8,padding:0,cursor:'pointer',transition:'all .12s',transform:scatInput===3?'scale(1.1)':'scale(1)',width:56,height:56,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -866,20 +866,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <svg width="52" height="52" viewBox="0 0 72 72"><defs><radialGradient id="sD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="sD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#sD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#sD2)" stroke="#0088cc" strokeWidth="1"/><polygon points="24,14 30,20 20,22 18,24 22,19" fill="white" opacity="0.4"/><line x1="36" y1="20" x2="36" y2="64" stroke="#aaeeff" strokeWidth="0.7" opacity="0.35"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
                 </button>
               </div>
-              <button onClick={()=>addBonus(null,null,scatInput)} style={{height:34,padding:'0 14px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
+              <button onClick={()=>addBonus(null,null,scatInput,slotCaller)} style={{height:34,padding:'0 14px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
             </div>
           )}
 
-          {/* Slot Caller input with + button — narrower, positioned under slot input */}
-          <div style={{padding:'4px 10px', background:G.bg, flexShrink:0, display:'flex', gap:'6px', alignItems:'center', maxWidth:'320px'}}>
+          {/* Slot Caller input — directly under slot input, no button */}
+          <div style={{padding:'6px 10px', background:G.bg, flexShrink:0}}>
             <input 
               type="text" 
               value={slotCaller} 
               onChange={e=>setSlotCaller(e.target.value)}
               placeholder="e.g. TheOnlyWalker"
-              style={{flex:1, background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
+              style={{width:'100%', background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
             />
-            <button onClick={()=>setSlotCaller('')} style={{height:30,padding:'0 10px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:12,fontWeight:700,cursor:'pointer',flexShrink:0}}>+</button>
           </div>
 
           {/* Table header */}
