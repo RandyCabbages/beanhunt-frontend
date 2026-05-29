@@ -66,7 +66,8 @@ const calculateSlotStats = hunts => {
         minMultiplier: Infinity,
         maxMultiplier: -Infinity,
         totalBet: 0,
-        totalWin: 0
+        totalWin: 0,
+        provider: b.provider || 'Unknown'
       };
       stats[normalized].bonusCount++;
       
@@ -264,6 +265,7 @@ export default function HuntHistory() {
               <button onClick={() => setMitchFilter('least')} style={{padding:'8px 16px', background:mitchFilter==='least'?G.gold:'transparent', color:mitchFilter==='least'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📉 Least Played</button>
               <button onClick={() => setMitchFilter('highMult')} style={{padding:'8px 16px', background:mitchFilter==='highMult'?G.gold:'transparent', color:mitchFilter==='highMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬆️ Highest Mult</button>
               <button onClick={() => setMitchFilter('lowMult')} style={{padding:'8px 16px', background:mitchFilter==='lowMult'?G.gold:'transparent', color:mitchFilter==='lowMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬇️ Lowest Mult</button>
+              <button onClick={() => setMitchFilter('provider')} style={{padding:'8px 16px', background:mitchFilter==='provider'?G.gold:'transparent', color:mitchFilter==='provider'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>🏢 By Provider</button>
             </div>
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%', borderCollapse:'collapse', fontFamily:G.display}}>
@@ -279,6 +281,57 @@ export default function HuntHistory() {
                 <tbody>
                   {(() => {
                     const slots = Object.values(mitchSlotStats);
+                    
+                    if (mitchFilter === 'provider') {
+                      // Group by provider
+                      const grouped = {};
+                      slots.forEach(slot => {
+                        const provider = slot.provider || 'Unknown';
+                        if (!grouped[provider]) {
+                          grouped[provider] = [];
+                        }
+                        grouped[provider].push(slot);
+                      });
+                      
+                      // Sort providers alphabetically
+                      const providers = Object.keys(grouped).sort();
+                      
+                      return providers.map(provider => {
+                        const providerSlots = grouped[provider];
+                        const providerStats = {
+                          bonusCount: providerSlots.reduce((sum, s) => sum + s.bonusCount, 0),
+                          multipliers: providerSlots.flatMap(s => s.multipliers),
+                          maxMultiplier: Math.max(...providerSlots.map(s => s.maxMultiplier).filter(x => x !== -Infinity), -Infinity),
+                          minMultiplier: Math.min(...providerSlots.map(s => s.minMultiplier).filter(x => x !== Infinity), Infinity)
+                        };
+                        const avgX = providerStats.multipliers.length > 0 ? providerStats.multipliers.reduce((a,b)=>a+b,0)/providerStats.multipliers.length : 0;
+                        
+                        return (
+                          <React.Fragment key={provider}>
+                            {/* Provider header row */}
+                            <tr style={{background:G.sur, borderBottom:`2px solid ${G.gold}`}}>
+                              <td style={{padding:'12px', color:G.gold, fontWeight:700, fontSize:'0.95rem'}}>{provider}</td>
+                              <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.95rem'}}>{providerStats.bonusCount}</td>
+                              <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.95rem'}}>{avgX.toFixed(2)}x</td>
+                              <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.95rem'}}>{providerStats.maxMultiplier !== -Infinity ? providerStats.maxMultiplier.toFixed(2) : 'N/A'}x</td>
+                              <td style={{padding:'12px', textAlign:'center', color:G.gold, fontWeight:700, fontSize:'0.95rem'}}>{providerStats.minMultiplier !== Infinity ? providerStats.minMultiplier.toFixed(2) : 'N/A'}x</td>
+                            </tr>
+                            {/* Individual slot rows under provider */}
+                            {providerSlots.sort((a, b) => a.name.localeCompare(b.name)).map((slot, i) => (
+                              <tr key={`${provider}-${i}`} style={{borderBottom:`1px solid ${G.bdr}`, background:G.bg2, paddingLeft:'40px'}} onMouseEnter={e => e.currentTarget.style.background = G.card} onMouseLeave={e => e.currentTarget.style.background = G.bg2}>
+                                <td style={{padding:'8px 12px 8px 32px', color:G.t2, fontSize:'0.85rem'}}>{slot.name}</td>
+                                <td style={{padding:'8px 12px', textAlign:'center', color:G.t3, fontSize:'0.85rem'}}>{slot.bonusCount}</td>
+                                <td style={{padding:'8px 12px', textAlign:'center', color:G.gold, fontWeight:600, fontSize:'0.85rem'}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</td>
+                                <td style={{padding:'8px 12px', textAlign:'center', color:G.gold, fontWeight:600, fontSize:'0.85rem'}}>{slot.maxMultiplier !== -Infinity ? slot.maxMultiplier.toFixed(2) : 'N/A'}x</td>
+                                <td style={{padding:'8px 12px', textAlign:'center', color:G.gold, fontWeight:600, fontSize:'0.85rem'}}>{slot.minMultiplier !== Infinity ? slot.minMultiplier.toFixed(2) : 'N/A'}x</td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      });
+                    }
+                    
+                    // Original sorting logic for other filters
                     let sorted = [...slots];
                     
                     if (mitchFilter === 'most') {
