@@ -383,12 +383,20 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const callLimit = hunt.callLimit||0;
 
   const totalPot  = equity.reduce((s,e)=>s+e.amount,0);
-  const totalWon  = bonuses.reduce((s,b)=>s+b.win,0);
-  const xs        = bonuses.filter(b=>b.win>0&&b.bet>0).map(b=>b.win/b.bet);
-  const avgX      = xs.length ? xs.reduce((a,v)=>a+v,0)/xs.length : null;
+  
+  // Opened slots: have a win value (including 0)
+  const openedSlots = bonuses.filter(b => typeof b.win === 'number');
+  const totalWon  = openedSlots.reduce((s,b)=>s+b.win,0);
+  const totalBet  = openedSlots.reduce((s,b)=>s+b.bet,0);
+  
+  // Unopened slots: don't have a win value yet
+  const unopenedSlots = bonuses.filter(b => typeof b.win !== 'number');
+  const remainingBet = unopenedSlots.reduce((s,b)=>s+b.bet,0);
+  
+  const xs        = openedSlots.filter(b=>b.bet>0).map(b=>b.win/b.bet);
+  const avgX      = totalBet > 0 ? totalWon / totalBet : null;
   const highX     = xs.length ? Math.max(...xs) : null;
-  const remBets   = bonuses.filter(b=>!b.win).reduce((s,b)=>s+b.bet,0);
-  const reqX      = remBets>0&&totalWon<totalPot ? (totalPot-totalWon)/remBets : null;
+  const reqX      = remainingBet>0&&totalWon<totalPot ? (totalPot-totalWon)/remainingBet : null;
   const bestBonus = bonuses.filter(b=>b.win>0&&b.bet>0).reduce((best,b)=>{const x=b.win/b.bet;return x>(best?best.x:0)?{slot:b.slot,x}:best;},null);
   const rollerMap = {};
   bonuses.forEach(b=>{if(b.caller&&b.win>0&&b.bet>0){const mult=b.win/b.bet;rollerMap[b.caller]=Math.max(rollerMap[b.caller]||0,mult);}});
@@ -831,7 +839,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {editingCallId===c.id?(
                     <div style={{display:'flex',flexDirection:'column',gap:4}}>
                       <input type="text" value={editingCallSlot} onChange={e=>setEditingCallSlot(e.target.value)} placeholder="Slot" style={{height:26,padding:'0 6px',background:G.sur,border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,color:G.t1}} />
-                      <input type="text" value={editingCallUser} onChange={e=>setEditingCallUser(e.target.value)} placeholder="Person" style={{height:26,padding:'0 6px',background:G.sur,border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,color:G.t1}} />
+                      <input type="text" value={editingCallUser} onChange={e=>setEditingCallUser(e.target.value)} placeholder="Caller" style={{height:26,padding:'0 6px',background:G.sur,border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,color:G.t1}} />
                       <div style={{display:'flex',gap:3}}>
                         <button onClick={()=>updateCall(c.id,editingCallUser,editingCallSlot)} style={{flex:1,height:24,background:G.green,color:'#000',border:'none',borderRadius:2,fontFamily:G.mono,fontSize:10,fontWeight:700,cursor:'pointer'}}>✓ Save</button>
                         <button onClick={()=>setEditingCallId(null)} style={{flex:1,height:24,background:G.red,color:'#000',border:'none',borderRadius:2,fontFamily:G.mono,fontSize:10,fontWeight:700,cursor:'pointer'}}>✗ Cancel</button>
@@ -839,8 +847,20 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     </div>
                   ):(
                     <>
-                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
-                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1}}>{c.slot}</div>
+                        {bonuses.filter(b=>b.slot.toLowerCase()===c.slot.toLowerCase()).map(b=>{
+                          const isSuperBonus = b.scat === 4;
+                          const isSuperSuperBonus = b.scat === 5;
+                          return (isSuperBonus || isSuperSuperBonus) ? (
+                            <div key={b.id} style={{display:'flex',alignItems:'center',gap:4}}>
+                              <span style={{fontSize:20,lineHeight:1}}>{isSuperBonus?'🔥':'⚡'}</span>
+                              {canEdit && !isLocked && <button onClick={()=>updateBonus(b.id,'scat',3)} title="Remove Super Bonus" style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:11,padding:0,width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>×</button>}
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em',cursor:canEdit?'pointer':'default'}} onClick={canEdit?()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}:undefined} title={canEdit?"Click to edit caller":""}>{c.user}</div>
                     </>
                   )}
                   {canEdit&&editingCallId!==c.id&&(
