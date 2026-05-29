@@ -198,6 +198,7 @@ export default function Hub({ user }) {
   const [beanLive, setBeanLive] = useState({isLive:false});
   const [loading,  setLoading]  = useState(true);
   const [tab,      setTab]      = useState('live');
+  const [activeUsers, setActiveUsers] = useState([]);
   const [ticket,   setTicket]   = useState(false);
   const navigate = useNavigate();
   const isAdmin  = user?.isAdmin;
@@ -215,6 +216,15 @@ export default function Hub({ user }) {
     if (!isAdmin) return;
     apiFetch('/api/admin/hunts').then(setAllHunts).catch(()=>{});
   }, [isAdmin, hunts]);
+
+  useEffect(() => {
+    if (!isAdmin || tab !== 'users') return;
+    apiFetch('/api/admin/active-users').then(d => setActiveUsers(d.users || [])).catch(()=>{});
+    const interval = setInterval(() => {
+      apiFetch('/api/admin/active-users').then(d => setActiveUsers(d.users || [])).catch(()=>{});
+    }, 3000); // Refresh every 3 seconds
+    return () => clearInterval(interval);
+  }, [isAdmin, tab]);
 
   const endHunt    = async id => { if(!window.confirm('End this hunt?')) return; await apiFetch(`/api/admin/hunts/${id}/end`,{method:'POST'}); };
   const deleteHunt = async id => { if(!window.confirm('Delete permanently?')) return; await apiFetch(`/api/admin/hunts/${id}`,{method:'DELETE'}); };
@@ -318,7 +328,7 @@ export default function Hub({ user }) {
           <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
             {isAdmin && (
               <div style={{display:'flex',gap:2,background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:5,padding:2}}>
-                {[['live','Live'],['archived','Archived'],['all','All']].map(([k,l])=>(
+                {[['live','Live'],['archived','Archived'],['all','All'],['users','Active Users']].map(([k,l])=>(
                   <button key={k} onClick={()=>setTab(k)} style={{height:28,padding:'0 14px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:12,fontWeight:600,cursor:'pointer',background:tab===k?C.gold:'transparent',color:tab===k?'#000':C.label,transition:'all .1s'}}>
                     {l}
                   </button>
@@ -328,8 +338,25 @@ export default function Hub({ user }) {
           </div>
         </div>
 
-        {/* Hunts grid */}
-        {loading ? (
+        {/* Hunts grid or Active Users list */}
+        {tab === 'users' ? (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
+            {activeUsers.length === 0 ? (
+              <div style={{gridColumn:'1/-1',padding:'3rem',textAlign:'center',fontFamily:C.font,fontSize:13,color:C.label}}>
+                No active users right now
+              </div>
+            ) : activeUsers.map((u,i) => (
+              <div key={i} style={{padding:'12px',borderRight:`1px solid rgba(255,255,255,0.07)`,borderBottom:`1px solid rgba(255,255,255,0.07)`,display:'flex',alignItems:'center',gap:8}}>
+                {u.avatar && <img src={u.avatar} alt="" style={{width:32,height:32,borderRadius:'50%'}} />}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontFamily:C.font,fontSize:13,fontWeight:600,color:C.txt,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.username}</div>
+                  <div style={{fontFamily:C.mono,fontSize:10,color:C.t3,marginTop:2}}>🟢 {u.socketCount} connection{u.socketCount!==1?'s':''}</div>
+                  <div style={{fontFamily:C.mono,fontSize:9,color:C.t4,marginTop:1}}>{u.lastActive ? new Date(u.lastActive).toLocaleTimeString() : 'unknown'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : loading ? (
           <div style={{fontFamily:C.font,fontSize:13,color:C.label,padding:'3rem 0'}}>Loading…</div>
         ) : display.length === 0 ? (
           <div style={{background:C.card,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,padding:'3rem',textAlign:'center'}}>

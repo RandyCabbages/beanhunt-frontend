@@ -23,7 +23,7 @@ export default function WatchHunt({ user }) {
 
     socket.emit('watch:hunt', userId);
     // Tell server our identity so it can compute canEdit for us
-    if (user?.id) socket.emit('identify', user.id);
+    if (user?.id) socket.emit('identify', user.id, user);
 
     socket.on('hunt:update', data => {
       setHunt(data);
