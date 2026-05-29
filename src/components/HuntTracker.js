@@ -870,15 +870,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* Slot Caller input — beneath slot input */}
-          <div style={{padding:'8px 10px', background:G.bg, flexShrink:0}}>
+          {/* Slot Caller input with + button — narrower, positioned under slot input */}
+          <div style={{padding:'4px 10px', background:G.bg, flexShrink:0, display:'flex', gap:'6px', alignItems:'center', maxWidth:'320px'}}>
             <input 
               type="text" 
               value={slotCaller} 
               onChange={e=>setSlotCaller(e.target.value)}
               placeholder="e.g. TheOnlyWalker"
-              style={{width:'100%', background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none'}}
+              style={{flex:1, background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
             />
+            <button onClick={()=>setSlotCaller('')} style={{height:30,padding:'0 10px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:12,fontWeight:700,cursor:'pointer',flexShrink:0}}>+</button>
           </div>
 
           {/* Table header */}
