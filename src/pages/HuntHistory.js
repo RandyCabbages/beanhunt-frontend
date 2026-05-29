@@ -83,8 +83,10 @@ const calculateOverallStats = (slotStats, hunts) => {
   const totalBonuses = slots.reduce((sum, s) => sum + s.bonusCount, 0);
   const totalHunts = hunts.length;
   
-  // Calculate totals for buyin, earnings, and profit/loss
-  const totalBuyin = slots.reduce((sum, s) => sum + s.totalBet, 0);
+  // Calculate totals using hunt starting amounts (not individual bonus bets)
+  const totalBuyin = hunts.reduce((sum, h) => sum + (h.huntStart || 0), 0);
+  
+  // Calculate total earnings from all bonuses
   const totalEarnings = slots.reduce((sum, s) => sum + s.totalWin, 0);
   const profitLoss = totalEarnings - totalBuyin;
   
