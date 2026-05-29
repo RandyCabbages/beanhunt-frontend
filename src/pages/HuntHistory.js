@@ -24,6 +24,7 @@ export default function HuntHistory({ user }) {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!user) return; // Skip if not logged in
       try {
         const myHuntsData = await apiFetch('/api/my-hunts');
         setHunts(myHuntsData.hunts || []);
@@ -173,10 +174,12 @@ export default function HuntHistory({ user }) {
 
       {/* View Selector */}
       <div style={{display:'flex', gap:'1rem', marginBottom:'2rem', flexWrap:'wrap'}}>
-        <button onClick={() => setView('your')} style={{
-          padding:'10px 20px', background:view==='your'?G.gold:'transparent', color:view==='your'?'#111111':G.t1,
-          border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
-        }}>👤 Your Slots</button>
+        {user && (
+          <button onClick={() => setView('your')} style={{
+            padding:'10px 20px', background:view==='your'?G.gold:'transparent', color:view==='your'?'#111111':G.t1,
+            border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
+          }}>👤 Your Slots</button>
+        )}
         {Object.keys(mitchSlotStats).length > 0 && (
           <button onClick={() => setView('mitch')} style={{
             padding:'10px 20px', background:view==='mitch'?G.gold:'transparent', color:view==='mitch'?'#111111':G.t1,
@@ -190,7 +193,7 @@ export default function HuntHistory({ user }) {
       </div>
 
       {/* Your Slots */}
-      {view === 'your' && (
+      {view === 'your' && user && (
         <div>
           <div style={{display:'flex', gap:'0.8rem', marginBottom:'1.5rem', flexWrap:'wrap'}}>
             <button onClick={() => setYourFilter('best')} style={{
@@ -207,20 +210,20 @@ export default function HuntHistory({ user }) {
             }}>📊 Full List</button>
           </div>
           
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'0.8rem'}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
             {getFilteredSlots(slotStats, yourFilter).map((slot, i) => (
-              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'0.8rem', display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
                 <div>
-                  <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem', lineHeight:1.2}}>{slot.name}</div>
-                  <div style={{fontSize:'0.8rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.3rem'}}>
-                    <div>🎯 {slot.bonusCount}</div>
-                    <div>📊 <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
-                  </div>
+                  <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div>
+                  <div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div>
                 </div>
-                <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
-                  alignSelf:'flex-end', background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', padding:'0.3rem',
-                  marginTop:'0.5rem'
-                }}>🔄</button>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
+                  <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                  <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
+                    background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0',
+                    lineHeight:1
+                  }}>🔄</button>
+                </div>
               </div>
             ))}
           </div>
@@ -245,20 +248,20 @@ export default function HuntHistory({ user }) {
             }}>📊 Full List</button>
           </div>
           
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'0.8rem'}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
             {getFilteredSlots(mitchSlotStats, mitchFilter).map((slot, i) => (
-              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'0.8rem', display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
                 <div>
-                  <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem', lineHeight:1.2}}>{slot.name}</div>
-                  <div style={{fontSize:'0.8rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.3rem'}}>
-                    <div>🎯 {slot.bonusCount}</div>
-                    <div>📊 <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
-                  </div>
+                  <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div>
+                  <div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div>
                 </div>
-                <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
-                  alignSelf:'flex-end', background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', padding:'0.3rem',
-                  marginTop:'0.5rem'
-                }}>🔄</button>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
+                  <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                  <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
+                    background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0',
+                    lineHeight:1
+                  }}>🔄</button>
+                </div>
               </div>
             ))}
           </div>
@@ -268,26 +271,37 @@ export default function HuntHistory({ user }) {
       {/* All Hunts */}
       {view === 'all-hunts' && (
         <div style={{display:'flex', flexDirection:'column', gap:'1rem'}}>
-          {hunts.map((hunt, i) => (
-            <div key={i} style={{
-              background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1.5rem',
-              transition:'all 0.2s'
-            }} onMouseEnter={e => e.currentTarget.style.background = G.lift} onMouseLeave={e => e.currentTarget.style.background = G.card}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <div>
-                  <div style={{fontSize:'1.1rem', fontWeight:700, marginBottom:'0.3rem'}}>
-                    Hunt from {new Date(hunt.createdAt).toLocaleDateString()}
+          {hunts.length === 0 && user === null ? (
+            <div style={{textAlign:'center', padding:'2rem', color:G.t3}}>
+              Login to see your hunt history
+            </div>
+          ) : hunts.length === 0 ? (
+            <div style={{textAlign:'center', padding:'2rem', color:G.t3}}>
+              No hunts yet
+            </div>
+          ) : (
+          ) : (
+            hunts.map((hunt, i) => (
+              <div key={i} style={{
+                background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1.5rem',
+                transition:'all 0.2s'
+              }} onMouseEnter={e => e.currentTarget.style.background = G.lift} onMouseLeave={e => e.currentTarget.style.background = G.card}>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div>
+                    <div style={{fontSize:'1.1rem', fontWeight:700, marginBottom:'0.3rem'}}>
+                      Hunt from {new Date(hunt.createdAt).toLocaleDateString()}
+                    </div>
+                    <div style={{fontSize:'0.85rem', color:G.t3}}>
+                      {hunt.bonuses?.length || 0} bonuses • {hunt.calls?.length || 0} calls • {hunt.equity?.length || 0} people
+                    </div>
                   </div>
-                  <div style={{fontSize:'0.85rem', color:G.t3}}>
-                    {hunt.bonuses?.length || 0} bonuses • {hunt.calls?.length || 0} calls • {hunt.equity?.length || 0} people
+                  <div style={{fontSize:'1.2rem', fontWeight:700, color:hunt.totalWinnings >= 0 ? G.green : G.red}}>
+                    {hunt.totalWinnings >= 0 ? '+' : ''}{fmt(hunt.totalWinnings || 0)}
                   </div>
-                </div>
-                <div style={{fontSize:'1.2rem', fontWeight:700, color:hunt.totalWinnings >= 0 ? G.green : G.red}}>
-                  {hunt.totalWinnings >= 0 ? '+' : ''}{fmt(hunt.totalWinnings || 0)}
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>
