@@ -113,7 +113,10 @@ const calculateOverallStats = (slotStats, hunts) => {
   const totalBuyin = hunts.reduce((sum, h) => sum + (h.huntStart || 0), 0);
   
   // Calculate total earnings from all bonuses
-  const totalEarnings = slots.reduce((sum, s) => sum + s.totalWin, 0);
+  const totalEarnings = hunts.reduce((sum, h) => {
+    return sum + (h.bonuses || []).reduce((bonusSum, b) => bonusSum + (b.win || 0), 0);
+  }, 0);
+  
   const profitLoss = totalEarnings - totalBuyin;
   
   // Calculate best and worst slots
@@ -127,12 +130,6 @@ const calculateOverallStats = (slotStats, hunts) => {
     if (ratio > bestRatio) { bestRatio = ratio; bestSlot = slot; }
     if (ratio < worstRatio) { worstRatio = ratio; worstSlot = slot; }
   });
-  
-  // Calculate average required multiplier (across ALL bonuses)
-  const allReqMultipliers = slots.flatMap(s => s.requiredMultipliers);
-  const avgReqMult = allReqMultipliers.length > 0 
-    ? allReqMultipliers.reduce((a, b) => a + b, 0) / allReqMultipliers.length 
-    : 0;
   
   // Calculate average earned multiplier (across ALL bonuses)
   const allEarnedMultipliers = slots.flatMap(s => s.multipliers);
@@ -148,7 +145,6 @@ const calculateOverallStats = (slotStats, hunts) => {
     profitLoss: profitLoss.toFixed(2),
     bestSlot,
     worstSlot,
-    avgReqMult: avgReqMult.toFixed(2),
     avgEarned: avgEarned.toFixed(2),
     bestRatio: bestRatio.toFixed(4)
   };
@@ -350,11 +346,6 @@ export default function HuntHistory() {
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
                     <span style={{fontSize:'0.85rem', color:G.t3}}>Profit/Loss</span>
                     <span style={{fontSize:'1rem', fontWeight:700, color: parseFloat(stats.profitLoss) >= 0 ? G.green : G.red}}>{parseFloat(stats.profitLoss) >= 0 ? '+' : ''}${parseFloat(stats.profitLoss).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                  </div>
-                  
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
-                    <span style={{fontSize:'0.85rem', color:G.t3}}>Avg Req X</span>
-                    <span style={{fontSize:'1rem', fontWeight:700, color:G.green}}>{stats.avgReqMult}x</span>
                   </div>
                   
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
