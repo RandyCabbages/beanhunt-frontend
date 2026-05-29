@@ -39,10 +39,27 @@ const calculateSlotStats = hunts => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
       
-      if (!stats[normalized]) stats[normalized] = {name: titleCased, bonusCount: 0, multipliers: []};
+      if (!stats[normalized]) stats[normalized] = {
+        name: titleCased, 
+        bonusCount: 0, 
+        requiredMultipliers: [],
+        multipliers: [],
+        totalBet: 0,        // NEW: track total wagered
+        totalWin: 0         // NEW: track total won
+      };
       stats[normalized].bonusCount++;
-      const mult = b.multiplier ? parseFloat(b.multiplier) : 0;
-      if (mult > 0) stats[normalized].multipliers.push(mult);
+      
+      // Store both required and earned multipliers
+      const reqMult = b.requiredMultiplier ? parseFloat(b.requiredMultiplier) : 0;
+      const earnedMult = b.multiplier ? parseFloat(b.multiplier) : 0;
+      if (reqMult > 0) stats[normalized].requiredMultipliers.push(reqMult);
+      if (earnedMult > 0) stats[normalized].multipliers.push(earnedMult);
+      
+      // Track bet and win amounts
+      const bet = b.bet ? parseFloat(b.bet) : 0;
+      const win = b.win ? parseFloat(b.win) : 0;
+      stats[normalized].totalBet += bet;
+      stats[normalized].totalWin += win;
     });
   });
   return stats;
@@ -66,6 +83,11 @@ const calculateOverallStats = (slotStats, hunts) => {
   const totalBonuses = slots.reduce((sum, s) => sum + s.bonusCount, 0);
   const totalHunts = hunts.length;
   
+  // Calculate totals for buyin, earnings, and profit/loss
+  const totalBuyin = slots.reduce((sum, s) => sum + s.totalBet, 0);
+  const totalEarnings = slots.reduce((sum, s) => sum + s.totalWin, 0);
+  const profitLoss = totalEarnings - totalBuyin;
+  
   // Calculate best and worst slots
   let bestSlot = null, worstSlot = null;
   let bestRatio = -Infinity, worstRatio = Infinity;
@@ -73,27 +95,33 @@ const calculateOverallStats = (slotStats, hunts) => {
   slots.forEach(slot => {
     if (slot.multipliers.length === 0) return;
     const avgMult = slot.multipliers.reduce((a, b) => a + b, 0) / slot.multipliers.length;
-    const ratio = avgMult / slot.bonusCount; // Avg multiplier per play
+    const ratio = avgMult / slot.bonusCount;
     if (ratio > bestRatio) { bestRatio = ratio; bestSlot = slot; }
     if (ratio < worstRatio) { worstRatio = ratio; worstSlot = slot; }
   });
   
-  // Calculate average multipliers
-  const allMultipliers = slots.flatMap(s => s.multipliers);
-  const avgReqMult = allMultipliers.length > 0 ? allMultipliers.reduce((a, b) => a + b, 0) / allMultipliers.length : 0;
+  // Calculate average required multiplier (across ALL bonuses)
+  const allReqMultipliers = slots.flatMap(s => s.requiredMultipliers);
+  const avgReqMult = allReqMultipliers.length > 0 
+    ? allReqMultipliers.reduce((a, b) => a + b, 0) / allReqMultipliers.length 
+    : 0;
   
-  // Calculate profit/loss (assuming avg bet, since we don't have individual bet data)
-  // For now, we'll estimate based on multiplier data
-  const totalWon = allMultipliers.length > 0 ? allMultipliers.reduce((a, b) => a + b, 0) : 0;
-  const avgWon = allMultipliers.length > 0 ? totalWon / allMultipliers.length : 0;
+  // Calculate average earned multiplier (across ALL bonuses)
+  const allEarnedMultipliers = slots.flatMap(s => s.multipliers);
+  const avgEarned = allEarnedMultipliers.length > 0 
+    ? allEarnedMultipliers.reduce((a, b) => a + b, 0) / allEarnedMultipliers.length 
+    : 0;
   
   return {
     totalHunts,
     totalBonuses,
+    totalBuyin: totalBuyin.toFixed(2),
+    totalEarnings: totalEarnings.toFixed(2),
+    profitLoss: profitLoss.toFixed(2),
     bestSlot,
     worstSlot,
     avgReqMult: avgReqMult.toFixed(2),
-    avgEarned: avgWon.toFixed(2),
+    avgEarned: avgEarned.toFixed(2),
     bestRatio: bestRatio.toFixed(4)
   };
 };
@@ -275,6 +303,21 @@ export default function HuntHistory() {
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
                     <span style={{fontSize:'0.85rem', color:G.t3}}>Total Bonuses</span>
                     <span style={{fontSize:'1rem', fontWeight:700, color:G.t1}}>{stats.totalBonuses}</span>
+                  </div>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Total Buyin</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.t1}}>${parseFloat(stats.totalBuyin).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Total Earnings</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color:G.t1}}>${parseFloat(stats.totalEarnings).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                  </div>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
+                    <span style={{fontSize:'0.85rem', color:G.t3}}>Profit/Loss</span>
+                    <span style={{fontSize:'1rem', fontWeight:700, color: parseFloat(stats.profitLoss) >= 0 ? G.green : G.red}}>{parseFloat(stats.profitLoss) >= 0 ? '+' : ''}${parseFloat(stats.profitLoss).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                   </div>
                   
                   <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
