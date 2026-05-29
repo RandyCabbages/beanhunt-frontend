@@ -49,7 +49,7 @@ export default function HuntHistory() {
   const [cdewSlotStats, setCdewSlotStats] = useState({});
   const [view, setView] = useState('your');
   const [yourFilter, setYourFilter] = useState('best');
-  const [mitchFilter, setMitchFilter] = useState('best');
+  const [mitchFilter, setMitchFilter] = useState('alpha');
   const [cdewFilter, setCdewFilter] = useState('best');
 
   useEffect(() => {
@@ -137,20 +137,40 @@ export default function HuntHistory() {
       {view === 'mitch' && (
         <div>
           <div style={{display:'flex', gap:'0.8rem', marginBottom:'1.5rem', flexWrap:'wrap'}}>
-            <button onClick={() => setMitchFilter('best')} style={{padding:'8px 16px', background:mitchFilter==='best'?G.gold:'transparent', color:mitchFilter==='best'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⭐ Best Slots</button>
-            <button onClick={() => setMitchFilter('worst')} style={{padding:'8px 16px', background:mitchFilter==='worst'?G.gold:'transparent', color:mitchFilter==='worst'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>💔 Worst Slots</button>
-            <button onClick={() => setMitchFilter('all')} style={{padding:'8px 16px', background:mitchFilter==='all'?G.gold:'transparent', color:mitchFilter==='all'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📊 Full List</button>
+            <button onClick={() => setMitchFilter('alpha')} style={{padding:'8px 16px', background:mitchFilter==='alpha'?G.gold:'transparent', color:mitchFilter==='alpha'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>A-Z Alphabetical</button>
+            <button onClick={() => setMitchFilter('most')} style={{padding:'8px 16px', background:mitchFilter==='most'?G.gold:'transparent', color:mitchFilter==='most'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📈 Most Played</button>
+            <button onClick={() => setMitchFilter('least')} style={{padding:'8px 16px', background:mitchFilter==='least'?G.gold:'transparent', color:mitchFilter==='least'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>📉 Least Played</button>
+            <button onClick={() => setMitchFilter('highMult')} style={{padding:'8px 16px', background:mitchFilter==='highMult'?G.gold:'transparent', color:mitchFilter==='highMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬆️ Highest Mult</button>
+            <button onClick={() => setMitchFilter('lowMult')} style={{padding:'8px 16px', background:mitchFilter==='lowMult'?G.gold:'transparent', color:mitchFilter==='lowMult'?'#111111':G.t1, border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'}}>⬇️ Lowest Mult</button>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
-            {getFilteredSlots(mitchSlotStats, mitchFilter).map((slot, i) => (
-              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
-                <div><div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
-                  <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</div>
-                  <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0', lineHeight:1}}>🔄</button>
+            {(() => {
+              const slots = Object.values(mitchSlotStats);
+              let sorted = [...slots];
+              if (mitchFilter === 'most') sorted.sort((a, b) => b.bonusCount - a.bonusCount);
+              else if (mitchFilter === 'least') sorted.sort((a, b) => a.bonusCount - b.bonusCount);
+              else if (mitchFilter === 'highMult') sorted.sort((a, b) => {
+                const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
+                const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
+                return avgB - avgA;
+              });
+              else if (mitchFilter === 'lowMult') sorted.sort((a, b) => {
+                const avgA = a.multipliers.length ? a.multipliers.reduce((x, y) => x + y) / a.multipliers.length : 0;
+                const avgB = b.multipliers.length ? b.multipliers.reduce((x, y) => x + y) / b.multipliers.length : 0;
+                return avgA - avgB;
+              });
+              else sorted.sort((a, b) => a.name.localeCompare(b.name));
+              
+              return sorted.map((slot, i) => (
+                <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
+                  <div><div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
+                    <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</div>
+                    <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0', lineHeight:1}}>🔄</button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       )}
