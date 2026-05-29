@@ -25,6 +25,7 @@ export default function MyHunt({ user }) {
   const [started,  setStarted]  = useState(false);
   const [offline,  setOffline]  = useState(false);
   const [loading,  setLoading]  = useState(true);
+  const [showStartScreen, setShowStartScreen] = useState(true);
   const saveTimer = useRef(null);
 
   // Load existing online hunt if logged in
@@ -54,7 +55,7 @@ export default function MyHunt({ user }) {
               }).catch(()=>{});
             }
           }
-          setHunt(data); setStarted(true); setOffline(false);
+          setHunt(data); setStarted(true); setShowStartScreen(false); setOffline(false);
         }
       })
       .catch(() => {})
@@ -83,12 +84,12 @@ export default function MyHunt({ user }) {
       }).catch(()=>{});
     }
     setHunt(emptyHunt);
-    setStarted(true); setOffline(false);
+    setStarted(true); setShowStartScreen(false); setOffline(false);
   };
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));
-    setStarted(true); setOffline(true);
+    setStarted(true); setShowStartScreen(false); setOffline(true);
   };
 
   const goLive = async () => {
@@ -105,7 +106,7 @@ export default function MyHunt({ user }) {
   const resetHunt = async () => {
     if (!window.confirm('Reset your hunt? This clears everything.')) return;
     if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
-    setHunt(null); setStarted(false);
+    setHunt(null); setStarted(false); setShowStartScreen(true);
   };
 
   const updateHunt = useCallback((updater) => {
@@ -121,7 +122,7 @@ export default function MyHunt({ user }) {
   );
 
   // Start screen
-  if (!started || !hunt) return (
+  if (showStartScreen) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:28, padding:'2rem', background:'#161618', fontFamily:"'Chakra Petch',sans-serif" }}>
       <div style={{ textAlign:'center' }}>
         <div style={{ marginBottom:10, display:'flex', justifyContent:'center' }}>
