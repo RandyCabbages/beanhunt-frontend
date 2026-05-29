@@ -207,19 +207,20 @@ export default function HuntHistory({ user }) {
             }}>📊 Full List</button>
           </div>
           
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:'1rem'}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'0.8rem'}}>
             {getFilteredSlots(slotStats, yourFilter).map((slot, i) => (
-              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'}}>
-                <div style={{fontWeight:700, marginBottom:'0.8rem', fontSize:'1rem'}}>{slot.name}</div>
-                <div style={{fontSize:'0.85rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.4rem', marginBottom:'0.8rem'}}>
-                  <div>🎯 Bonuses: {slot.bonusCount}</div>
-                  <div>📊 Avg Mult: <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
-                  <div>🏆 Win Rate: <span style={{color:G.green, fontWeight:700}}>{((slot.wins/slot.bonusCount)*100).toFixed(1)}%</span></div>
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'0.8rem', display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
+                <div>
+                  <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem', lineHeight:1.2}}>{slot.name}</div>
+                  <div style={{fontSize:'0.8rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.3rem'}}>
+                    <div>🎯 {slot.bonusCount}</div>
+                    <div>📊 <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
+                  </div>
                 </div>
                 <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
-                  width:'100%', padding:'8px 12px', background:G.purple, color:G.t1, border:'none', borderRadius:4,
-                  fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.85rem'
-                }}>🔄 Compare</button>
+                  alignSelf:'flex-end', background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', padding:'0.3rem',
+                  marginTop:'0.5rem'
+                }}>🔄</button>
               </div>
             ))}
           </div>
@@ -244,19 +245,20 @@ export default function HuntHistory({ user }) {
             }}>📊 Full List</button>
           </div>
           
-          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:'1rem'}}>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:'0.8rem'}}>
             {getFilteredSlots(mitchSlotStats, mitchFilter).map((slot, i) => (
-              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1rem'}}>
-                <div style={{fontWeight:700, marginBottom:'0.8rem', fontSize:'1rem'}}>{slot.name}</div>
-                <div style={{fontSize:'0.85rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.4rem', marginBottom:'0.8rem'}}>
-                  <div>🎯 Bonuses: {slot.bonusCount}</div>
-                  <div>📊 Avg Mult: <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
-                  <div>🏆 Win Rate: <span style={{color:G.green, fontWeight:700}}>{((slot.wins/slot.bonusCount)*100).toFixed(1)}%</span></div>
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'0.8rem', display:'flex', flexDirection:'column', justifyContent:'space-between'}}>
+                <div>
+                  <div style={{fontWeight:700, marginBottom:'0.5rem', fontSize:'0.95rem', lineHeight:1.2}}>{slot.name}</div>
+                  <div style={{fontSize:'0.8rem', color:G.t3, display:'flex', flexDirection:'column', gap:'0.3rem'}}>
+                    <div>🎯 {slot.bonusCount}</div>
+                    <div>📊 <span style={{color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</span></div>
+                  </div>
                 </div>
                 <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
-                  width:'100%', padding:'8px 12px', background:G.purple, color:G.t1, border:'none', borderRadius:4,
-                  fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.85rem'
-                }}>🔄 Compare to My Hunts</button>
+                  alignSelf:'flex-end', background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', padding:'0.3rem',
+                  marginTop:'0.5rem'
+                }}>🔄</button>
               </div>
             ))}
           </div>
