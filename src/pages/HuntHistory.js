@@ -382,7 +382,6 @@ export default function HuntHistory({ user }) {
               No hunts yet
             </div>
           ) : (
-          ) : (
             hunts.map((hunt, i) => (
               <div key={i} style={{
                 background:G.card, border:`1px solid ${G.bdr}`, borderRadius:6, padding:'1.5rem',
