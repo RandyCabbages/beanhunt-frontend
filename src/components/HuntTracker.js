@@ -329,7 +329,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const reqX      = remBets>0&&totalWon<totalPot ? (totalPot-totalWon)/remBets : null;
   const bestBonus = bonuses.filter(b=>b.win>0&&b.bet>0).reduce((best,b)=>{const x=b.win/b.bet;return x>(best?best.x:0)?{slot:b.slot,x}:best;},null);
   const rollerMap = {};
-  bonuses.forEach(b=>{if(b.caller&&b.win)rollerMap[b.caller]=(rollerMap[b.caller]||0)+b.win;});
+  bonuses.forEach(b=>{if(b.caller&&b.win>0&&b.bet>0){const mult=b.win/b.bet;rollerMap[b.caller]=Math.max(rollerMap[b.caller]||0,mult);}});
   const bestRoller = Object.entries(rollerMap).sort((a,b)=>b[1]-a[1])[0];
   const rolledCount = bonuses.filter(b=>b.win>0).length;
 
@@ -844,14 +844,21 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <StatTile label="Avg X" value={avgX?avgX.toFixed(1)+'x':'—'} color={G.t2} accent={acStr} />
               <StatTile label="Highest X" value={highX?highX.toFixed(1)+'x':'—'} color={highX?(highX>=100?G.green:G.red):G.t3} accent={acStr} />
               <StatTile label="Best Slot" value={bestBonus?bestBonus.slot:'—'} color={accent} accent={acStr} wide />
-              <StatTile label="Top Roller" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
+              <StatTile label="Top Roller" value={bestRoller?`${bestRoller[0]}  ${bestRoller[1].toFixed(1)}x`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
             </>}
           </div>
 
-          {/* Add bonus form — Slot input on top */}
-          {canEdit&&(
-            <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
+          {/* Add bonus form — Slot input + Caller input + Bet on same row */}
+          {canEdit && huntMode !== 'rolling' && (
+            <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'2fr 1.2fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
+              <input 
+                type="text" 
+                value={slotCaller} 
+                onChange={e=>setSlotCaller(e.target.value)}
+                placeholder="e.g. TheOnlyWalker"
+                style={{background:G.bg, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px 10px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
+              />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput,slotCaller)}
                 placeholder="Bet $" style={{...inp, height:34}} />
@@ -869,17 +876,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button onClick={()=>addBonus(null,null,scatInput,slotCaller)} style={{height:34,padding:'0 14px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
             </div>
           )}
-
-          {/* Slot Caller input — directly under slot input, no button */}
-          <div style={{padding:'6px 10px', background:G.bg, flexShrink:0}}>
-            <input 
-              type="text" 
-              value={slotCaller} 
-              onChange={e=>setSlotCaller(e.target.value)}
-              placeholder="e.g. TheOnlyWalker"
-              style={{width:'100%', background:G.bg2, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
-            />
-          </div>
 
           {/* Table header */}
           <div style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
@@ -933,8 +929,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
                     {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:fmt(b.bet)}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
+                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center',display:'flex',alignItems:'center',gap:'2px'}}>
+                    {canEdit?(<><span style={{color:G.t3}}>$</span><input type="number" defaultValue={b.win>0?b.win:''} placeholder="0.00" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/></>) : (b.win>0?fmt(b.win):'—')}
                   </div>
                   <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.2rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
@@ -950,6 +946,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Buttons */}
           {canEdit&&(
             <div style={{padding:'8px 10px',borderTop:`1px solid ${G.bdr}`,display:'flex',gap:6,flexShrink:0,background:G.bg2}}>
+              <button onClick={()=>upd(h=>h)}
+                style={{height:32,padding:'0 16px',background:accent,border:'none',borderRadius:3,fontFamily:G.body,fontSize:12,fontWeight:700,color:'#000',cursor:'pointer',letterSpacing:'0.02em'}}>
+                💾 Save Hunt
+              </button>
               <button onClick={()=>{setShowWinners(true);if(onEndHunt)onEndHunt();}}
                 style={{height:32,padding:'0 16px',background:'transparent',border:`1px solid ${accent}`,borderRadius:3,fontFamily:G.body,fontSize:12,fontWeight:700,color:accent,cursor:'pointer',letterSpacing:'0.02em'}}>
                 🏁 End & Results
