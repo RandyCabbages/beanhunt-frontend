@@ -13,10 +13,29 @@ const fmt = n => '$' + n.toFixed(2);
 
 const calculateSlotStats = hunts => {
   const stats = {};
+  
+  // Known corrections for common slot name errors
+  const knownCorrections = {
+    "mr nulls wicked wares": "Mr Null's Wicked Wares",
+    "mr nulls wicked ware": "Mr Null's Wicked Wares",
+    "dead or alive 3": "Dead Or Alive 3",
+    "dead or alive2": "Dead or Alive 2",
+  };
+  
   hunts.forEach(h => {
     if (!h.bonuses) return;
     h.bonuses.forEach(b => {
-      const rawSlot = b.slot || 'Unknown';
+      let rawSlot = b.slot || 'Unknown';
+      
+      // Remove leading/trailing spaces
+      rawSlot = rawSlot.trim();
+      
+      // Check for known corrections first (before normalization)
+      const rawLower = rawSlot.toLowerCase().trim();
+      if (knownCorrections[rawLower]) {
+        rawSlot = knownCorrections[rawLower];
+      }
+      
       // Normalize for deduplication: lowercase, trim, normalize connectors
       let normalized = rawSlot
         .toLowerCase()
@@ -33,7 +52,7 @@ const calculateSlotStats = hunts => {
         normalized = words.join(' ');
       }
       
-      // Title case for display
+      // Title case for display (capitalize first letter of each word)
       const titleCased = normalized
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -44,8 +63,8 @@ const calculateSlotStats = hunts => {
         bonusCount: 0, 
         requiredMultipliers: [],
         multipliers: [],
-        totalBet: 0,        // NEW: track total wagered
-        totalWin: 0         // NEW: track total won
+        totalBet: 0,
+        totalWin: 0
       };
       stats[normalized].bonusCount++;
       
