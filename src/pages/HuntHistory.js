@@ -16,8 +16,9 @@ const calculateSlotStats = hunts => {
   hunts.forEach(h => {
     if (!h.bonuses) return;
     h.bonuses.forEach(b => {
-      const slot = b.slot || 'Unknown';
-      if (!stats[slot]) stats[slot] = {name: slot, bonusCount: 0, multipliers: []};
+      const slot = (b.slot || 'Unknown').toLowerCase().trim();
+      const displayName = b.slot || 'Unknown';
+      if (!stats[slot]) stats[slot] = {name: displayName, bonusCount: 0, multipliers: []};
       stats[slot].bonusCount++;
       const mult = b.multiplier ? parseFloat(b.multiplier) : 0;
       if (mult > 0) stats[slot].multipliers.push(mult);
