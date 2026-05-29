@@ -18,9 +18,11 @@ export default function HuntHistory({ user }) {
   const [loading, setLoading] = useState(true);
   const [slotStats, setSlotStats] = useState({});
   const [mitchSlotStats, setMitchSlotStats] = useState({});
-  const [view, setView] = useState('your'); // 'your', 'mitch', 'all-hunts'
+  const [cdewSlotStats, setCdewSlotStats] = useState({});
+  const [view, setView] = useState('your'); // 'your', 'mitch', 'cdew', 'all-hunts'
   const [yourFilter, setYourFilter] = useState('best'); // 'best', 'worst', 'all'
   const [mitchFilter, setMitchFilter] = useState('best'); // 'best', 'worst', 'all'
+  const [cdewFilter, setCdewFilter] = useState('best'); // 'best', 'worst', 'all'
 
   useEffect(() => {
     const loadData = async () => {
@@ -66,7 +68,33 @@ export default function HuntHistory({ user }) {
     
     // Load Mitch data independently
     loadMitchData();
-  }, []);
+    
+    // Load Cdew data independently
+    const loadCdewData = async () => {
+      try {
+        const existingData = await apiFetch('/api/admin/cdew-hunts').catch(() => null);
+        
+        if (existingData?.hunts && existingData.hunts.length > 0) {
+          calculateCdewSlotStats(existingData.hunts);
+        } else {
+          try {
+            const fetchResult = await apiFetch('/api/admin/fetch-and-import-cdew-hunts', { method: 'POST' });
+            if (fetchResult.huntsImported) {
+              const freshData = await apiFetch('/api/admin/cdew-hunts');
+              if (freshData.hunts) {
+                calculateCdewSlotStats(freshData.hunts);
+              }
+            }
+          } catch (importErr) {
+            console.log('Cdew import not available or failed:', importErr.message);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading Cdew data:', e);
+      }
+    };
+    
+    loadCdewData();
 
   const calculateSlotStats = (huntList) => {
     const stats = {};
@@ -128,6 +156,36 @@ export default function HuntHistory({ user }) {
     setMitchSlotStats(stats);
   };
 
+  const calculateCdewSlotStats = (huntList) => {
+    const stats = {};
+    
+    huntList.forEach(hunt => {
+      if (!hunt.bonuses) return;
+      
+      hunt.bonuses.forEach(bonus => {
+        const slot = bonus.slot || 'Unknown';
+        if (!stats[slot]) {
+          stats[slot] = {
+            name: slot,
+            bonusCount: 0,
+            wins: 0,
+            multipliers: [],
+          };
+        }
+        
+        stats[slot].bonusCount += 1;
+        
+        const mult = parseFloat(bonus.multiplier) || 0;
+        if (mult > 0) {
+          stats[slot].multipliers.push(mult);
+          stats[slot].wins += 1;
+        }
+      });
+    });
+    
+    setCdewSlotStats(stats);
+  };
+
   const sortSlots = (stats, filter = 'best') => {
     const sorted = Object.values(stats)
       .filter(s => s.bonusCount >= 2)
@@ -185,6 +243,12 @@ export default function HuntHistory({ user }) {
             padding:'10px 20px', background:view==='mitch'?G.gold:'transparent', color:view==='mitch'?'#111111':G.t1,
             border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
           }}>🍌 Mitch's Slots</button>
+        )}
+        {Object.keys(cdewSlotStats).length > 0 && (
+          <button onClick={() => setView('cdew')} style={{
+            padding:'10px 20px', background:view==='cdew'?G.gold:'transparent', color:view==='cdew'?'#111111':G.t1,
+            border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer'
+          }}>🎰 Cdew's Slots</button>
         )}
         <button onClick={() => setView('all-hunts')} style={{
           padding:'10px 20px', background:view==='all-hunts'?G.gold:'transparent', color:view==='all-hunts'?'#111111':G.t1,
@@ -250,6 +314,44 @@ export default function HuntHistory({ user }) {
           
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
             {getFilteredSlots(mitchSlotStats, mitchFilter).map((slot, i) => (
+              <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
+                <div>
+                  <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div>
+                  <div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div>
+                </div>
+                <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
+                  <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{(slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A')}x</div>
+                  <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{
+                    background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0',
+                    lineHeight:1
+                  }}>🔄</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cdew's Slots */}
+      {view === 'cdew' && (
+        <div>
+          <div style={{display:'flex', gap:'0.8rem', marginBottom:'1.5rem', flexWrap:'wrap'}}>
+            <button onClick={() => setCdewFilter('best')} style={{
+              padding:'8px 16px', background:cdewFilter==='best'?G.gold:'transparent', color:cdewFilter==='best'?'#111111':G.t1,
+              border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'
+            }}>⭐ Best Slots</button>
+            <button onClick={() => setCdewFilter('worst')} style={{
+              padding:'8px 16px', background:cdewFilter==='worst'?G.gold:'transparent', color:cdewFilter==='worst'?'#111111':G.t1,
+              border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'
+            }}>💔 Worst Slots</button>
+            <button onClick={() => setCdewFilter('all')} style={{
+              padding:'8px 16px', background:cdewFilter==='all'?G.gold:'transparent', color:cdewFilter==='all'?'#111111':G.t1,
+              border:`1px solid ${G.bdr}`, borderRadius:6, fontFamily:G.display, fontWeight:700, cursor:'pointer', fontSize:'0.9rem'
+            }}>📊 Full List</button>
+          </div>
+          
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
+            {getFilteredSlots(cdewSlotStats, cdewFilter).map((slot, i) => (
               <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
                 <div>
                   <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div>
