@@ -950,7 +950,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 value={slotCaller} 
                 onChange={e=>setSlotCaller(e.target.value)}
                 placeholder="e.g. TheOnlyWalker"
-                style={{background:G.bg, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px 10px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
+                style={{height:34, background:G.bg, border:`1px solid ${G.bdr}`, borderRadius:4, padding:'8px 10px', fontFamily:G.body, fontSize:12, color:G.t1, outline:'none'}}
               />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput,slotCaller)}
