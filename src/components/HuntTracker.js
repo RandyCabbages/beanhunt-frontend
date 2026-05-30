@@ -1095,8 +1095,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 const newCalls = [];
                 const skippedCallers = new Set();
 
-                // Build a set of equity member names (lowercase) for filtering
-                const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
+                // Normalize slot list for fuzzy matching
+                const normalizedSlotMap = new Map(
+                  RAINBET_SLOTS.map(s => [s.toLowerCase().replace(/[^a-z0-9]/g,''), s])
+                );
+                const matchSlot = (input) => {
+                  const key = input.toLowerCase().replace(/[^a-z0-9]/g,'');
+                  // Exact normalized match
+                  if (normalizedSlotMap.has(key)) return normalizedSlotMap.get(key);
+                  // Fuzzy: find best slot where input is a substring or slot is a substring of input
+                  let best = null, bestScore = 0;
+                  for (const [normSlot, origSlot] of normalizedSlotMap) {
+                    if (normSlot.includes(key) || key.includes(normSlot)) {
+                      const score = Math.min(key.length, normSlot.length) / Math.max(key.length, normSlot.length);
+                      if (score > bestScore && score >= 0.75) { bestScore = score; best = origSlot; }
+                    }
+                  }
+                  return best; // null if no match
+                };
 
                 // Detect Discord format: has lines with a dash + time/date pattern
                 const isDiscordFormat = /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(text);
@@ -1153,12 +1169,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const stripped = line.replace(/^(@\S+\s+)*/,'').trim();
                       if (!stripped) return;
 
-                      // Split by comma and add each as a slot
+                      // Split by comma and add each as a slot — validate against RAINBET_SLOTS
                       stripped.split(',').forEach(s => {
-                        const slot = s.trim();
-                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase())) {
-                          existing.add(slot.toLowerCase());
-                          newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
+                        const raw = s.trim();
+                        if (!raw) return;
+                        const matched = matchSlot(raw);
+                        if (!matched) return; // not a valid slot, skip
+                        if (!existing.has(matched.toLowerCase())) {
+                          existing.add(matched.toLowerCase());
+                          newCalls.push({ id: uid(), slot: matched, status: 'pending', user: caller });
                         }
                       });
                     });
