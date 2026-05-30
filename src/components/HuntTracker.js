@@ -1171,6 +1171,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     const slotLines = lines.slice(headerIdx + 1);
 
                     for (const line of slotLines) {
+                      const hasAtMention = /^@\S+/.test(line);
                       // Strip ALL leading @mentions first
                       let stripped = line.replace(/^(@\S+\s+)*/,'').trim();
                       // Strip Discord emoji codes like :Fire: :Joy:
@@ -1195,8 +1196,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           : [part];
 
                         for (const candidate of candidates) {
-                          // Use lookupSlot — only adds if it matches the slot DB
-                          const slot = await lookupSlot(candidate);
+                          // Try to match against slot DB for correct casing
+                          let slot = await lookupSlot(candidate);
+                          // If API couldn't match but this came from an @mention line, trust it as-is
+                          if (!slot && hasAtMention && candidate.length > 1 && candidate.length < 80) {
+                            slot = candidate;
+                          }
                           if (!slot) continue;
                           if (!existing.has(slot.toLowerCase())) {
                             existing.add(slot.toLowerCase());
