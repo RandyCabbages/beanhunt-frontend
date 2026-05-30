@@ -1100,8 +1100,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* VIP defaults */}
-          {{/* Starting Balance at top */}
+          {/* Starting Balance at top */}
           {canEdit && <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <span style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t3,letterSpacing:'0.06em',textTransform:'uppercase'}}>Starting Balance</span>
             <span style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,color:G.gold}}>{fmt(totalPot)}</span>
