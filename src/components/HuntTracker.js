@@ -1083,7 +1083,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button onClick={()=>setShowPasteCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
             </div>
             <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:10,lineHeight:1.6}}>
-              Paste Discord slot call messages or plain slot names. Discord format auto-detects caller names. Plain format: one per line or comma separated.
+              Paste Discord slot call messages or plain slot names. Discord format auto-detects caller names and strips role icons. Only equity members are imported.
             </p>
             <textarea value={pasteCallsText} onChange={e=>setPasteCallsText(e.target.value)} rows={10} autoFocus
               placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
@@ -1098,21 +1098,26 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 // Build a set of equity member names (lowercase) for filtering
                 const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
 
-                // Try Discord format: lines like "username [TAG],  — timestamp" followed by slot lines
-                // Each "block" starts with a header line containing " — " (em dash with spaces)
-                const blocks = text.split(/\n(?=.+\s*—\s*\d{1,2}\/\d{1,2}\/\d{4})/);
-                const isDiscordFormat = blocks.length > 1 || / — \d{1,2}\/\d{1,2}\/\d{4}/.test(text);
+                // Try Discord format: lines like "username Role icon, VIP — timestamp" followed by slot lines
+                // Each "block" starts with a header line containing a dash + date
+                const blocks = text.split(/\n(?=.+[—–]\s*\d{1,2}\/\d{1,2}\/\d{4})/);
+                const isDiscordFormat = blocks.length > 1 || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(text);
 
                 if (isDiscordFormat) {
                   blocks.forEach(block => {
                     const lines = block.trim().split('\n').map(l=>l.trim()).filter(Boolean);
                     if (!lines.length) return;
 
-                    // First line is the header: "ders2212 [BEAN],  — 5/27/2026 7:22 PM"
+                    // First line is the header: "Drakdude25Role icon, VIP – 5/27/2026 7:15 PM"
                     const headerLine = lines[0];
-                    // Extract caller name: everything before the first comma or em dash
-                    const callerMatch = headerLine.match(/^([^,—]+)/);
-                    const caller = callerMatch ? callerMatch[1].replace(/\[.*?\]/g,'').trim() : '';
+                    // Extract caller name: everything before the first comma or dash
+                    const callerMatch = headerLine.match(/^([^,—–]+)/);
+                    const caller = callerMatch
+                      ? callerMatch[1]
+                          .replace(/\[.*?\]/g, '')   // strip [TAG]
+                          .replace(/role\s*icon/gi, '') // strip "Role icon" suffix
+                          .trim()
+                      : '';
 
                     // Skip if caller is not in equity
                     if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase().trim())) {
