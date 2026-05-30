@@ -458,6 +458,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     };
   }, [readOnly, hunt.user?.id, user?.id]);
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
+  const ownerName = (hunt.user?.displayName || hunt.user?.username || '').toLowerCase().trim();
+  const isOwnerEntry = e => ownerName && (e.name||'').toLowerCase().trim() === ownerName;
 
   /* ── Modal base style ── */
   const modalBg = { position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeUp .15s ease' };
@@ -949,7 +951,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
                         {(e.name&&e.name.toLowerCase()==='bean')
                           ? <span style={{fontSize:11,flexShrink:0}}>👑</span>
-                          : e.isMod
+                          : isOwnerEntry(e)
                             ? <svg style={{flexShrink:0}} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
                             : e.isRollWinner
                               ? <span style={{fontSize:11,flexShrink:0}}>🎲</span>
@@ -992,7 +994,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||(e.name&&e.name.toLowerCase()==='bean')||e.name||e.amount>0)?26:10}} />
                     {(e.name&&e.name.toLowerCase()==='bean')
                       ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>👑</span>
-                      : e.isMod
+                      : isOwnerEntry(e)
                         ? <svg style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
                         : e.isRollWinner
                           ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
