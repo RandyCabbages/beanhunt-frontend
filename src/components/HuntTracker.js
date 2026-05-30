@@ -729,7 +729,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout with sticky board ── */}
-      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 300px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -1011,7 +1011,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   onDragStart={()=>setDragBonusId(b.id)}
                   onDragOver={e=>e.preventDefault()}
                   onDrop={()=>{if(dragBonusId&&dragBonusId!==b.id)reorderBonuses(dragBonusId,b.id);setDragBonusId(null);}}
-                  style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',
+                  style={{display:'grid',gridTemplateColumns:'28px 180px 60px 70px 60px auto',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}40`:undefined,
                     border:isP?`2px solid ${accent}`:undefined,
