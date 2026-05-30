@@ -141,7 +141,13 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, localSlots=[
     }
   };
 
-  const pick = name => { onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
+  const pick = name => { 
+    onChange(name); 
+    setSuggestions([]); 
+    setOpen(false); 
+    // Call onCommit with the slot name after setting the value
+    if (onCommit) setTimeout(() => onCommit(name), 0);
+  };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
@@ -149,8 +155,8 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, localSlots=[
         onFocus={() => { if (value.length >= 1) { handleChange(value); } }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
-          if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
-          else if (e.key === 'Enter' && onCommit) { onCommit(value); }
+          if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); if (onCommit) onCommit(); }
+          else if (e.key === 'Enter' && onCommit) { onCommit(); }
           if (e.key === 'Escape') { setSuggestions([]); setOpen(false); }
         }}
         placeholder={placeholder || 'Slot name…'}
@@ -285,6 +291,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [limitModal,    setLimitModal]    = useState(false);
   const [limitInput,    setLimitInput]    = useState(String(hunt.callLimit||0));
   const [dragCallId,    setDragCallId]    = useState(null);
+  const [dragBonusId,   setDragBonusId]   = useState(null);
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
@@ -446,9 +453,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCallSlot(''); setCallModal(true);
   };
 
-  const addCall = async () => {
-    if (!callSlot.trim()) return;
-    const slots = callSlot.split(',');
+  const addCall = async (slotToUse=null) => {
+    const slot = slotToUse || callSlot;
+    if (!slot.trim()) return;
+    const slots = slot.split(',');
     const newCalls = [];
     for (const raw of slots) {
       const s=raw.trim(); if(!s) continue;
@@ -457,7 +465,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt) {
-        try { await apiFetch(`/api/hunts/${hunt.user?.id}/calls`,{method:'POST',body:JSON.stringify({slot:callSlot.trim()})}); }
+        try { await apiFetch(`/api/hunts/${hunt.user?.id}/calls`,{method:'POST',body:JSON.stringify({slot:slot.trim()})}); }
         catch(e){alert(e.message);return;}
       } else if (huntMode==='creating') {
         upd(h=>({...h,calls:[...h.calls,...newCalls]}));
@@ -493,6 +501,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
   const clearMissed    = ()          => upd(h=>({...h,calls:h.calls.filter(c=>c.status!=='out')}));
   const randomizeCalls = ()          => upd(h=>({...h,calls:shuffle(h.calls)}));
+  const pushToFinal    = (id)        => upd(h=>{const pending=h.calls.filter(c=>c.status==='pending'),others=h.calls.filter(c=>c.status!=='pending'),call=pending.find(c=>c.id===id);if(!call)return h;const newPending=pending.filter(c=>c.id!==id);return{...h,calls:[...newPending,...others,call]}});
+  const reorderBonuses = (fromId,toId) => upd(h=>{const bs=[...h.bonuses];const fi=bs.findIndex(b=>b.id===fromId),ti=bs.findIndex(b=>b.id===toId);if(fi<0||ti<0)return h;const[m]=bs.splice(fi,1);bs.splice(ti,0,m);return{...h,bonuses:bs}});
+  const reorderEquity  = (fromId,toId) => upd(h=>{const eq=[...h.equity];const fi=eq.findIndex(e=>e.id===fromId),ti=eq.findIndex(e=>e.id===toId);if(fi<0||ti<0)return h;const[m]=eq.splice(fi,1);eq.splice(ti,0,m);return{...h,equity:eq}});
   const setLimit       = ()          => { upd(h=>({...h,callLimit:parseInt(limitInput)||0})); setLimitModal(false); };
 
   const sendInvite = async () => {
@@ -518,7 +529,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   });
 
   const queue   = buildQueue(calls);
-  const pending = queue.filter(c=>c.status==='pending');
+  const pending = queue.filter(c=>c.status==='pending').sort((callA, callB) => {
+    // Get max scatter count for each slot
+    const maxScatA = bonuses.filter(b => b.slot.toLowerCase() === callA.slot.toLowerCase()).reduce((max, b) => Math.max(max, b.scat || 0), 0);
+    const maxScatB = bonuses.filter(b => b.slot.toLowerCase() === callB.slot.toLowerCase()).reduce((max, b) => Math.max(max, b.scat || 0), 0);
+    // Sort by scatter count ascending: 3 → 4 → 5
+    return maxScatA - maxScatB;
+  });
   const done    = queue.filter(c=>c.status==='out');
   const canEdit = !readOnly && !!onUpdateHunt;
   useEffect(() => {
@@ -875,7 +892,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
                         <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
                       </div>
-                      <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,width:26,padding:0,background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>
+                      <div style={{display:'flex',gap:3}}>
+                        <button onClick={()=>pushToFinal(c.id)} title="Push to final" style={{height:26,width:26,padding:0,background:'rgba(255,179,0,0.15)',border:'1px solid rgba(255,179,0,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#ffb300',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⬇️</button>
+                        <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,width:26,padding:0,background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -987,13 +1007,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               const isP=currentSlot===b.id;
               return (
                 <div key={b.id} className="row-hover"
+                  draggable={canEdit}
+                  onDragStart={()=>setDragBonusId(b.id)}
+                  onDragOver={e=>e.preventDefault()}
+                  onDrop={()=>{if(dragBonusId&&dragBonusId!==b.id)reorderBonuses(dragBonusId,b.id);setDragBonusId(null);}}
                   style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}40`:undefined,
                     border:isP?`2px solid ${accent}`:undefined,
                     boxShadow:isP?`inset 0 0 12px ${accent}22`:undefined,
                     opacity:b.win>0?1:.5,
-                    transition:'all .12s'}}>
+                    transition:'all .12s',
+                    cursor:canEdit?'grab':'default',
+                    opacity:dragBonusId===b.id?0.5:1}}>
                   <div style={{padding:'8px',fontFamily:G.mono,fontSize:14,color:isP?accent:G.t4,cursor:'pointer',userSelect:'none',alignSelf:'center',textAlign:'center'}}
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
@@ -1457,7 +1483,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" localSlots={allSlots} />
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={(slotName)=>addCall(slotName)} placeholder="Search or type slot name…" localSlots={allSlots} />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
