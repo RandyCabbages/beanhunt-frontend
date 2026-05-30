@@ -294,7 +294,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [leftPanelWidth, setLeftPanelWidth] = useState(280);
-  const [middlePanelWidth, setMiddlePanelWidth] = useState(700);
+  const [middlePanelWidth, setMiddlePanelWidth] = useState(500);
   const [resizingPanel, setResizingPanel] = useState(null);
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
@@ -757,7 +757,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout with sticky board ── */}
-      <div data-hunt-container style={{display:'grid',gridTemplateColumns:`${leftPanelWidth}px 8px ${middlePanelWidth}px 8px 1fr`,height:'calc(100vh - 46px)',overflow:'hidden',userSelect:'none'}}>
+      <div data-hunt-container style={{display:'grid',gridTemplateColumns:`${leftPanelWidth}px 8px ${middlePanelWidth}px 8px 1fr`,height:'calc(100vh - 46px)',overflow:'hidden',userSelect:'none',minWidth:0}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
