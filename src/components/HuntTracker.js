@@ -1089,29 +1089,40 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
               style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}}/>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <button onClick={()=>{
+            <button onClick={async ()=>{
                 const existing = new Set((hunt.calls||[]).map(c=>(c.slot||'').toLowerCase().trim()));
                 const text = pasteCallsText.trim();
                 const newCalls = [];
                 const skippedCallers = new Set();
 
-                // Normalize slot list for fuzzy matching
+                // Normalize slot list for name correction using the full slot DB
                 const normalizedSlotMap = new Map(
                   RAINBET_SLOTS.map(s => [s.toLowerCase().replace(/[^a-z0-9]/g,''), s])
                 );
-                const matchSlot = (input) => {
-                  const key = input.toLowerCase().replace(/[^a-z0-9]/g,'');
-                  // Exact normalized match
+                const lookupSlot = async (input) => {
+                  const raw = input.trim();
+                  if (!raw || raw.length < 2 || raw.length > 80) return null;
+                  // Check local list first (fast)
+                  const key = raw.toLowerCase().replace(/[^a-z0-9]/g,'');
                   if (normalizedSlotMap.has(key)) return normalizedSlotMap.get(key);
-                  // Fuzzy: find best slot where input is a substring or slot is a substring of input
-                  let best = null, bestScore = 0;
-                  for (const [normSlot, origSlot] of normalizedSlotMap) {
-                    if (normSlot.includes(key) || key.includes(normSlot)) {
-                      const score = Math.min(key.length, normSlot.length) / Math.max(key.length, normSlot.length);
-                      if (score > bestScore && score >= 0.75) { bestScore = score; best = origSlot; }
+                  // Query the full slot DB API
+                  try {
+                    const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(raw)}`);
+                    if (Array.isArray(res) && res.length > 0) {
+                      // Prefer exact match, then starts-with, then first result
+                      const exact = res.find(g => g.name.toLowerCase() === raw.toLowerCase());
+                      if (exact) return exact.name;
+                      const starts = res.find(g => g.name.toLowerCase().startsWith(raw.toLowerCase()));
+                      if (starts) return starts.name;
+                      // Fuzzy: accept if first result is close enough
+                      const first = res[0];
+                      const firstKey = first.name.toLowerCase().replace(/[^a-z0-9]/g,'');
+                      const score = Math.min(key.length, firstKey.length) / Math.max(key.length, firstKey.length);
+                      if (score >= 0.75) return first.name;
                     }
-                  }
-                  return best; // null if no match
+                  } catch {}
+                  // Not found in DB — return null to skip
+                  return null;
                 };
 
                 // Build a set of equity member names (lowercase) for filtering
@@ -1124,19 +1135,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   // Split into blocks at each header line (contains — or – followed by a time or date)
                   const blocks = text.split(/\n(?=.*[—–]\s*\d{1,2}[:/])/);
 
-                  blocks.forEach(block => {
+                  for (const block of blocks) {
                     const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
-                    if (!lines.length) return;
+                    if (!lines.length) continue;
 
                     // Identify the header line — must contain a time/date dash pattern
                     const headerIdx = lines.findIndex(l => /[—–]\s*\d{1,2}:\d{2}/.test(l) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(l));
-                    if (headerIdx === -1) return; // no valid header, skip block
+                    if (headerIdx === -1) continue; // no valid header, skip block
 
                     const headerLine = lines[headerIdx];
 
                     // Extract caller: everything before the first comma, [TAG], or dash
                     const callerMatch = headerLine.match(/^([^,\[—–]+)/);
-                    if (!callerMatch) return;
+                    if (!callerMatch) continue;
 
                     const caller = callerMatch[1]
                       .replace(/role\s*icon/gi, '')  // strip "Role icon" / "Role Icon"
@@ -1145,46 +1156,44 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       .trim();
 
                     // Skip blocks where caller name is empty (e.g. lines starting with [BEAN],)
-                    if (!caller) return;
+                    if (!caller) continue;
 
                     // Skip if caller not in equity
                     if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase())) {
                       skippedCallers.add(caller);
-                      return;
+                      continue;
                     }
 
                     // Slot lines: everything after the header
                     const slotLines = lines.slice(headerIdx + 1);
 
-                    slotLines.forEach(line => {
+                    for (const line of slotLines) {
                       // Skip lines that look like chat (no @mention at start, contain sentence-like patterns)
                       const hasAtMention = /^@\S+/.test(line);
                       if (!hasAtMention) {
-                        // Heuristic: if it contains a full sentence (>6 words, ends in punctuation, or contains common chat phrases), skip it
                         const wordCount = line.split(/\s+/).length;
                         const looksLikeChat = wordCount > 7
                           || /[?!]$/.test(line)
                           || /\b(the|is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah)\b/i.test(line);
-                        if (looksLikeChat) return;
+                        if (looksLikeChat) continue;
                       }
 
-                      // Strip ALL leading @mentions (e.g. "@Mcflury @mihailimou Chocolate Rocket" → "Chocolate Rocket")
+                      // Strip ALL leading @mentions
                       const stripped = line.replace(/^(@\S+\s+)*/,'').trim();
-                      if (!stripped) return;
+                      if (!stripped) continue;
 
-                      // Split by comma or slash and validate each against RAINBET_SLOTS
-                      stripped.split(/[,/]/).forEach(s => {
-                        const raw = s.trim();
-                        if (!raw) return;
-                        const matched = matchSlot(raw);
-                        if (!matched) return; // not a valid slot, skip
-                        if (!existing.has(matched.toLowerCase())) {
-                          existing.add(matched.toLowerCase());
-                          newCalls.push({ id: uid(), slot: matched, status: 'pending', user: caller });
+                      // Split by comma or slash and validate each against the full slot DB
+                      const parts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+                      for (const raw of parts) {
+                        const slot = await lookupSlot(raw);
+                        if (!slot) continue;
+                        if (!existing.has(slot.toLowerCase())) {
+                          existing.add(slot.toLowerCase());
+                          newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
                         }
-                      });
-                    });
-                  });
+                      }
+                    } // end for line
+                  } // end for block
                 } else {
                   // Plain format: one per line or comma separated
                   const raw = text
