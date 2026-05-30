@@ -1098,45 +1098,66 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 // Build a set of equity member names (lowercase) for filtering
                 const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
 
-                // Try Discord format: lines like "username Role icon, VIP — timestamp" followed by slot lines
-                // Each "block" starts with a header line containing a dash + date
-                const blocks = text.split(/\n(?=.+[—–]\s*\d{1,2}\/\d{1,2}\/\d{4})/);
-                const isDiscordFormat = blocks.length > 1 || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(text);
+                // Detect Discord format: has lines with a dash + time/date pattern
+                const isDiscordFormat = /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(text);
 
                 if (isDiscordFormat) {
+                  // Split into blocks at each header line (contains — or – followed by a time or date)
+                  const blocks = text.split(/\n(?=.*[—–]\s*\d{1,2}[:/])/);
+
                   blocks.forEach(block => {
-                    const lines = block.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+                    const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
                     if (!lines.length) return;
 
-                    // First line is the header: "Drakdude25Role icon, VIP – 5/27/2026 7:15 PM"
-                    const headerLine = lines[0];
-                    // Extract caller name: everything before the first comma or dash
-                    const callerMatch = headerLine.match(/^([^,—–]+)/);
-                    const caller = callerMatch
-                      ? callerMatch[1]
-                          .replace(/\[.*?\]/g, '')   // strip [TAG]
-                          .replace(/role\s*icon/gi, '') // strip "Role icon" suffix
-                          .trim()
-                      : '';
+                    // Identify the header line — must contain a time/date dash pattern
+                    const headerIdx = lines.findIndex(l => /[—–]\s*\d{1,2}:\d{2}/.test(l) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(l));
+                    if (headerIdx === -1) return; // no valid header, skip block
 
-                    // Skip if caller is not in equity
-                    if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase().trim())) {
-                      skippedCallers.add(caller || 'Unknown');
+                    const headerLine = lines[headerIdx];
+
+                    // Extract caller: everything before the first comma, [TAG], or dash
+                    const callerMatch = headerLine.match(/^([^,\[—–]+)/);
+                    if (!callerMatch) return;
+
+                    const caller = callerMatch[1]
+                      .replace(/role\s*icon/gi, '')  // strip "Role icon" / "Role Icon"
+                      .replace(/\[.*?\]/g, '')        // strip [TAG]
+                      .replace(/,/g, '')              // strip trailing commas
+                      .trim();
+
+                    // Skip blocks where caller name is empty (e.g. lines starting with [BEAN],)
+                    if (!caller) return;
+
+                    // Skip if caller not in equity
+                    if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase())) {
+                      skippedCallers.add(caller);
                       return;
                     }
 
-                    // Remaining lines are the slot calls
-                    // Could be "@mention slot1, slot2, slot3" or just "slot1, slot2"
-                    const slotLines = lines.slice(1);
+                    // Slot lines: everything after the header
+                    const slotLines = lines.slice(headerIdx + 1);
+
                     slotLines.forEach(line => {
-                      // Strip leading @mention
-                      const stripped = line.replace(/^@\S+\s*/, '').trim();
+                      // Skip lines that look like chat (no @mention at start, contain sentence-like patterns)
+                      const hasAtMention = /^@\S+/.test(line);
+                      if (!hasAtMention) {
+                        // Heuristic: if it contains a full sentence (>6 words, ends in punctuation, or contains common chat phrases), skip it
+                        const wordCount = line.split(/\s+/).length;
+                        const looksLikeChat = wordCount > 7
+                          || /[?!]$/.test(line)
+                          || /\b(the|is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah)\b/i.test(line);
+                        if (looksLikeChat) return;
+                      }
+
+                      // Strip ALL leading @mentions (e.g. "@Mcflury @mihailimou Chocolate Rocket" → "Chocolate Rocket")
+                      const stripped = line.replace(/^(@\S+\s+)*/,'').trim();
                       if (!stripped) return;
-                      // Split by comma
+
+                      // Split by comma and add each as a slot
                       stripped.split(',').forEach(s => {
                         const slot = s.trim();
-                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase().trim())) {
-                          existing.add(slot.toLowerCase().trim());
+                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase())) {
+                          existing.add(slot.toLowerCase());
                           newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
                         }
                       });
