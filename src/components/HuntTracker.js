@@ -501,9 +501,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
   const clearMissed    = ()          => upd(h=>({...h,calls:h.calls.filter(c=>c.status!=='out')}));
   const randomizeCalls = ()          => upd(h=>({...h,calls:shuffle(h.calls)}));
-  const pushToFinal    = (id)        => upd(h=>{const pending=h.calls.filter(c=>c.status==='pending'),others=h.calls.filter(c=>c.status!=='pending'),call=pending.find(c=>c.id===id);if(!call)return h;const newPending=pending.filter(c=>c.id!==id);return{...h,calls:[...newPending,...others,call]}});
+
   const reorderBonuses = (fromId,toId) => upd(h=>{const bs=[...h.bonuses];const fi=bs.findIndex(b=>b.id===fromId),ti=bs.findIndex(b=>b.id===toId);if(fi<0||ti<0)return h;const[m]=bs.splice(fi,1);bs.splice(ti,0,m);return{...h,bonuses:bs}});
   const reorderEquity  = (fromId,toId) => upd(h=>{const eq=[...h.equity];const fi=eq.findIndex(e=>e.id===fromId),ti=eq.findIndex(e=>e.id===toId);if(fi<0||ti<0)return h;const[m]=eq.splice(fi,1);eq.splice(ti,0,m);return{...h,equity:eq}});
+  const pushBonusToFinal = (id) => upd(h=>{const bs=[...h.bonuses],bonus=bs.find(b=>b.id===id);if(!bonus)return h;const newBs=bs.filter(b=>b.id!==id);return{...h,bonuses:[...newBs,bonus]}});
   const setLimit       = ()          => { upd(h=>({...h,callLimit:parseInt(limitInput)||0})); setLimitModal(false); };
 
   const sendInvite = async () => {
@@ -893,7 +894,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         <button onClick={()=>setCallStatus(c.id,'out')} style={{height:26,padding:'0 12px',background:G.rdim,border:`1px solid ${G.red}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Miss</button>
                       </div>
                       <div style={{display:'flex',gap:3}}>
-                        <button onClick={()=>pushToFinal(c.id)} title="Push to final" style={{height:26,width:26,padding:0,background:'rgba(255,179,0,0.15)',border:'1px solid rgba(255,179,0,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#ffb300',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>⬇️</button>
                         <button onClick={()=>{setEditingCallId(c.id);setEditingCallSlot(c.slot);setEditingCallUser(c.user);}} style={{height:26,width:26,padding:0,background:'rgba(88,101,242,0.15)',border:'1px solid rgba(88,101,242,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#a5b4fc',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✏️</button>
                       </div>
                     </div>
@@ -1049,7 +1049,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.2rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
                   </div>
-                  <div style={{padding:'8px',alignSelf:'center',textAlign:'center'}}>
+                  <div style={{padding:'8px',alignSelf:'center',textAlign:'center',display:'flex',gap:2,justifyContent:'center'}}>
+                    {canEdit&&<button onClick={()=>pushBonusToFinal(b.id)} title="Push to final" style={{background:'rgba(255,179,0,0.15)',border:'1px solid rgba(255,179,0,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#ffb300',cursor:'pointer',padding:'4px 6px',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>⬇️</button>}
                     {canEdit&&<button className="icon-btn-danger" onClick={()=>removeBonus(b.id)} style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:15,lineHeight:1}}>×</button>}
                   </div>
                 </div>
