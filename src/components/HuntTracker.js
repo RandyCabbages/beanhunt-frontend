@@ -947,7 +947,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   return (
                     <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px',position:'relative'}}>
                       <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
-                        {e.isRollWinner&&<span style={{fontSize:11,flexShrink:0}}>🎲</span>}
+                        {(e.name&&e.name.toLowerCase()==='bean')
+                          ? <span style={{fontSize:11,flexShrink:0}}>👑</span>
+                          : e.isMod
+                            ? <svg style={{flexShrink:0}} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
+                            : e.isRollWinner
+                              ? <span style={{fontSize:11,flexShrink:0}}>🎲</span>
+                              : e.name||e.amount>0
+                                ? <span style={{fontSize:11,flexShrink:0,opacity:0.5}}>💰</span>
+                                : null
+                        }
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
                       <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
@@ -980,12 +989,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
-                    {e.isRollWinner
-                      ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||(e.name&&e.name.toLowerCase()==='bean')||e.name||e.amount>0)?26:10}} />
+                    {(e.name&&e.name.toLowerCase()==='bean')
+                      ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>👑</span>
                       : e.isMod
-                        ? <svg style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 20 20" fill="#9146ff"><path d="M10 0L7 7H0l6 4.5L4 18l6-4 6 4-2-6.5L20 7h-7z"/></svg>
-                        : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
+                        ? <svg style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
+                        : e.isRollWinner
+                          ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
+                          : e.name||e.amount>0
+                            ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>
+                            : null
                     }
                   </div>
                   {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
