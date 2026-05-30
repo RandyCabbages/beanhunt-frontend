@@ -769,7 +769,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Add bonus form */}
           {canEdit&&(
-            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
+            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1.6fr 0.7fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
               <input value={callerInput} onChange={e=>setCallerInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
