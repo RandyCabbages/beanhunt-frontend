@@ -1173,7 +1173,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         const looksLikeChat = wordCount > 7
                           || /[?!]/.test(line)
                           || /^\[.*?\]$/.test(line)  // skip bare [TAG] lines like [BEAN]
-                          || /\b(the|is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|chapter|which|worth|more|less|free|here|come)\b/i.test(line);
+                          || /\b(is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|chapter|which|worth|more|less|free|here|come|let's|lets|hit|classics|amount|depends|ankle|prefer|read|kids|night|bedtime|favorite|deserved|congrats)\b/i.test(line);
                         if (looksLikeChat) continue;
                       }
 
@@ -1181,12 +1181,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       let stripped = line.replace(/^(@\S+\s+)*/,'').trim();
                       // Strip Discord emoji codes like :Fire: :Joy: :pepe:
                       stripped = stripped.replace(/:[a-zA-Z0-9_]+:/g, '').trim();
+                      // Strip trailing chat suffixes like "GL", "gl", "GG", "lol", "haha"
+                      stripped = stripped.replace(/\s+(GL|GG|lol|haha|hehe|lmao|gl|gg)\s*$/i, '').trim();
                       // Skip bare [TAG] values
                       if (/^\[.*?\]$/.test(stripped)) continue;
                       if (!stripped) continue;
 
-                      // Split by comma and add each as a slot
-                      stripped.split(',').forEach(s => {
+                      // If line contains a chat intro before slots (e.g. "let's hit the classics.. America, Miami")
+                      // detect pattern: text before ".." or ":" that looks like intro, strip it
+                      const introMatch = stripped.match(/^[^,]+?(?:\.{2,}|:)\s*(.+)$/);
+                      if (introMatch) stripped = introMatch[1].trim();
+
+                      // Split by comma; also split "X and Y" only when both parts look like slot names (short, no common words)
+                      const commaParts = stripped.split(',').map(s => s.trim()).filter(Boolean);
+                      const allParts = [];
+                      commaParts.forEach(part => {
+                        // Split "Slot A and Slot B" → ["Slot A", "Slot B"] but only if "and" is between two short phrases
+                        const andSplit = part.split(/\s+and\s+/i);
+                        if (andSplit.length > 1 && andSplit.every(p => p.trim().split(/\s+/).length <= 5)) {
+                          allParts.push(...andSplit.map(p => p.trim()));
+                        } else {
+                          allParts.push(part);
+                        }
+                      });
+
+                      allParts.forEach(s => {
                         const slot = s.trim();
                         if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase())) {
                           existing.add(slot.toLowerCase());
