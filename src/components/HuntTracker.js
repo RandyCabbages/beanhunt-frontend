@@ -1119,8 +1119,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       if (score >= 0.82) return first.name;
                     }
                   } catch {}
-                  // Not in DB — accept as-is with title case (chat filter already handles junk)
-                  return raw.replace(/\b\w/g, c => c.toUpperCase());
+                  // Not found in DB — reject it
+                  return null;
                 };
 
                 // Build a set of equity member names (lowercase) for filtering
@@ -1166,66 +1166,54 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     const slotLines = lines.slice(headerIdx + 1);
 
                     for (const line of slotLines) {
-                      // Skip lines that look like chat (no @mention at start, contain sentence-like patterns)
-                      const hasAtMention = /^@\S+/.test(line);
-                      if (!hasAtMention) {
-                        const wordCount = line.split(/\s+/).length;
-                        const looksLikeChat = wordCount > 7
-                          || /[?!]/.test(line)
-                          || /^\[.*?\]$/.test(line)  // skip bare [TAG] lines like [BEAN]
-                          || /\b(is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|chapter|which|worth|more|less|free|here|come|let's|lets|hit|classics|amount|depends|ankle|prefer|read|kids|night|bedtime|favorite|deserved|congrats)\b/i.test(line);
-                        if (looksLikeChat) continue;
-                      }
-
-                      // Strip ALL leading @mentions
+                      // Strip ALL leading @mentions first
                       let stripped = line.replace(/^(@\S+\s+)*/,'').trim();
-                      // Strip Discord emoji codes like :Fire: :Joy: :pepe:
+                      // Strip Discord emoji codes like :Fire: :Joy:
                       stripped = stripped.replace(/:[a-zA-Z0-9_]+:/g, '').trim();
-                      // Strip trailing chat suffixes like "GL", "gl", "GG", "lol", "haha"
+                      // Strip trailing chat suffixes like GL, GG
                       stripped = stripped.replace(/\s+(GL|GG|lol|haha|hehe|lmao|gl|gg)\s*$/i, '').trim();
-                      // Skip bare [TAG] values
-                      if (/^\[.*?\]$/.test(stripped)) continue;
-                      if (!stripped) continue;
-
-                      // If line contains a chat intro before slots (e.g. "let's hit the classics.. America, Miami")
-                      // detect pattern: text before ".." or ":" that looks like intro, strip it
+                      // Skip bare [TAG] lines
+                      if (!stripped || /^\[.*?\]$/.test(stripped)) continue;
+                      // Strip intro text before .. or : (e.g. "let's hit the classics.. America, Miami")
                       const introMatch = stripped.match(/^[^,]+?(?:\.{2,}|:)\s*(.+)$/);
                       if (introMatch) stripped = introMatch[1].trim();
+                      // Strip leading conversational openers (hey X, yo, ok, alright)
+                      stripped = stripped.replace(/^(?:hey\s+\S+\s+|yo\s+|ok\s+|alright\s+)/i, '');
 
-                      // Also strip leading conversational openers before the first real slot
-                      // e.g. "hey bestie dead man's drop, ..." → strip "hey bestie" if it's followed by a comma
-                      stripped = stripped.replace(/^(?:hey\s+\S+\s+|ok\s+|alright\s+|yo\s+|ok\s+so\s+|so\s+)/i, '');
+                      // Split by comma or slash
+                      const parts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
+                      for (const part of parts) {
+                        // Also split "X and Y" when both sides are short (≤5 words)
+                        const andParts = part.split(/\s+and\s+/i);
+                        const candidates = (andParts.length > 1 && andParts.every(p => p.trim().split(/\s+/).length <= 5))
+                          ? andParts.map(p => p.trim())
+                          : [part];
 
-                      // Split by comma or slash; also split "X and Y" only when both parts look like slot names
-                      const commaParts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
-                      const allParts = [];
-                      commaParts.forEach(part => {
-                        // Split "Slot A and Slot B" → ["Slot A", "Slot B"] but only if "and" is between two short phrases
-                        const andSplit = part.split(/\s+and\s+/i);
-                        if (andSplit.length > 1 && andSplit.every(p => p.trim().split(/\s+/).length <= 5)) {
-                          allParts.push(...andSplit.map(p => p.trim()));
-                        } else {
-                          allParts.push(part);
+                        for (const candidate of candidates) {
+                          // Use lookupSlot — only adds if it matches the slot DB
+                          const slot = await lookupSlot(candidate);
+                          if (!slot) continue;
+                          if (!existing.has(slot.toLowerCase())) {
+                            existing.add(slot.toLowerCase());
+                            newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
+                          }
                         }
-                      });
-
-                      allParts.forEach(s => {
-                        const slot = s.trim();
-                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase())) {
-                          existing.add(slot.toLowerCase());
-                          newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
-                        }
-                      });
+                      }
                     } // end for line
                   } // end for block
                 } else {
                   // Plain format: one per line or comma separated
-                  const raw = text
+                  const candidates = text
                     .split(/[\n,]/)
                     .map(s => s.replace(/^[#\-•*\d.]+\s*/, '').trim())
-                    .filter(s => s.length > 1 && s.length < 80 && !existing.has(s.toLowerCase().trim()));
-                  const unique = [...new Map(raw.map(s => [s.toLowerCase(), s])).values()];
-                  unique.forEach(slot => newCalls.push({ id: uid(), slot, status: 'pending', user: '' }));
+                    .filter(s => s.length > 1 && s.length < 80);
+                  const unique = [...new Map(candidates.map(s => [s.toLowerCase(), s])).values()];
+                  for (const raw of unique) {
+                    const slot = await lookupSlot(raw);
+                    if (!slot || existing.has(slot.toLowerCase())) continue;
+                    existing.add(slot.toLowerCase());
+                    newCalls.push({ id: uid(), slot, status: 'pending', user: '' });
+                  }
                 }
 
                 if (!newCalls.length) {
