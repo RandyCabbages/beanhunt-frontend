@@ -114,44 +114,29 @@ function buildQueue(calls){
 }
 
 /* ── Slot autocomplete input ─────────────────────────────────────── */
-function SlotInput({ value, onChange, onCommit, placeholder, style }) {
+function SlotInput({ value, onChange, onCommit, placeholder, style, localSlots=[] }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const wrapRef = useRef(null);
-  const searchTimer = useRef(null);
 
   const handleChange = v => {
     onChange(v);
-    clearTimeout(searchTimer.current);
     if (v.length >= 1) {
-      setLoading(true);
-      searchTimer.current = setTimeout(async () => {
-        try {
-          const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(v)}`);
-          const results = Array.isArray(res) ? res : [];
-          setSuggestions(results);
-          setOpen(results.length > 0);
-          setLoading(false);
-        } catch (e) {
-          console.error('Slot search error:', e);
-          setSuggestions([]);
-          setLoading(false);
-        }
-      }, 100);
+      const filtered = localSlots.filter(slot => slot.toLowerCase().includes(v.toLowerCase()));
+      setSuggestions(filtered);
+      setOpen(filtered.length > 0);
     } else { 
       setSuggestions([]); 
       setOpen(false); 
-      setLoading(false);
     }
   };
 
-  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
+  const pick = name => { onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={() => { if (value.length >= 1) { handleChange(value); } }}
+        onFocus={() => { if (value.length >= 1) { const filtered = localSlots.filter(s => s.toLowerCase().includes(value.toLowerCase())); setSuggestions(filtered); setOpen(filtered.length > 0); } }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
@@ -162,26 +147,19 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
         style={{ width:'100%', height:34, background:G.sur, border:`1px solid ${G.bdr}`,
           borderRadius:3, padding:'0 10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none' }}
       />
-      {loading && value.length >= 1 && <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:11,color:G.t3}}>🔍</span>}
       {open && suggestions.length > 0 && (
         <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
           border:`1px solid ${G.bdr}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
-          {suggestions.map((s,i) => {
-            const name = typeof s === 'string' ? s : s.name;
-            const thumb = typeof s === 'object' ? s.thumb : null;
-            return (
-              <div key={i} onMouseDown={() => pick(name)}
-                style={{ padding:'6px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
-                  cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
-                  transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
-                onMouseEnter={e => e.currentTarget.style.background = G.lift}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                {thumb && <img src={thumb} alt="" width={36} height={27} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}}
-                  onError={e=>{e.target.style.display='none'}} />}
-                <span>{name}</span>
-              </div>
-            );
-          })}
+          {suggestions.map((name,i) => (
+            <div key={i} onMouseDown={() => pick(name)}
+              style={{ padding:'6px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
+                cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
+                transition:'background .08s' }}
+              onMouseEnter={e => e.currentTarget.style.background = G.lift}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {name}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -276,6 +254,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [callName,      setCallName]      = useState('');
   const [callSlot,      setCallSlot]      = useState('');
   const [allUsers,      setAllUsers]      = useState([]);
+  const [allSlots,      setAllSlots]      = useState([]);
   const [discordText,   setDiscordText]   = useState('');
   const [parseHint,     setParseHint]     = useState('');
   const [defAmt,        setDefAmt]        = useState(100);
@@ -333,6 +312,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   useEffect(() => {
     apiFetch('/api/autocomplete/users').then(data => {
       if (data?.users) setAllUsers(data.users);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    apiFetch('/api/slots').then(data => {
+      if (Array.isArray(data)) setAllSlots(data);
     }).catch(() => {});
   }, []);
 
@@ -944,7 +929,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Add bonus form — Slot input + Caller input + Bet on same row */}
           {canEdit && huntMode !== 'rolling' && (
             <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'2fr 1.2fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
-              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
+              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" localSlots={allSlots} />
               <input 
                 type="text" 
                 value={slotCaller} 
@@ -1005,7 +990,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   </div>
                   <div style={{padding:'7px 6px',alignSelf:'center'}}>
                     {canEdit
-                      ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
+                      ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} localSlots={allSlots} style={{}} />
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:900,color:isP?accent:G.t1,letterSpacing:'0.02em'}}>{b.slot}</span>
                     }
                     {b.scat>3&&(
@@ -1462,7 +1447,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" localSlots={allSlots} />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
