@@ -1049,8 +1049,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.2rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
                   </div>
-                  <div style={{padding:'8px',alignSelf:'center',textAlign:'center',display:'flex',gap:2,justifyContent:'center'}}>
-                    {canEdit&&<button onClick={()=>pushBonusToFinal(b.id)} title="Push to final" style={{background:'rgba(255,179,0,0.15)',border:'1px solid rgba(255,179,0,0.5)',borderRadius:3,fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#ffb300',cursor:'pointer',padding:'4px 6px',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>⬇️</button>}
+                  <div style={{padding:'8px',alignSelf:'center',textAlign:'center',display:'flex',gap:6,justifyContent:'center',alignItems:'center'}}>
+                    {canEdit&&<button onClick={()=>pushBonusToFinal(b.id)} title="Push to final" style={{background:'none',border:'none',cursor:'pointer',color:G.t2,fontSize:15,padding:0,lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>⬇️</button>}
                     {canEdit&&<button className="icon-btn-danger" onClick={()=>removeBonus(b.id)} style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:15,lineHeight:1}}>×</button>}
                   </div>
                 </div>
