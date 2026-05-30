@@ -31,77 +31,6 @@ const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
 
 /* ── Slot list ───────────────────────────────────────────────────── */
-const RAINBET_SLOTS = [
-  'Gates of Olympus','Gates of Olympus 1000',
-  'Sweet Bonanza','Sweet Bonanza 1000','Sweet Bonanza Xmas',
-  'Starlight Princess','Starlight Princess 1000','Starlight Princess 100',
-  'Fruit Party','Fruit Party 2',
-  'Dog House','Dog House Megaways','Dog House 100x',
-  'Wild West Gold','Wild West Gold Megaways',
-  'Wolf Gold','Wolf Gold Megaways',
-  'Big Bass Bonanza','Big Bass Bonanza Megaways','Big Bass Splash',
-  'Big Bass Amazon Xtreme','Big Bass Christmas Bash','Big Bass Day at the Races',
-  'Big Bass Hold and Spinner','Big Bass Halloween',
-  'Fishin Frenzy','Fishin Frenzy Megaways','Fishin Bigger Pots of Gold',
-  'Power of Thor Megaways','Great Rhino Megaways','Great Rhino',
-  'Buffalo King','Buffalo King Megaways','Fire Stampede','Tundra Wilds',
-  '5 Lions Gold','5 Lions Megaways','5 Lions Dance','5 Lions',
-  'Eye of Cleopatra','Aztec King','Aztec Bonanza','Aztec Gems',
-  'Floating Dragon','Floating Dragon Hold and Spin',
-  'Dragon Kingdom','Dragon Kingdom Eyes of Fire',
-  'Gems Bonanza','Candy Stars','Sweet Powernudge',
-  'Big Juan','Sword of Ares','Fury of Odin Megaways',
-  'Barn Festival','Gold Party','Cash Bonanza',
-  'Pirate Golden Age','Treasure Wild',
-  'Chilli Heat','Chilli Heat Megaways',
-  'Fire Hot 5','Fire Hot 20','Fire Hot 40',
-  'Wild Wild Riches','Wild Wild Riches Megaways',
-  'Sugar Rush','Sugar Rush 1000','Sugar Rush Xmas',
-  'Release the Kraken','Release the Kraken 2',
-  'Twilight Princess','Hand of Midas','Hand of Midas 2',
-  'Curse of the Werewolf Megaways','Cash Elevator',
-  'Wanted Dead or Wild',
-  'Chaos Crew','Chaos Crew 2','Chaos Crew Megaways',
-  'Stick Em','Highrise','Space Miners',
-  'Beast Mode','Harlequin Crew','Misery Mining',
-  'Max Megaways 1','Mental','Slash Em',
-  'Money Train 3','Money Train 4',
-  'Tombstone RIP','Tombstone No Mercy','Tombstone',
-  'Deadwood','Deadwood xNudge',
-  'Hellcatraz','San Quentin xWays',
-  'Fire in the Hole xBomb','Fire in the Hole 2',
-  'Punk Rocker','East Coast vs West Coast','Folsom Prison',
-  'Warrior Graveyard xNudge','Infectious 5 xWays',
-  'Iron Bank','Night of Blood xNudge',
-  'Money Cart 3','Money Cart 2','Money Cart Bonus Reels',
-  'Razor Shark','Laser Fruit','Snake Arena','Book of 99',
-  'Book of Dead','Legacy of Dead','Rise of Dead','Doom of Dead',
-  'Fire Joker','Fire Joker Freeze',
-  'Reactoonz','Reactoonz 2','Tome of Madness',
-  'Moon Princess','Moon Princess 100','Boat Bonanza',
-  'Rich Wilde and the Amulet of Dead',
-  'Fat Santa','Jammin Jars','Jammin Jars 2',
-  'Wild Swarm','Wild Swarm 2','Dinopolis',
-  'Extra Chilli','Extra Chilli Megaways',
-  'Bonanza','Bonanza Megaways','Rick and Morty Megaways',
-  'Lil Devil','Danger High Voltage','White Rabbit Megaways',
-  'Vikings Go Berzerk','Joker Millions','Nirvana',
-  'Fruit Warp','Esqueleto Explosivo 2',
-  'Piggy Riches Megaways','Primal Megaways',
-  'Dead or Alive','Dead or Alive 2','Dead or Alive 2 Feature Buy',
-  'Narcos','Blood Suckers 2','Divine Fortune','Divine Fortune Megaways',
-  'Twin Spin','Twin Spin Megaways',"Gonzo's Quest Megaways",
-  'Starburst','Starburst XXXtreme',
-  'Wild Overlords','Bloopers','Wild Toro','Wild Toro 2',
-  'Pirots','Pirots 2','Pirots 3',
-  'Chicken Drop','9K Yeti','Big Belly Bonanza','Fat Banker',
-  'Book of Ra','Book of Ra Deluxe','Book of Adventure',
-  'Joker Bombs','Pug Life','Nitropolis 3','Nitropolis 4',
-  'Eye of Horus','Eye of Horus Megaways',
-  'Stampede','Stallion Strike',"Tiger's Glory","Blackbeard's Compass",
-  "Joker's Jewels","Joker's Jewels Deluxe",
-  "Dragon's Fire","Dragon's Fire Megaways",
-].sort();
 
 function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
 
@@ -283,6 +212,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [copyResult,    setCopyResult]    = useState(false);
   const [shareCopied,   setShareCopied]   = useState(false);
   const [obsCopied,     setObsCopied]     = useState(false);
+  const [screenshotCopied, setScreenshotCopied] = useState(false);
   const [currentSlot,   setCurrentSlot]   = useState(null);
   const [slotCountModal,setSlotCountModal]= useState(false);
   const [scatInput,     setScatInput]     = useState(3);
@@ -487,7 +417,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if(!names.length){alert('Add equity members first');return;}
     const count=parseInt(slotCountInput)||35;
     const existing=new Set(calls.map(c=>c.slot.toLowerCase()));
-    const slots=shuffle(RAINBET_SLOTS).filter(s=>!existing.has(s.toLowerCase())).slice(0,count);
+    const slots=shuffle(allSlots).filter(s=>!existing.has(s.toLowerCase())).slice(0,count);
     const newCalls=slots.map((slot,i)=>({id:uid(),slot,user:names[i%names.length],status:'pending'}));
     upd(h=>({...h,calls:[...h.calls,...newCalls]}));
     setSlotCountModal(false);
@@ -710,13 +640,49 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
+                    setScreenshotCopied(true);
+                    setTimeout(()=>setScreenshotCopied(false),2000);
+                  });
+                };
+                document.head.appendChild(script);
+              }catch(e){alert('Screenshot failed: '+e.message);}
+            }} style={{height:30,padding:'0 12px',background:screenshotCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${screenshotCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:screenshotCopied?G.gold:G.t2,cursor:'pointer'}}>{screenshotCopied?'✓ Downloaded':'📸 Screenshot'}</button>
+            <button onClick={async()=>{
+              try{
+                const boardEl=document.querySelector('[data-board="stats"]');
+                const equityEl=document.querySelector('[data-equity-section]');
+                if(!boardEl||!equityEl){alert('Board or Equity section not found');return;}
+                const script=document.createElement('script');
+                script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload=async()=>{
+                  const boardCanvas=await window.html2canvas(boardEl,{backgroundColor:'#161618',scale:2,useCORS:true});
+                  const equityCanvas=await window.html2canvas(equityEl,{backgroundColor:'#161618',scale:2,useCORS:true});
+                  const boardHeight=boardCanvas.height;
+                  const equityHeight=equityCanvas.height;
+                  const combinedCanvas=document.createElement('canvas');
+                  combinedCanvas.width=Math.max(boardCanvas.width,equityCanvas.width);
+                  combinedCanvas.height=boardHeight+equityHeight+20;
+                  const ctx=combinedCanvas.getContext('2d');
+                  ctx.fillStyle='#161618';
+                  ctx.fillRect(0,0,combinedCanvas.width,combinedCanvas.height);
+                  ctx.drawImage(boardCanvas,0,0);
+                  ctx.drawImage(equityCanvas,0,boardHeight+20);
+                  combinedCanvas.toBlob(blob=>{
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement('a');
+                    a.href=url;
+                    a.download=`hunt-share-${new Date().toISOString().split('T')[0]}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                     setShareCopied(true);
                     setTimeout(()=>setShareCopied(false),2000);
                   });
                 };
                 document.head.appendChild(script);
-              }catch(e){alert('Screenshot failed: '+e.message);}
-            }} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Downloaded':'📸 Screenshot'}</button>
+              }catch(e){alert('Share failed: '+e.message);}
+            }} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Shared':'📤 Share'}</button>
             {canEdit && hunt.isLive && onEndHunt && (
               <button onClick={()=>{if(window.confirm('End this hunt?')){setShowWinners(true);onEndHunt();}}} style={{height:30,padding:'0 14px',background:'rgba(248,113,113,0.15)',border:`1px solid rgba(248,113,113,0.5)`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#f87171',cursor:'pointer'}}>End Hunt</button>
             )}
@@ -1011,7 +977,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   onDragStart={()=>setDragBonusId(b.id)}
                   onDragOver={e=>e.preventDefault()}
                   onDrop={()=>{if(dragBonusId&&dragBonusId!==b.id)reorderBonuses(dragBonusId,b.id);setDragBonusId(null);}}
-                  style={{display:'grid',gridTemplateColumns:'28px 180px 60px 70px 60px auto',
+                  style={{display:'grid',gridTemplateColumns:'28px 180px 80px 90px 80px auto',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}40`:undefined,
                     border:isP?`2px solid ${accent}`:undefined,
@@ -1078,7 +1044,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
 
         {/* ── RIGHT: Equity ── */}
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div data-equity-section style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',gap:8,background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
