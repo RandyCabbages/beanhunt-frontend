@@ -1102,24 +1102,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 const lookupSlot = async (input) => {
                   const raw = input.trim();
                   if (!raw || raw.length < 2 || raw.length > 80) return null;
-                  // Check local list first (fast)
+                  // Check local list first (fast path)
                   const key = raw.toLowerCase().replace(/[^a-z0-9]/g,'');
                   if (normalizedSlotMap.has(key)) return normalizedSlotMap.get(key);
-                  // Query the full slot DB API for casing correction
+                  // Query the full slot DB API
                   try {
                     const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(raw)}`);
                     if (Array.isArray(res) && res.length > 0) {
+                      // Exact match
                       const exact = res.find(g => g.name.toLowerCase() === raw.toLowerCase());
                       if (exact) return exact.name;
+                      // Input is fully contained in a result (e.g. "miami mayhem" → "Miami Mayhem")
+                      const contained = res.find(g => g.name.toLowerCase().includes(raw.toLowerCase()));
+                      if (contained) return contained.name;
+                      // Result starts with input
                       const starts = res.find(g => g.name.toLowerCase().startsWith(raw.toLowerCase()));
                       if (starts) return starts.name;
+                      // API returned results — trust the top one if it's reasonably close
                       const first = res[0];
                       const firstKey = first.name.toLowerCase().replace(/[^a-z0-9]/g,'');
                       const score = Math.min(key.length, firstKey.length) / Math.max(key.length, firstKey.length);
-                      if (score >= 0.82) return first.name;
+                      if (score >= 0.7) return first.name;
                     }
                   } catch {}
-                  // Not found in DB — reject it
                   return null;
                 };
 
