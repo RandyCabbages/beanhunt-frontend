@@ -1177,7 +1177,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       // Strip Discord emoji codes like :Fire: :Joy:
                       stripped = stripped.replace(/:[a-zA-Z0-9_]+:/g, '').trim();
                       // Strip trailing chat suffixes like GL, GG
-                      stripped = stripped.replace(/\s+(GL|GG|lol|haha|hehe|lmao|gl|gg)\s*$/i, '').trim();
+                      stripped = stripped.replace(/\s+(GL|GG|lol|haha|hehe|lmao|gl|gg|\bty\b)\s*$/i, '').trim();
                       // Skip bare [TAG] lines
                       if (!stripped || /^\[.*?\]$/.test(stripped)) continue;
                       // Strip intro text before .. or : (e.g. "let's hit the classics.. America, Miami")
