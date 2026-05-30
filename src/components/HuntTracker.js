@@ -29,7 +29,7 @@ const RainbetLogo = ({size=14}) => (
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
-const toTitle = s => (s||'').replace(/\b\w/g, c => c.toUpperCase());
+const toTitle = s => (s||'').replace(/\b\w/g, c => c.toUpperCase()).replace(/'[A-Z]/g, m => m.toLowerCase());
 
 /* ── Slot list ───────────────────────────────────────────────────── */
 const RAINBET_SLOTS = [
@@ -1192,8 +1192,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const introMatch = stripped.match(/^[^,]+?(?:\.{2,}|:)\s*(.+)$/);
                       if (introMatch) stripped = introMatch[1].trim();
 
-                      // Split by comma; also split "X and Y" only when both parts look like slot names (short, no common words)
-                      const commaParts = stripped.split(',').map(s => s.trim()).filter(Boolean);
+                      // Also strip leading conversational openers before the first real slot
+                      // e.g. "hey bestie dead man's drop, ..." → strip "hey bestie" if it's followed by a comma
+                      stripped = stripped.replace(/^(?:hey\s+\S+\s+|ok\s+|alright\s+|yo\s+|ok\s+so\s+|so\s+)/i, '');
+
+                      // Split by comma or slash; also split "X and Y" only when both parts look like slot names
+                      const commaParts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
                       const allParts = [];
                       commaParts.forEach(part => {
                         // Split "Slot A and Slot B" → ["Slot A", "Slot B"] but only if "and" is between two short phrases
