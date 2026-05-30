@@ -1105,24 +1105,22 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   // Check local list first (fast)
                   const key = raw.toLowerCase().replace(/[^a-z0-9]/g,'');
                   if (normalizedSlotMap.has(key)) return normalizedSlotMap.get(key);
-                  // Query the full slot DB API
+                  // Query the full slot DB API for casing correction
                   try {
                     const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(raw)}`);
                     if (Array.isArray(res) && res.length > 0) {
-                      // Prefer exact match, then starts-with, then first result
                       const exact = res.find(g => g.name.toLowerCase() === raw.toLowerCase());
                       if (exact) return exact.name;
                       const starts = res.find(g => g.name.toLowerCase().startsWith(raw.toLowerCase()));
                       if (starts) return starts.name;
-                      // Fuzzy: accept if first result is close enough
                       const first = res[0];
                       const firstKey = first.name.toLowerCase().replace(/[^a-z0-9]/g,'');
                       const score = Math.min(key.length, firstKey.length) / Math.max(key.length, firstKey.length);
-                      if (score >= 0.75) return first.name;
+                      if (score >= 0.82) return first.name;
                     }
                   } catch {}
-                  // Not found in DB — return null to skip
-                  return null;
+                  // Not in DB — accept as-is with title case (chat filter already handles junk)
+                  return raw.replace(/\b\w/g, c => c.toUpperCase());
                 };
 
                 // Build a set of equity member names (lowercase) for filtering
