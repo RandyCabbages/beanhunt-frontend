@@ -1171,25 +1171,28 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       if (!hasAtMention) {
                         const wordCount = line.split(/\s+/).length;
                         const looksLikeChat = wordCount > 7
-                          || /[?!]$/.test(line)
-                          || /\b(the|is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah)\b/i.test(line);
+                          || /[?!]/.test(line)
+                          || /^\[.*?\]$/.test(line)  // skip bare [TAG] lines like [BEAN]
+                          || /\b(the|is|are|was|were|my|your|their|this|that|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|chapter|which|worth|more|less|free|here|come)\b/i.test(line);
                         if (looksLikeChat) continue;
                       }
 
                       // Strip ALL leading @mentions
-                      const stripped = line.replace(/^(@\S+\s+)*/,'').trim();
+                      let stripped = line.replace(/^(@\S+\s+)*/,'').trim();
+                      // Strip Discord emoji codes like :Fire: :Joy: :pepe:
+                      stripped = stripped.replace(/:[a-zA-Z0-9_]+:/g, '').trim();
+                      // Skip bare [TAG] values
+                      if (/^\[.*?\]$/.test(stripped)) continue;
                       if (!stripped) continue;
 
-                      // Split by comma or slash and validate each against the full slot DB
-                      const parts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
-                      for (const raw of parts) {
-                        const slot = await lookupSlot(raw);
-                        if (!slot) continue;
-                        if (!existing.has(slot.toLowerCase())) {
+                      // Split by comma and add each as a slot
+                      stripped.split(',').forEach(s => {
+                        const slot = s.trim();
+                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase())) {
                           existing.add(slot.toLowerCase());
                           newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
                         }
-                      }
+                      });
                     } // end for line
                   } // end for block
                 } else {
