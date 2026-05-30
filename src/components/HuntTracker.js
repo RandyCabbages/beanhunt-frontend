@@ -1114,6 +1114,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   return best; // null if no match
                 };
 
+                // Build a set of equity member names (lowercase) for filtering
+                const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
+
                 // Detect Discord format: has lines with a dash + time/date pattern
                 const isDiscordFormat = /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(text);
 
@@ -1169,8 +1172,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const stripped = line.replace(/^(@\S+\s+)*/,'').trim();
                       if (!stripped) return;
 
-                      // Split by comma and add each as a slot — validate against RAINBET_SLOTS
-                      stripped.split(',').forEach(s => {
+                      // Split by comma or slash and validate each against RAINBET_SLOTS
+                      stripped.split(/[,/]/).forEach(s => {
                         const raw = s.trim();
                         if (!raw) return;
                         const matched = matchSlot(raw);
