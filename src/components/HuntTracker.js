@@ -293,6 +293,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragCallId,    setDragCallId]    = useState(null);
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [dragEquityId,  setDragEquityId]  = useState(null);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(280);
+  const [middlePanelWidth, setMiddlePanelWidth] = useState(700);
+  const [resizingPanel, setResizingPanel] = useState(null);
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
@@ -558,6 +561,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       socket.off('calls:denied', onDenied);
     };
   }, [readOnly, hunt.user?.id, user?.id]);
+  
+  useEffect(() => {
+    if (!resizingPanel) return;
+    const handleMouseMove = (e) => {
+      const container = document.querySelector('[data-hunt-container]');
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (resizingPanel === 'left') {
+        const newWidth = Math.max(200, Math.min(x, 400));
+        setLeftPanelWidth(newWidth);
+      } else if (resizingPanel === 'middle') {
+        const newWidth = Math.max(300, Math.min(x - leftPanelWidth, 900));
+        setMiddlePanelWidth(newWidth);
+      }
+    };
+    const handleMouseUp = () => setResizingPanel(null);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingPanel, leftPanelWidth]);
+  
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
   /* ── Modal base style ── */
@@ -729,7 +757,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout with sticky board ── */}
-      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      <div data-hunt-container style={{display:'grid',gridTemplateColumns:`${leftPanelWidth}px 8px ${middlePanelWidth}px 8px 1fr`,height:'calc(100vh - 46px)',overflow:'hidden',userSelect:'none'}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -928,6 +956,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           </div>
         </div>
 
+        {/* ── RESIZE HANDLE 1 ── */}
+        <div onMouseDown={()=>setResizingPanel('left')} style={{background:G.bdr,cursor:'col-resize',hover:{background:accent},transition:'background .2s'}}/>
+
         {/* ── MIDDLE: Bonuses ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
@@ -958,7 +989,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Add bonus form — Slot input + Caller input + Bet on same row */}
           {canEdit && huntMode !== 'rolling' && (
-            <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'2fr 1.2fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
+            <div style={{padding:'8px 10px',display:'grid',gridTemplateColumns:'1.2fr 1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" localSlots={allSlots} />
               <input 
                 type="text" 
@@ -1076,6 +1107,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
         </div>
+
+        {/* ── RESIZE HANDLE 2 ── */}
+        <div onMouseDown={()=>setResizingPanel('middle')} style={{background:G.bdr,cursor:'col-resize',hover:{background:accent},transition:'background .2s'}}/>
 
         {/* ── RIGHT: Equity ── */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
