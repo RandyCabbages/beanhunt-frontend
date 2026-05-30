@@ -122,8 +122,18 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, localSlots=[
   const handleChange = v => {
     onChange(v);
     if (v.length >= 1) {
-      const filtered = localSlots.filter(slot => slot.toLowerCase().includes(v.toLowerCase()));
-      setSuggestions(filtered);
+      const query = v.toLowerCase();
+      const filtered = localSlots
+        .filter(slot => slot.toLowerCase().includes(query))
+        .sort((a, b) => {
+          // Prioritize slots that start with the query
+          const aStarts = a.toLowerCase().startsWith(query);
+          const bStarts = b.toLowerCase().startsWith(query);
+          if (aStarts && !bStarts) return -1;
+          if (!aStarts && bStarts) return 1;
+          return a.localeCompare(b);
+        });
+      setSuggestions(filtered.slice(0, 15));
       setOpen(filtered.length > 0);
     } else { 
       setSuggestions([]); 
@@ -136,7 +146,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, localSlots=[
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={() => { if (value.length >= 1) { const filtered = localSlots.filter(s => s.toLowerCase().includes(value.toLowerCase())); setSuggestions(filtered); setOpen(filtered.length > 0); } }}
+        onFocus={() => { if (value.length >= 1) { handleChange(value); } }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
