@@ -1101,16 +1101,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* VIP defaults */}
-          {isVip&&canEdit&&(
-            <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,flexShrink:0}}>
-              {[['$ per Person',defAmt,v=>{setDefAmt(v);recalc(v,beanAmt);}],['Bean ($)',beanAmt,v=>{setBeanAmt(v);recalc(defAmt,v);}]].map(([lbl,val,setter])=>(
-                <div key={lbl}>
-                  <div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t3,marginBottom:4}}>{lbl}</div>
-                  <input type="number" value={val} onChange={e=>setter(parseFloat(e.target.value)||0)} style={{...inp,height:34,fontSize:14,fontWeight:600}} />
-                </div>
-              ))}
-            </div>
-          )}
+          {{/* Starting Balance at top */}
+          {canEdit && <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t3,letterSpacing:'0.06em',textTransform:'uppercase'}}>Starting Balance</span>
+            <span style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,color:G.gold}}>{fmt(totalPot)}</span>
+          </div>}
 
           {/* Live winnings — scrollable, all together */}
           {equityDisplay.filter(e=>e.name||e.amount>0).length>0&&totalPot>0&&(
@@ -1145,6 +1140,18 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
+          {/* VIP defaults moved down */}
+          {isVip&&canEdit&&(
+            <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,flexShrink:0}}>
+              {[['$ per Person',defAmt,v=>{setDefAmt(v);recalc(v,beanAmt);}],['Bean ($)',beanAmt,v=>{setBeanAmt(v);recalc(defAmt,v);}]].map(([lbl,val,setter])=>(
+                <div key={lbl}>
+                  <div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t3,marginBottom:4}}>{lbl}</div>
+                  <input type="number" value={val} onChange={e=>setter(parseFloat(e.target.value)||0)} style={{...inp,height:34,fontSize:14,fontWeight:600}} />
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Equity inputs */}
           {canEdit&&(
             <div style={{flex:1,overflowY:'auto',maxHeight:'calc(4 * 50px + 180px)',padding:'8px 12px'}}>
@@ -1157,7 +1164,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     upd(h=>{const a=h.equity.slice(),fi=a.findIndex(x=>x.id===dragEquityId),ti=a.findIndex(x=>x.id===e.id);const[m]=a.splice(fi,1);a.splice(ti,0,m);return{...h,equity:a};});
                     setDragEquityId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
+                  style={{display:'grid',gridTemplateColumns:'14px 1.2fr 50px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
                     <CallerInput value={e.name} onChange={v=>updatePerson(e.id,'name',v)} equityNames={allUsers} placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} style={{height:30,fontSize:12,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10,marginBottom:0}} />
@@ -1169,7 +1176,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     }
                   </div>
                   {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
-                    <div style={{display:'flex',gap:3}}>
+                    <div style={{display:'flex',gap:2}}>
                       <div style={{position:'relative',flex:1}}>
                         <input key={`${e.id}-b`} type="number"
                           defaultValue={(e.amount-e.rollAmount).toFixed(0)}
@@ -1186,7 +1193,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       </div>
                     </div>
                   ) : (
-                    <input key={e.id} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:600}} />
+                    <input key={e.id} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:600,maxWidth:'55px'}} />
                   )}
                   <div style={{display:'flex',gap:2,alignItems:'center'}}>
                     <button onClick={()=>{
@@ -1211,11 +1218,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   </div>
                 </div>
               ))}
-              {/* Starting balance inline */}
-              {canEdit && <div style={{margin:'10px 0 4px',padding:'10px 12px',background:G.bg2,border:`1px solid ${G.bdr}`,borderRadius:6,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:G.t3,letterSpacing:'0.06em',textTransform:'uppercase'}}>Starting Balance</span>
-                <span style={{fontFamily:G.display,fontSize:'1.8rem',fontWeight:700,color:G.gold}}>{fmt(totalPot)}</span>
-              </div>}
             </div>
           )}
 
