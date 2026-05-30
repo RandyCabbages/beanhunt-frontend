@@ -1082,24 +1082,80 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button onClick={()=>setShowPasteCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
             </div>
             <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:10,lineHeight:1.6}}>
-              Paste any format — one per line, comma separated, or mixed. Duplicates are skipped automatically.
+              Paste Discord slot call messages or plain slot names. Discord format auto-detects caller names. Plain format: one per line or comma separated.
             </p>
             <textarea value={pasteCallsText} onChange={e=>setPasteCallsText(e.target.value)} rows={10} autoFocus
               placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
               style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}}/>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <button onClick={()=>{
+            <button onClick={()=>{
                 const existing = new Set((hunt.calls||[]).map(c=>(c.slot||'').toLowerCase().trim()));
-                const raw = pasteCallsText
-                  .split(/[\n,]/)
-                  .map(s=>s.replace(/^[#\-•*\d.]+\s*/, '').trim())
-                  .filter(s=>s.length>1 && s.length<80 && !existing.has(s.toLowerCase().trim()));
-                const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
-                if(!unique.length){alert('No new slot calls found.');return;}
-                upd(h=>({...h,calls:[...(h.calls||[]),...unique.map(slot=>({id:uid(),slot,status:'pending',user:''}))]}));
+                const text = pasteCallsText.trim();
+                const newCalls = [];
+                const skippedCallers = new Set();
+
+                // Build a set of equity member names (lowercase) for filtering
+                const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
+
+                // Try Discord format: lines like "username [TAG],  — timestamp" followed by slot lines
+                // Each "block" starts with a header line containing " — " (em dash with spaces)
+                const blocks = text.split(/\n(?=.+\s*—\s*\d{1,2}\/\d{1,2}\/\d{4})/);
+                const isDiscordFormat = blocks.length > 1 || / — \d{1,2}\/\d{1,2}\/\d{4}/.test(text);
+
+                if (isDiscordFormat) {
+                  blocks.forEach(block => {
+                    const lines = block.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+                    if (!lines.length) return;
+
+                    // First line is the header: "ders2212 [BEAN],  — 5/27/2026 7:22 PM"
+                    const headerLine = lines[0];
+                    // Extract caller name: everything before the first comma or em dash
+                    const callerMatch = headerLine.match(/^([^,—]+)/);
+                    const caller = callerMatch ? callerMatch[1].replace(/\[.*?\]/g,'').trim() : '';
+
+                    // Skip if caller is not in equity
+                    if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase().trim())) {
+                      skippedCallers.add(caller || 'Unknown');
+                      return;
+                    }
+
+                    // Remaining lines are the slot calls
+                    // Could be "@mention slot1, slot2, slot3" or just "slot1, slot2"
+                    const slotLines = lines.slice(1);
+                    slotLines.forEach(line => {
+                      // Strip leading @mention
+                      const stripped = line.replace(/^@\S+\s*/, '').trim();
+                      if (!stripped) return;
+                      // Split by comma
+                      stripped.split(',').forEach(s => {
+                        const slot = s.trim();
+                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase().trim())) {
+                          existing.add(slot.toLowerCase().trim());
+                          newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
+                        }
+                      });
+                    });
+                  });
+                } else {
+                  // Plain format: one per line or comma separated
+                  const raw = text
+                    .split(/[\n,]/)
+                    .map(s => s.replace(/^[#\-•*\d.]+\s*/, '').trim())
+                    .filter(s => s.length > 1 && s.length < 80 && !existing.has(s.toLowerCase().trim()));
+                  const unique = [...new Map(raw.map(s => [s.toLowerCase(), s])).values()];
+                  unique.forEach(slot => newCalls.push({ id: uid(), slot, status: 'pending', user: '' }));
+                }
+
+                if (!newCalls.length) {
+                  const skipMsg = skippedCallers.size ? `\n\nSkipped (not in equity): ${[...skippedCallers].join(', ')}` : '';
+                  alert(`No new slot calls found.${skipMsg}`);
+                  return;
+                }
+                upd(h => ({ ...h, calls: [...(h.calls||[]), ...newCalls] }));
                 setPasteCallsText('');
                 setShowPasteCalls(false);
-                alert(`✅ Added ${unique.length} slot call${unique.length!==1?'s':''}`);
+                const skipNote = skippedCallers.size ? `\nSkipped (not in equity): ${[...skippedCallers].join(', ')}` : '';
+                alert(`✅ Added ${newCalls.length} slot call${newCalls.length !== 1 ? 's' : ''}${skipNote}`);
               }} style={{height:38,padding:'0 20px',background:G.gold,color:'#000',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
                 Import Calls
               </button>
