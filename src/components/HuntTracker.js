@@ -695,7 +695,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout with sticky board ── */}
-      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 300px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'280px 1fr 320px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -952,7 +952,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Table header */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 65px 85px 65px 50px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
             {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
               <div key={i} style={{padding:'7px 8px',fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.1em',fontWeight:700,
                 cursor:h==='BET'&&canEdit?'pointer':'default',
@@ -977,7 +977,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   onDragStart={()=>setDragBonusId(b.id)}
                   onDragOver={e=>e.preventDefault()}
                   onDrop={()=>{if(dragBonusId&&dragBonusId!==b.id)reorderBonuses(dragBonusId,b.id);setDragBonusId(null);}}
-                  style={{display:'grid',gridTemplateColumns:'28px 180px 80px 90px 80px auto',
+                  style={{display:'grid',gridTemplateColumns:'28px 1fr 65px 85px 65px 50px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}40`:undefined,
                     border:isP?`2px solid ${accent}`:undefined,
