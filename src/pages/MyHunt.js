@@ -32,9 +32,10 @@ export default function MyHunt({ user }) {
     if (!user) { setLoading(false); return; }
     apiFetch('/api/my-hunt')
       .then(data => {
+        if (!data || !data.huntType) return;
         const autoEquityCount = data.huntType === 'vip' ? 2 : 0;
         const hasUserEquity = (data.equity||[]).length > autoEquityCount;
-        if (data && data.huntType && (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity)) {
+        if (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity) {
           // Ensure Bean is always in VIP equity
           if (data.huntType === 'vip') {
             let changed = false;
