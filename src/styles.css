@@ -44,3 +44,127 @@ input[type=number] { -moz-appearance: textfield; }
 a { color: inherit; }
 
 ::selection { background: rgba(198,241,53,0.25); }
+
+/* ── Mobile ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Remove zoom on mobile */
+  .hunt-root { zoom: 1 !important; }
+
+  /* Top bar: collapse socials, shrink padding */
+  .topbar-inner {
+    padding: 0 0.75rem !important;
+    height: 48px !important;
+    gap: 8px !important;
+  }
+  .topbar-socials { display: none !important; }
+  .topbar-title { font-size: 13px !important; }
+  .topbar-right { gap: 4px !important; flex-wrap: nowrap !important; }
+  .topbar-right button { font-size: 10px !important; padding: 0 8px !important; height: 28px !important; }
+
+  /* 3-column → single column with tab switcher */
+  .hunt-columns {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Each panel fills full width, scrolls independently */
+  .hunt-col-left,
+  .hunt-col-center,
+  .hunt-col-right {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--bdr) !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Slot call cards: bigger tap targets */
+  .call-card { padding: 10px 10px !important; }
+
+  /* Add bonus form: stack inputs vertically */
+  .add-bonus-row {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  /* Bonus table: hide less important columns */
+  .bonus-table-header,
+  .bonus-table-row {
+    grid-template-columns: 1fr 60px 70px 28px !important;
+  }
+  .bonus-col-caller,
+  .bonus-col-scat { display: none !important; }
+
+  /* Equity panel: full width cards */
+  .equity-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats row: 2-col grid */
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Modals: full screen on mobile */
+  .modal-box {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+    margin: 0 auto !important;
+  }
+
+  /* Parse calls textarea */
+  .parse-calls-box {
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+
+  /* Hub: stack cards */
+  .hub-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hub stream+leaderboard: stack vertically */
+  .hub-bottom-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hub header: collapse to rows on mobile */
+  .hub-header {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    gap: 8px !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  /* Hub main content: less padding */
+  .hub-content {
+    padding: 1rem !important;
+  }
+
+  /* Bottom sticky bar: smaller */
+  .sticky-bottom {
+    padding: 8px 12px !important;
+    gap: 6px !important;
+  }
+  .sticky-bottom span { font-size: 10px !important; }
+  .sticky-bottom button { font-size: 11px !important; padding: 0 14px !important; height: 34px !important; }
+
+  /* Tab bar for mobile panel switching */
+  .mobile-tabs {
+    display: flex !important;
+  }
+
+  /* Show only active tab panel */
+  .hunt-col-left   { display: none !important; }
+  .hunt-col-center { display: none !important; }
+  .hunt-col-right  { display: none !important; }
+  .hunt-col-left[data-active="true"]   { display: flex !important; min-height: 60vh; }
+  .hunt-col-center[data-active="true"] { display: flex !important; min-height: 60vh; }
+  .hunt-col-right[data-active="true"]  { display: flex !important; min-height: 60vh; }
+}

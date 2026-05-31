@@ -234,7 +234,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
-  const [showPasteCalls, setShowPasteCalls] = useState(false);
+  const [mobileTab,     setMobileTab]     = useState('calls'); // 'calls' | 'bonuses' | 'equity'
   const [pasteCallsText, setPasteCallsText] = useState('');
   const [dcWinners,     setDcWinners]     = useState(false);
   const [showDcImport,  setShowDcImport]  = useState(false);
@@ -470,7 +470,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const btnGhost   = { height:36, padding:'0 14px', background:'transparent', border:`1px solid ${G.bdr}`, borderRadius:3, fontFamily:G.body, fontSize:13, color:G.t3, cursor:'pointer' };
 
   return (
-    <div style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2}}>
+    <div className="hunt-root" style={{fontFamily:G.body, background:G.bg, minHeight:'100vh', color:G.t1, zoom:1.2}}>
       <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -501,11 +501,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
       {/* ── Top bar ── */}
       <div style={{background:G.bg2,borderBottom:`1px solid ${G.bb}`,position:'sticky',top:0,zIndex:40}}>
-        <div style={{padding:'0 1.5rem',height:54,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
+        <div className="topbar-inner" style={{padding:'0 1.5rem',height:54,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           {/* Left: socials + title */}
           <div style={{display:'flex',alignItems:'center',gap:12}}>
           {/* Bean socials */}
-            <div style={{display:'flex',alignItems:'center',gap:3,marginRight:6,borderRight:`1px solid ${G.bdr}`,paddingRight:10}}>
+            <div className="topbar-socials" style={{display:'flex',alignItems:'center',gap:3,marginRight:6,borderRight:`1px solid ${G.bdr}`,paddingRight:10}}>
               {[
                 ['https://www.twitch.tv/bean','#9146ff',<svg width="13" height="13" viewBox="0 0 24 24" fill="#9146ff"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>],
                 ['https://kick.com/bean','#53fc18',<svg width="13" height="13" viewBox="0 0 24 24" fill="#53fc18"><path d="M2 2h20v20H2V2zm4 4v12h3V14l5 4h4l-6-6 6-6h-4l-5 4V6H6z"/></svg>],
@@ -579,10 +579,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      {/* ── Mobile tab bar ── */}
+      <div className="mobile-tabs" style={{display:'none',borderBottom:`1px solid ${G.bdr}`,background:G.bg2,flexShrink:0}}>
+        {[['calls','CALLS'],['bonuses','BONUSES'],['equity','EQUITY']].map(([tab,lbl])=>(
+          <button key={tab} onClick={()=>setMobileTab(tab)} style={{flex:1,height:40,border:'none',borderBottom:`2px solid ${mobileTab===tab?accent:'transparent'}`,background:'transparent',fontFamily:G.mono,fontSize:11,fontWeight:700,color:mobileTab===tab?accent:G.t3,cursor:'pointer',letterSpacing:'0.08em'}}>
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      <div className="hunt-columns" style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls ── */}
-        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="hunt-col-left" data-active={mobileTab==='calls'} style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* Mode toggle */}
           {canEdit && (
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',gap:2}}>
@@ -751,7 +760,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
 
         {/* ── MIDDLE: Bonuses ── */}
-        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="hunt-col-center" data-active={mobileTab==='bonuses'} style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
           {/* Stat tiles — centered above bonus tracker */}
           <div style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0}}>
@@ -875,7 +884,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
 
         {/* ── RIGHT: Equity ── */}
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div className="hunt-col-right" data-active={mobileTab==='equity'} style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>

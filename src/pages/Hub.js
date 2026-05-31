@@ -198,7 +198,6 @@ export default function Hub({ user }) {
   const [beanLive, setBeanLive] = useState({isLive:false});
   const [loading,  setLoading]  = useState(true);
   const [tab,      setTab]      = useState('live');
-  const [activeUsers, setActiveUsers] = useState([]);
   const [ticket,   setTicket]   = useState(false);
   const navigate = useNavigate();
   const isAdmin  = user?.isAdmin;
@@ -216,15 +215,6 @@ export default function Hub({ user }) {
     if (!isAdmin) return;
     apiFetch('/api/admin/hunts').then(setAllHunts).catch(()=>{});
   }, [isAdmin, hunts]);
-
-  useEffect(() => {
-    if (!isAdmin || tab !== 'users') return;
-    apiFetch('/api/admin/active-users').then(d => setActiveUsers(d.users || [])).catch(()=>{});
-    const interval = setInterval(() => {
-      apiFetch('/api/admin/active-users').then(d => setActiveUsers(d.users || [])).catch(()=>{});
-    }, 3000); // Refresh every 3 seconds
-    return () => clearInterval(interval);
-  }, [isAdmin, tab]);
 
   const endHunt    = async id => { if(!window.confirm('End this hunt?')) return; await apiFetch(`/api/admin/hunts/${id}/end`,{method:'POST'}); };
   const deleteHunt = async id => { if(!window.confirm('Delete permanently?')) return; await apiFetch(`/api/admin/hunts/${id}`,{method:'DELETE'}); };
@@ -262,7 +252,7 @@ export default function Hub({ user }) {
 
       {/* Main nav */}
       <div style={{background:C.sur,borderBottom:`1px solid rgba(255,255,255,0.13)`,padding:'0 1.5rem'}}>
-        <div style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
+        <div className="hub-header" style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           <div style={{fontFamily:C.font,fontSize:26,fontWeight:700,letterSpacing:'0.04em',color:C.txt,lineHeight:1}}>
             BeanTards <span style={{color:C.gold}}>Hunt Tracker</span>
           </div>
@@ -280,13 +270,11 @@ export default function Hub({ user }) {
                   {isAdmin && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
                 <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>My Hunt</button>
-                <button onClick={()=>navigate('/hunt-history')} style={{height:34,padding:'0 16px',background:C.purple,color:C.txt,border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>Hunt History</button>
                 <a href={`${API}/auth/logout`} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
               </>
             ) : (
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>My Hunt</button>
-                <button onClick={()=>navigate('/hunt-history')} style={{height:34,padding:'0 16px',background:C.purple,color:C.txt,border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>Hunt History</button>
                 <a href={`${API}/auth/discord`} style={{display:'flex',alignItems:'center',gap:7,height:34,padding:'0 14px',background:'#5865f2',color:'#fff',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:600,textDecoration:'none'}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
                   Login
@@ -313,7 +301,7 @@ export default function Hub({ user }) {
       )}
 
       {/* Content */}
-      <div style={{maxWidth:1400,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
+      <div className="hub-content" style={{maxWidth:1400,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
 
         {/* Page header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'1.25rem',flexWrap:'wrap',gap:10}}>
@@ -325,38 +313,19 @@ export default function Hub({ user }) {
               {hunts.length ? `● ${hunts.length} hunt${hunts.length!==1?'s':''} live` : '○ No hunts live right now'}
             </div>
           </div>
-          <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-            {isAdmin && (
-              <div style={{display:'flex',gap:2,background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:5,padding:2}}>
-                {[['live','Live'],['archived','Archived'],['all','All'],['users','Active Users']].map(([k,l])=>(
-                  <button key={k} onClick={()=>setTab(k)} style={{height:28,padding:'0 14px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:12,fontWeight:600,cursor:'pointer',background:tab===k?C.gold:'transparent',color:tab===k?'#000':C.label,transition:'all .1s'}}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {isAdmin && (
+            <div style={{display:'flex',gap:2,background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:5,padding:2}}>
+              {[['live','Live'],['archived','Archived'],['all','All']].map(([k,l])=>(
+                <button key={k} onClick={()=>setTab(k)} style={{height:28,padding:'0 14px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:12,fontWeight:600,cursor:'pointer',background:tab===k?C.gold:'transparent',color:tab===k?'#000':C.label,transition:'all .1s'}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Hunts grid or Active Users list */}
-        {tab === 'users' ? (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
-            {activeUsers.length === 0 ? (
-              <div style={{gridColumn:'1/-1',padding:'3rem',textAlign:'center',fontFamily:C.font,fontSize:13,color:C.label}}>
-                No active users right now
-              </div>
-            ) : activeUsers.map((u,i) => (
-              <div key={i} style={{padding:'12px',borderRight:`1px solid rgba(255,255,255,0.07)`,borderBottom:`1px solid rgba(255,255,255,0.07)`,display:'flex',alignItems:'center',gap:8}}>
-                {u.avatar && <img src={u.avatar} alt="" style={{width:32,height:32,borderRadius:'50%'}} />}
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontFamily:C.font,fontSize:13,fontWeight:600,color:C.txt,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{u.username}</div>
-                  <div style={{fontFamily:C.mono,fontSize:10,color:C.t3,marginTop:2}}>🟢 {u.socketCount} connection{u.socketCount!==1?'s':''}</div>
-                  <div style={{fontFamily:C.mono,fontSize:9,color:C.t4,marginTop:1}}>{u.lastActive ? new Date(u.lastActive).toLocaleTimeString() : 'unknown'}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : loading ? (
+        {/* Hunts grid */}
+        {loading ? (
           <div style={{fontFamily:C.font,fontSize:13,color:C.label,padding:'3rem 0'}}>Loading…</div>
         ) : display.length === 0 ? (
           <div style={{background:C.card,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,padding:'3rem',textAlign:'center'}}>
@@ -372,7 +341,7 @@ export default function Hub({ user }) {
             </button>
           </div>
         ) : (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
+          <div className="hub-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
             {display.map(hunt=>(
               <HuntCard key={hunt.userId} hunt={hunt} isOwn={user&&hunt.userId===user.id} isAdmin={isAdmin} onEnd={endHunt} onDelete={deleteHunt} navigate={navigate}/>
             ))}
@@ -380,7 +349,7 @@ export default function Hub({ user }) {
         )}
 
         {/* Stream + Leaderboard — always visible below hunts */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:14,marginTop:'1.75rem'}}>
+        <div className="hub-bottom-grid" style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:14,marginTop:'1.75rem'}}>
 
           {/* Twitch player */}
           <div style={{background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden',position:'relative'}}>
