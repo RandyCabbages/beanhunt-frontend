@@ -1,6 +1,31 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch, socket } from '../api';
 
+/* ── Slot thumb cache ────────────────────────────────────────────── */
+const thumbCache = {};
+function useSlotThumb(slotName) {
+  const [thumb, setThumb] = useState(thumbCache[slotName?.toLowerCase()] || null);
+  useEffect(() => {
+    if (!slotName || slotName.length < 2) return;
+    const key = slotName.toLowerCase();
+    if (thumbCache[key] !== undefined) { setThumb(thumbCache[key]); return; }
+    apiFetch(`/api/slots/search?q=${encodeURIComponent(slotName)}`)
+      .then(res => {
+        const match = Array.isArray(res) && res.find(g => g.name.toLowerCase() === key);
+        const url = match ? match.thumb : (res?.[0]?.thumb || null);
+        thumbCache[key] = url;
+        setThumb(url);
+      }).catch(() => { thumbCache[key] = null; });
+  }, [slotName]);
+  return thumb;
+}
+
+function SlotCallThumb({ slot }) {
+  const thumb = useSlotThumb(slot);
+  if (!thumb) return null;
+  return <img src={thumb} alt="" width={44} height={33} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur,display:'block'}} onError={e=>{e.target.style.display='none'}}/>;
+}
+
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
@@ -137,7 +162,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
     } else { setSuggestions([]); setOpen(false); }
   };
 
-  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
+  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
@@ -204,6 +229,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [huntMode,      setHuntMode]      = useState(hunt.huntMode||'creating');
   const [showWinners,   setShowWinners]   = useState(false);
   const [slotInput,     setSlotInput]     = useState('');
+  const [slotThumb,     setSlotThumb]     = useState('');
   const [callerInput,   setCallerInput]   = useState('');
   const [betInput,      setBetInput]      = useState('');
   const [betPrompt,     setBetPrompt]     = useState(null);
@@ -343,9 +369,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const equityDisplay = equity.filter(e=>e.name||e.amount>0);
 
   /* ── Actions ── */
-  const addBonus = (slot, bet, scat=3, caller=null) => {
-    upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller:caller||callerInput||null}]}));
-    setSlotInput(''); setBetInput(''); setCallerInput('');
+  const addBonus = (slot, bet, scat=3, caller=null, thumb=null) => {
+    upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller:caller||callerInput||null,thumb:thumb||slotThumb||null}]}));
+    setSlotInput(''); setBetInput(''); setCallerInput(''); setSlotThumb('');
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
     if(b.id!==id)return b;const num=parseFloat(val)||0;
@@ -718,8 +744,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit && !isLocked && <button className="icon-btn-danger" onClick={()=>removeCall(c.id)} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:12,lineHeight:1}}>×</button>}
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
-                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{toTitle(c.slot)}</div>
-                  <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <SlotCallThumb slot={c.slot}/>
+                    <div>
+                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{toTitle(c.slot)}</div>
+                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                    </div>
+                  </div>
                   {canEdit&&(
                     <div style={{display:'flex',gap:4,marginTop:6}}>
                       <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
@@ -781,7 +812,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Add bonus form */}
           {canEdit&&(
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1.6fr 0.7fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
-              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
+              <SlotInput value={slotInput} onChange={setSlotInput} onCommit={s=>{ if(s&&typeof s==='object') setSlotThumb(s.thumb||''); }} placeholder="e.g. Gates of Olympus" />
               <input value={callerInput} onChange={e=>setCallerInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
                 placeholder="e.g. TheOnlyWalker" style={{...inp, height:34}} />
@@ -834,13 +865,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
                   </div>
-                  <div style={{padding:'7px 6px',alignSelf:'center'}}>
+                  <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:7}}>
+                    {b.thumb&&<img src={b.thumb} alt="" width={40} height={30} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}}/>}
+                    <div>
                     {canEdit
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{toTitle(b.slot)}</span>
                     }
                     {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
                     {b.caller&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:2,letterSpacing:'0.03em'}}>({b.caller})</div>}
+                    </div>
                   </div>
                   <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
                     {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:fmt(b.bet)}
