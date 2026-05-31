@@ -193,12 +193,13 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
 }
 
 export default function Hub({ user }) {
-  const [hunts,    setHunts]    = useState([]);
-  const [allHunts, setAllHunts] = useState([]);
-  const [beanLive, setBeanLive] = useState({isLive:false});
-  const [loading,  setLoading]  = useState(true);
-  const [tab,      setTab]      = useState('live');
-  const [ticket,   setTicket]   = useState(false);
+  const [hunts,      setHunts]      = useState([]);
+  const [allHunts,   setAllHunts]   = useState([]);
+  const [beanLive,   setBeanLive]   = useState({isLive:false});
+  const [loading,    setLoading]    = useState(true);
+  const [tab,        setTab]        = useState('live');
+  const [ticket,     setTicket]     = useState(false);
+  const [hasMyHunt,  setHasMyHunt]  = useState(false);
   const navigate = useNavigate();
   const isAdmin  = user?.isAdmin;
 
@@ -210,6 +211,15 @@ export default function Hub({ user }) {
     socket.on('bean:live',  setBeanLive);
     return () => { socket.off('hub:update',setHunts); socket.off('bean:live',setBeanLive); };
   }, []);
+
+  useEffect(() => {
+    if (!user) { setHasMyHunt(false); return; }
+    apiFetch('/api/my-hunt').then(data => {
+      const autoEquityCount = data?.huntType === 'vip' ? 2 : 0;
+      const hasUserEquity = (data?.equity||[]).length > autoEquityCount;
+      setHasMyHunt(!!(data?.huntType && (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity)));
+    }).catch(()=>setHasMyHunt(false));
+  }, [user]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -269,7 +279,7 @@ export default function Hub({ user }) {
                   <span style={{fontFamily:C.font,fontSize:13,fontWeight:500,color:C.txt}}>{user.displayName}</span>
                   {isAdmin && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
-                <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>{hunts.some(h=>h.userId===user?.id) ? 'Return To My Hunt' : 'Start A New Hunt'}</button>
+                <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>{hasMyHunt ? 'Return To My Hunt' : 'Start A New Hunt'}</button>
                 <a href={`${API}/auth/logout`} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
               </>
             ) : (
