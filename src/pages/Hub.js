@@ -269,7 +269,7 @@ export default function Hub({ user }) {
                   <span style={{fontFamily:C.font,fontSize:13,fontWeight:500,color:C.txt}}>{user.displayName}</span>
                   {isAdmin && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
-                <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>My Hunt</button>
+                <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>{hunts.some(h=>h.userId===user?.id) ? 'My Hunt' : 'Start A New Hunt'}</button>
                 <a href={`${API}/auth/logout`} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
               </>
             ) : (
