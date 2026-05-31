@@ -252,7 +252,7 @@ export default function Hub({ user }) {
 
       {/* Main nav */}
       <div style={{background:C.sur,borderBottom:`1px solid rgba(255,255,255,0.13)`,padding:'0 1.5rem'}}>
-        <div className="hub-header" style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
+        <div style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
           <div style={{fontFamily:C.font,fontSize:26,fontWeight:700,letterSpacing:'0.04em',color:C.txt,lineHeight:1}}>
             BeanTards <span style={{color:C.gold}}>Hunt Tracker</span>
           </div>
@@ -301,7 +301,7 @@ export default function Hub({ user }) {
       )}
 
       {/* Content */}
-      <div className="hub-content" style={{maxWidth:1400,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
+      <div style={{maxWidth:1400,margin:'0 auto',padding:'1.75rem 1.5rem 4rem'}}>
 
         {/* Page header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'1.25rem',flexWrap:'wrap',gap:10}}>
@@ -341,7 +341,7 @@ export default function Hub({ user }) {
             </button>
           </div>
         ) : (
-          <div className="hub-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
             {display.map(hunt=>(
               <HuntCard key={hunt.userId} hunt={hunt} isOwn={user&&hunt.userId===user.id} isAdmin={isAdmin} onEnd={endHunt} onDelete={deleteHunt} navigate={navigate}/>
             ))}
@@ -349,7 +349,7 @@ export default function Hub({ user }) {
         )}
 
         {/* Stream + Leaderboard — always visible below hunts */}
-        <div className="hub-bottom-grid" style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:14,marginTop:'1.75rem'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 400px',gap:14,marginTop:'1.75rem'}}>
 
           {/* Twitch player */}
           <div style={{background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden',position:'relative'}}>

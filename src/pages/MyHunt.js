@@ -200,7 +200,7 @@ export default function MyHunt({ user }) {
   return (
     <div>
       {!hunt.isLive && !offline && (
-        <div className="sticky-bottom" style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666' }}>Hunt not live yet — set up your bonuses and equity first</span>
           <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#c6f135', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:13, fontWeight:700, cursor:'pointer' }}>
             🚀 Start Hunt — Go Live
