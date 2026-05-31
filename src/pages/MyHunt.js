@@ -32,7 +32,7 @@ export default function MyHunt({ user }) {
     if (!user) { setLoading(false); return; }
     apiFetch('/api/my-hunt')
       .then(data => {
-        if (!data || !data.huntType) return;
+        if (!data || !data.huntType) { setLoading(false); return; }
         const autoEquityCount = data.huntType === 'vip' ? 2 : 0;
         const hasUserEquity = (data.equity||[]).length > autoEquityCount;
         if (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity) {
@@ -60,7 +60,7 @@ export default function MyHunt({ user }) {
           setHunt(data); setStarted(true); setOffline(false);
         }
       })
-      .catch(() => {})
+      .catch(() => { setLoading(false); })
       .finally(() => setLoading(false));
   }, [user]);
 
