@@ -25,7 +25,6 @@ export default function MyHunt({ user }) {
   const [started,  setStarted]  = useState(false);
   const [offline,  setOffline]  = useState(false);
   const [loading,  setLoading]  = useState(true);
-  const [showStartScreen, setShowStartScreen] = useState(true);
   const saveTimer = useRef(null);
 
   // Load existing online hunt if logged in
@@ -33,7 +32,9 @@ export default function MyHunt({ user }) {
     if (!user) { setLoading(false); return; }
     apiFetch('/api/my-hunt')
       .then(data => {
-        if (data && data.huntType) {
+        const autoEquityCount = data.huntType === 'vip' ? 2 : 0;
+        const hasUserEquity = (data.equity||[]).length > autoEquityCount;
+        if (data && data.huntType && (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity)) {
           // Ensure Bean is always in VIP equity
           if (data.huntType === 'vip') {
             let changed = false;
@@ -55,7 +56,7 @@ export default function MyHunt({ user }) {
               }).catch(()=>{});
             }
           }
-          setHunt(data); setStarted(true); setShowStartScreen(false); setOffline(false);
+          setHunt(data); setStarted(true); setOffline(false);
         }
       })
       .catch(() => {})
@@ -84,12 +85,12 @@ export default function MyHunt({ user }) {
       }).catch(()=>{});
     }
     setHunt(emptyHunt);
-    setStarted(true); setShowStartScreen(false); setOffline(false);
+    setStarted(true); setOffline(false);
   };
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));
-    setStarted(true); setShowStartScreen(false); setOffline(true);
+    setStarted(true); setOffline(true);
   };
 
   const goLive = async () => {
@@ -106,7 +107,7 @@ export default function MyHunt({ user }) {
   const resetHunt = async () => {
     if (!window.confirm('Reset your hunt? This clears everything.')) return;
     if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
-    setHunt(null); setStarted(false); setShowStartScreen(true);
+    setHunt(null); setStarted(false);
   };
 
   const updateHunt = useCallback((updater) => {
@@ -122,7 +123,7 @@ export default function MyHunt({ user }) {
   );
 
   // Start screen
-  if (showStartScreen) return (
+  if (!started || !hunt) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'100vh', gap:28, padding:'2rem', background:'#161618', fontFamily:"'Chakra Petch',sans-serif" }}>
       <div style={{ textAlign:'center' }}>
         <div style={{ marginBottom:10, display:'flex', justifyContent:'center' }}>
@@ -200,7 +201,7 @@ export default function MyHunt({ user }) {
     <div>
       {!hunt.isLive && !offline && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666' }}>Set up your equity and slot calls first</span>
+          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666' }}>Hunt not live yet — set up your bonuses and equity first</span>
           <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#c6f135', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:13, fontWeight:700, cursor:'pointer' }}>
             🚀 Start Hunt — Go Live
           </button>
