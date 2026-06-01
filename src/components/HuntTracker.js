@@ -26,6 +26,13 @@ function SlotCallThumb({ slot }) {
   return <img src={thumb} alt="" width={44} height={33} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur,display:'block'}} onError={e=>{e.target.style.display='none'}}/>;
 }
 
+function BonusRowThumb({ slot, storedThumb }) {
+  const lookedUp = useSlotThumb(storedThumb ? null : slot);
+  const thumb = storedThumb || lookedUp;
+  if (!thumb) return null;
+  return <img src={thumb} alt="" width={40} height={30} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}}/>;
+}
+
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
@@ -866,7 +873,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     {isP?'▶':'·'}
                   </div>
                   <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:7}}>
-                    {b.thumb&&<img src={b.thumb} alt="" width={40} height={30} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}}/>}
+                    <BonusRowThumb slot={b.slot} storedThumb={b.thumb}/>
                     <div>
                     {canEdit
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
