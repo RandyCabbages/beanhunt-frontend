@@ -395,7 +395,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
 
   const addCall = async () => {
-    if (!callName||!callSlot.trim()) return;
+    if (!callSlot.trim()) return;
     const slots = callSlot.split(',');
     const newCalls = [];
     for (const raw of slots) {
