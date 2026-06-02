@@ -1,38 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch, socket } from '../api';
 
-/* ── Slot thumb cache ────────────────────────────────────────────── */
-const thumbCache = {};
-function useSlotThumb(slotName) {
-  const [thumb, setThumb] = useState(thumbCache[slotName?.toLowerCase()] || null);
-  useEffect(() => {
-    if (!slotName || slotName.length < 2) return;
-    const key = slotName.toLowerCase();
-    if (thumbCache[key] !== undefined) { setThumb(thumbCache[key]); return; }
-    apiFetch(`/api/slots/search?q=${encodeURIComponent(slotName)}`)
-      .then(res => {
-        const match = Array.isArray(res) && res.find(g => g.name.toLowerCase() === key);
-        const url = match ? match.thumb : (res?.[0]?.thumb || null);
-        thumbCache[key] = url;
-        setThumb(url);
-      }).catch(() => { thumbCache[key] = null; });
-  }, [slotName]);
-  return thumb;
-}
-
-function SlotCallThumb({ slot }) {
-  const thumb = useSlotThumb(slot);
-  if (!thumb) return null;
-  return <img src={thumb} alt="" width={44} height={33} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur,display:'block'}} onError={e=>{e.target.style.display='none'}}/>;
-}
-
-function BonusRowThumb({ slot, storedThumb }) {
-  const lookedUp = useSlotThumb(storedThumb ? null : slot);
-  const thumb = storedThumb || lookedUp;
-  if (!thumb) return null;
-  return <img src={thumb} alt="" width={40} height={30} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}}/>;
-}
-
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
@@ -61,7 +29,6 @@ const RainbetLogo = ({size=14}) => (
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
-const toTitle = s => (s||'').replace(/\b\w/g, c => c.toUpperCase()).replace(/'[A-Z]/g, m => m.toLowerCase());
 
 /* ── Slot list ───────────────────────────────────────────────────── */
 const RAINBET_SLOTS = [
@@ -169,7 +136,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
     } else { setSuggestions([]); setOpen(false); }
   };
 
-  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s); };
+  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
@@ -236,8 +203,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [huntMode,      setHuntMode]      = useState(hunt.huntMode||'creating');
   const [showWinners,   setShowWinners]   = useState(false);
   const [slotInput,     setSlotInput]     = useState('');
-  const [slotThumb,     setSlotThumb]     = useState('');
-  const [callerInput,   setCallerInput]   = useState('');
   const [betInput,      setBetInput]      = useState('');
   const [betPrompt,     setBetPrompt]     = useState(null);
   const [activeScat,    setActiveScat]    = useState(3);
@@ -376,9 +341,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const equityDisplay = equity.filter(e=>e.name||e.amount>0);
 
   /* ── Actions ── */
-  const addBonus = (slot, bet, scat=3, caller=null, thumb=null) => {
-    upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller:caller||callerInput||null,thumb:thumb||slotThumb||null}]}));
-    setSlotInput(''); setBetInput(''); setCallerInput(''); setSlotThumb('');
+  const addBonus = (slot, bet, scat=3, caller=null) => {
+    upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller}]}));
+    setSlotInput(''); setBetInput('');
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
     if(b.id!==id)return b;const num=parseFloat(val)||0;
@@ -401,9 +366,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCallSlot(''); setCallModal(true);
   };
 
-  const addCall = async () => {
-    if (!callSlot.trim()) return;
-    const slots = callSlot.split(',');
+  const addCall = async (slotOverride) => {
+    const slotVal = (slotOverride !== undefined ? slotOverride : callSlot).trim();
+    if (!callName||!slotVal) return;
+    const slots = slotVal.split(',');
     const newCalls = [];
     for (const raw of slots) {
       const s=raw.trim(); if(!s) continue;
@@ -412,7 +378,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt) {
-        try { await apiFetch(`/api/hunts/${hunt.user?.id}/calls`,{method:'POST',body:JSON.stringify({slot:callSlot.trim()})}); }
+        try { await apiFetch(`/api/hunts/${hunt.user?.id}/calls`,{method:'POST',body:JSON.stringify({slot:slotVal})}); }
         catch(e){alert(e.message);return;}
       } else if (huntMode==='creating') {
         upd(h=>({...h,calls:[...h.calls,...newCalls]}));
@@ -492,8 +458,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     };
   }, [readOnly, hunt.user?.id, user?.id]);
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
-  const ownerName = (hunt.user?.displayName || hunt.user?.username || '').toLowerCase().trim();
-  const isOwnerEntry = e => ownerName && (e.name||'').toLowerCase().trim() === ownerName;
 
   /* ── Modal base style ── */
   const modalBg = { position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeUp .15s ease' };
@@ -680,20 +644,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 </button>
                 {/* Call Limit */}
                 <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Limit: ${callLimit}/person`:'Set call limit'}
-                  style={{height:26,width:26,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s',fontFamily:G.mono,fontSize:callLimit>9?9:11,fontWeight:700}}
+                  style={{height:26,width:26,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',transition:'all .1s'}}
                   onMouseEnter={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}}
                   onMouseLeave={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}}>
-                  {callLimit>0
-                    ? <span>{callLimit}</span>
-                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  }
-                </button>
-                {/* Round Robin toggle */}
-                <button onClick={()=>upd(h=>({...h,roundRobin:!h.roundRobin}))} title={hunt.roundRobin?'Round Robin: ON':'Round Robin: OFF'}
-                  style={{height:26,width:26,background:hunt.roundRobin?acDim:'transparent',border:`1px solid ${hunt.roundRobin?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:hunt.roundRobin?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s',fontFamily:G.mono,fontSize:8,fontWeight:700,letterSpacing:'-0.03em'}}
-                  onMouseEnter={e=>{if(!hunt.roundRobin){e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}}
-                  onMouseLeave={e=>{if(!hunt.roundRobin){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}}>
-                  RR
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  {callLimit>0&&<span style={{position:'absolute',top:-4,right:-4,background:accent,color:'#000',borderRadius:'50%',width:13,height:13,fontSize:7,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
                 </button>
               </>}
               {!canEdit && !canAddCalls && user && hunt.isLive && (huntMode==='creating'||huntMode==='spinning') && (
@@ -709,6 +664,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {reqStatus==='granted'?'✓ Access Granted':reqStatus==='pending'?'⏳ Pending…':'🙋 Request to Add Calls'}
                 </button>
               )}
+              <span style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{pending.length}</span>
             </div>
           </div>
 
@@ -751,13 +707,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit && !isLocked && <button className="icon-btn-danger" onClick={()=>removeCall(c.id)} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:12,lineHeight:1}}>×</button>}
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <SlotCallThumb slot={c.slot}/>
-                    <div>
-                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{toTitle(c.slot)}</div>
-                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
-                    </div>
-                  </div>
+                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
+                  <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
                   {canEdit&&(
                     <div style={{display:'flex',gap:4,marginTop:6}}>
                       <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
@@ -775,12 +726,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit&&<button onClick={clearMissed} style={{background:'none',border:'none',color:G.t4,fontFamily:G.mono,fontSize:9,cursor:'pointer'}}>Clear</button>}
                 </div>
                 {done.map(c=>(
-                  <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5,display:'flex',alignItems:'center',gap:7}}>
-                    <SlotCallThumb slot={c.slot}/>
-                    <div>
-                      <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{toTitle(c.slot)}</div>
-                      <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
-                    </div>
+                  <div key={c.id} style={{borderRadius:3,padding:'6px 8px',marginBottom:3,background:G.sur,border:`1px solid ${G.bdr}`,borderLeft:`3px solid ${G.red}44`,opacity:.5}}>
+                    <div style={{fontFamily:G.body,fontWeight:600,fontSize:12,color:G.red,textDecoration:'line-through'}}>{c.slot}</div>
+                    <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:1}}>{c.user}</div>
                   </div>
                 ))}
               </>
@@ -821,11 +769,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Add bonus form */}
           {canEdit&&(
-            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1.6fr 0.7fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
-              <SlotInput value={slotInput} onChange={setSlotInput} onCommit={s=>{ if(s&&typeof s==='object') setSlotThumb(s.thumb||''); }} placeholder="e.g. Gates of Olympus" />
-              <input value={callerInput} onChange={e=>setCallerInput(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
-                placeholder="e.g. TheOnlyWalker" style={{...inp, height:34}} />
+            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
+              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
                 placeholder="Bet $" style={{...inp, height:34}} />
@@ -875,16 +820,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
                   </div>
-                  <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:7}}>
-                    <BonusRowThumb slot={b.slot} storedThumb={b.thumb}/>
-                    <div>
+                  <div style={{padding:'7px 6px',alignSelf:'center'}}>
                     {canEdit
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
-                      : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{toTitle(b.slot)}</span>
+                      : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
                     }
                     {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
                     {b.caller&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:2,letterSpacing:'0.03em'}}>({b.caller})</div>}
-                    </div>
                   </div>
                   <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
                     {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:fmt(b.bet)}
@@ -1002,16 +944,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   return (
                     <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px',position:'relative'}}>
                       <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
-                        {(e.name&&e.name.toLowerCase()==='bean')
-                          ? <span style={{fontSize:11,flexShrink:0}}>👑</span>
-                          : isOwnerEntry(e)
-                            ? <svg style={{flexShrink:0}} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
-                            : e.isRollWinner
-                              ? <span style={{fontSize:11,flexShrink:0}}>🎲</span>
-                              : e.name||e.amount>0
-                                ? <span style={{fontSize:11,flexShrink:0,opacity:0.5}}>💰</span>
-                                : null
-                        }
+                        {e.isRollWinner&&<span style={{fontSize:11,flexShrink:0}}>🎲</span>}
                         <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                       </div>
                       <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
@@ -1044,16 +977,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||(e.name&&e.name.toLowerCase()==='bean')||e.name||e.amount>0)?26:10}} />
-                    {(e.name&&e.name.toLowerCase()==='bean')
-                      ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>👑</span>
-                      : isOwnerEntry(e)
-                        ? <svg style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#c084fc" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 17.5L3 6l1.5-1.5 11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/><circle cx="4.5" cy="4.5" r="1.5"/></svg>
-                        : e.isRollWinner
-                          ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
-                          : e.name||e.amount>0
-                            ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>
-                            : null
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    {e.isRollWinner
+                      ? <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none'}}>🎲</span>
+                      : e.isMod
+                        ? <svg style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}} width="13" height="13" viewBox="0 0 20 20" fill="#9146ff"><path d="M10 0L7 7H0l6 4.5L4 18l6-4 6 4-2-6.5L20 7h-7z"/></svg>
+                        : e.name||e.amount>0?<span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',fontSize:12,pointerEvents:'none',opacity:0.5}}>💰</span>:null
                     }
                   </div>
                   {e.rollAmount>0 && (e.amount-e.rollAmount)>0 ? (
@@ -1135,159 +1064,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <button onClick={()=>setShowPasteCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
             </div>
             <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:10,lineHeight:1.6}}>
-              Paste Discord slot call messages or plain slot names. Discord format auto-detects caller names and strips role icons. Only equity members are imported.
+              Paste any format — one per line, comma separated, or mixed. Duplicates are skipped automatically.
             </p>
             <textarea value={pasteCallsText} onChange={e=>setPasteCallsText(e.target.value)} rows={10} autoFocus
               placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
               style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}}/>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <button onClick={async ()=>{
+              <button onClick={()=>{
                 const existing = new Set((hunt.calls||[]).map(c=>(c.slot||'').toLowerCase().trim()));
-                const text = pasteCallsText.trim();
-                const newCalls = [];
-                const skippedCallers = new Set();
-
-                // Normalize slot list for name correction using the full slot DB
-                const normalizedSlotMap = new Map(
-                  RAINBET_SLOTS.map(s => [s.toLowerCase().replace(/[^a-z0-9]/g,''), s])
-                );
-                const lookupSlot = async (input) => {
-                  const raw = input.trim();
-                  if (!raw || raw.length < 2 || raw.length > 80) return null;
-                  // Check local list first (fast path)
-                  const key = raw.toLowerCase().replace(/[^a-z0-9]/g,'');
-                  if (normalizedSlotMap.has(key)) return normalizedSlotMap.get(key);
-                  // Query the full slot DB API
-                  try {
-                    const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(raw)}`);
-                    if (Array.isArray(res) && res.length > 0) {
-                      // Exact match
-                      const exact = res.find(g => g.name.toLowerCase() === raw.toLowerCase());
-                      if (exact) return exact.name;
-                      // Input is fully contained in a result (e.g. "miami mayhem" → "Miami Mayhem")
-                      const contained = res.find(g => g.name.toLowerCase().includes(raw.toLowerCase()));
-                      if (contained) return contained.name;
-                      // Result starts with input
-                      const starts = res.find(g => g.name.toLowerCase().startsWith(raw.toLowerCase()));
-                      if (starts) return starts.name;
-                      // API returned results — trust the top one if it's reasonably close
-                      const first = res[0];
-                      const firstKey = first.name.toLowerCase().replace(/[^a-z0-9]/g,'');
-                      const score = Math.min(key.length, firstKey.length) / Math.max(key.length, firstKey.length);
-                      if (score >= 0.7) return first.name;
-                    }
-                  } catch {}
-                  return null;
-                };
-
-                // Build a set of equity member names (lowercase) for filtering
-                const equityNames = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()).filter(Boolean));
-
-                // Detect Discord format: has lines with a dash + time/date pattern
-                const isDiscordFormat = /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/i.test(text);
-
-                if (isDiscordFormat) {
-                  // Split into blocks at each header line (contains — or – followed by a time or date)
-                  const blocks = text.split(/\n(?=.*[—–]\s*\d{1,2}[:/])/);
-
-                  for (const block of blocks) {
-                    const lines = block.trim().split('\n').map(l => l.trim()).filter(Boolean);
-                    if (!lines.length) continue;
-
-                    // Identify the header line — must contain a time/date dash pattern
-                    const headerIdx = lines.findIndex(l => /[—–]\s*\d{1,2}:\d{2}/.test(l) || /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(l));
-                    if (headerIdx === -1) continue; // no valid header, skip block
-
-                    const headerLine = lines[headerIdx];
-
-                    // Extract caller: everything before the first comma, [TAG], or dash
-                    const callerMatch = headerLine.match(/^([^,\[—–]+)/);
-                    if (!callerMatch) continue;
-
-                    const caller = callerMatch[1]
-                      .replace(/role\s*icon/gi, '')  // strip "Role icon" / "Role Icon"
-                      .replace(/\[.*?\]/g, '')        // strip [TAG]
-                      .replace(/,/g, '')              // strip trailing commas
-                      .trim();
-
-                    // Skip blocks where caller name is empty (e.g. lines starting with [BEAN],)
-                    if (!caller) continue;
-
-                    // Skip if caller not in equity
-                    if (equityNames.size > 0 && !equityNames.has(caller.toLowerCase())) {
-                      skippedCallers.add(caller);
-                      continue;
-                    }
-
-                    // Slot lines: everything after the header
-                    const slotLines = lines.slice(headerIdx + 1);
-
-                    for (const line of slotLines) {
-                      const hasAtMention = /^@\S+/.test(line);
-                      // Strip ALL leading @mentions first
-                      let stripped = line.replace(/^(@\S+\s+)*/,'').trim();
-                      // Strip Discord emoji codes like :Fire: :Joy:
-                      stripped = stripped.replace(/:[a-zA-Z0-9_]+:/g, '').trim();
-                      // Strip trailing chat suffixes like GL, GG
-                      stripped = stripped.replace(/\s+(GL|GG|lol|haha|hehe|lmao|gl|gg|\bty\b)\s*$/i, '').trim();
-                      // Skip bare [TAG] lines
-                      if (!stripped || /^\[.*?\]$/.test(stripped)) continue;
-                      // Strip intro text before .. or : (e.g. "let's hit the classics.. America, Miami")
-                      const introMatch = stripped.match(/^[^,]+?(?:\.{2,}|:)\s*(.+)$/);
-                      if (introMatch) stripped = introMatch[1].trim();
-                      // Strip leading conversational openers (hey X, yo, ok, alright)
-                      stripped = stripped.replace(/^(?:hey\s+\S+\s+|yo\s+|ok\s+|alright\s+)/i, '');
-
-                      // Split by comma or slash
-                      const parts = stripped.split(/[,/]/).map(s => s.trim()).filter(Boolean);
-                      for (const part of parts) {
-                        // Also split "X and Y" when both sides are short (≤5 words)
-                        const andParts = part.split(/\s+and\s+/i);
-                        const candidates = (andParts.length > 1 && andParts.every(p => p.trim().split(/\s+/).length <= 5))
-                          ? andParts.map(p => p.trim())
-                          : [part];
-
-                        for (const candidate of candidates) {
-                          // Try to match against slot DB for correct casing
-                          let slot = await lookupSlot(candidate);
-                          // If API couldn't match but this came from an @mention line, trust it as-is
-                          if (!slot && hasAtMention && candidate.length > 1 && candidate.length < 80) {
-                            slot = candidate;
-                          }
-                          if (!slot) continue;
-                          if (!existing.has(slot.toLowerCase())) {
-                            existing.add(slot.toLowerCase());
-                            newCalls.push({ id: uid(), slot, status: 'pending', user: caller });
-                          }
-                        }
-                      }
-                    } // end for line
-                  } // end for block
-                } else {
-                  // Plain format: one per line or comma separated
-                  const candidates = text
-                    .split(/[\n,]/)
-                    .map(s => s.replace(/^[#\-•*\d.]+\s*/, '').trim())
-                    .filter(s => s.length > 1 && s.length < 80);
-                  const unique = [...new Map(candidates.map(s => [s.toLowerCase(), s])).values()];
-                  for (const raw of unique) {
-                    const slot = await lookupSlot(raw);
-                    if (!slot || existing.has(slot.toLowerCase())) continue;
-                    existing.add(slot.toLowerCase());
-                    newCalls.push({ id: uid(), slot, status: 'pending', user: '' });
-                  }
-                }
-
-                if (!newCalls.length) {
-                  const skipMsg = skippedCallers.size ? `\n\nSkipped (not in equity): ${[...skippedCallers].join(', ')}` : '';
-                  alert(`No new slot calls found.${skipMsg}`);
-                  return;
-                }
-                upd(h => ({ ...h, calls: [...(h.calls||[]), ...newCalls] }));
+                const raw = pasteCallsText
+                  .split(/[\n,]/)
+                  .map(s=>s.replace(/^[#\-•*\d.]+\s*/, '').trim())
+                  .filter(s=>s.length>1 && s.length<80 && !existing.has(s.toLowerCase().trim()));
+                const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
+                if(!unique.length){alert('No new slot calls found.');return;}
+                upd(h=>({...h,calls:[...(h.calls||[]),...unique.map(slot=>({id:uid(),slot,status:'pending',user:''}))]}));
                 setPasteCallsText('');
                 setShowPasteCalls(false);
-                const skipNote = skippedCallers.size ? `\nSkipped (not in equity): ${[...skippedCallers].join(', ')}` : '';
-                alert(`✅ Added ${newCalls.length} slot call${newCalls.length !== 1 ? 's' : ''}${skipNote}`);
+                alert(`✅ Added ${unique.length} slot call${unique.length!==1?'s':''}`);
               }} style={{height:38,padding:'0 20px',background:G.gold,color:'#000',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
                 Import Calls
               </button>
@@ -1476,7 +1270,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={(name)=>addCall(name)} placeholder="Search or type slot name…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
