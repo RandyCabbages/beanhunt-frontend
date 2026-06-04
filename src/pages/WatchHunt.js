@@ -12,7 +12,7 @@ export default function WatchHunt({ user }) {
   const [canAddCalls, setCanAddCalls] = useState(false);
   const saveTimer = useRef(null);
 
-  useEffect(() => {
+  const fetchHunt = useCallback(() => {
     apiFetch(`/api/hunts/${userId}`)
       .then(data => {
         setHunt(data);
@@ -20,37 +20,48 @@ export default function WatchHunt({ user }) {
         setCanAddCalls(!!data.canAddCalls);
       })
       .catch(() => setNotFound(true));
+  }, [userId]);
+
+  useEffect(() => {
+    fetchHunt();
 
     socket.emit('watch:hunt', userId);
-    // Tell server our identity so it can compute canEdit for us
-    if (user?.id) socket.emit('identify', user.id, user);
+    if (user?.id) socket.emit('identify', user.id);
 
     socket.on('hunt:update', data => {
       setHunt(data);
-      if (data && data.canEdit !== undefined) { setCanEdit(!!data.canEdit); setCanAddCalls(!!data.canAddCalls); }
+      // hunt:update comes from the server without canEdit/canAddCalls computed per-user,
+      // so re-fetch permissions whenever the hunt updates to keep Add Call button accurate
+      if (user?.id) {
+        apiFetch(`/api/hunts/${userId}`)
+          .then(d => {
+            setCanEdit(!!d.canEdit);
+            setCanAddCalls(!!d.canAddCalls);
+          })
+          .catch(() => {});
+      }
     });
 
-    // Owner invited/removed us — re-fetch to get updated canEdit
-    const onReinvite = () => {
-      apiFetch(`/api/hunts/${userId}`)
-        .then(data => {
-          setHunt(data);
-          setCanEdit(!!data.canEdit);
-          setCanAddCalls(!!data.canAddCalls);
-        })
-        .catch(() => {});
-    };
+    const onReinvite = () => fetchHunt();
     socket.on('hunt:reinvite', onReinvite);
 
     return () => { socket.off('hunt:update'); socket.off('hunt:reinvite', onReinvite); };
-  }, [userId]);
+  }, [userId, user?.id, fetchHunt]);
 
   const save = useCallback((newHunt) => {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       apiFetch(`/api/hunts/${userId}`, {
         method: 'PUT',
-        body: JSON.stringify({ bonuses: newHunt.bonuses, equity: newHunt.equity, calls: newHunt.calls, huntType: newHunt.huntType })
+        body: JSON.stringify({
+          bonuses:   newHunt.bonuses,
+          equity:    newHunt.equity,
+          calls:     newHunt.calls,
+          huntType:  newHunt.huntType,
+          callLimit: newHunt.callLimit,
+          huntMode:  newHunt.huntMode,
+          roundRobin: newHunt.roundRobin,
+        })
       }).catch(console.error);
     }, 500);
   }, [userId]);

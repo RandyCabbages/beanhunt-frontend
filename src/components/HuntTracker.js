@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { apiFetch, socket } from '../api';
+import { localAPI } from '../localAPI';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
@@ -122,18 +122,14 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
 
   const handleChange = v => {
     onChange(v);
-    clearTimeout(searchTimer.current);
     if (v.length >= 2) {
-      searchTimer.current = setTimeout(async () => {
-        try {
-          const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(v)}`);
-          setSuggestions(Array.isArray(res) ? res : []);
-          setOpen(true);
-        } catch {
-          setSuggestions([]);
-        }
-      }, 200);
-    } else { setSuggestions([]); setOpen(false); }
+      const filtered = RAINBET_SLOTS.filter(s => s.toLowerCase().includes(v.toLowerCase()));
+      setSuggestions(filtered.slice(0, 10));
+      setOpen(true);
+    } else {
+      setSuggestions([]);
+      setOpen(false);
+    }
   };
 
   const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
@@ -141,7 +137,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={async () => { if (value.length >= 2) { try { const res = await apiFetch(`/api/slots/search?q=${encodeURIComponent(value)}`); setSuggestions(Array.isArray(res)?res:[]); setOpen(true); } catch {} }}}
+        onFocus={async () => { if (value.length >= 2) { const filtered = RAINBET_SLOTS.filter(s => s.toLowerCase().includes(value.toLowerCase())); setSuggestions(filtered.slice(0, 10)); setOpen(true); } }}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
@@ -254,9 +250,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   }, [hunt.startedAt]);
 
   useEffect(() => {
-    apiFetch('/api/bean-live').then(setBeanLive).catch(()=>{});
-    socket.on('bean:live', setBeanLive);
-    return () => socket.off('bean:live', setBeanLive);
+    // Bean live feature removed for desktop version
+    setBeanLive({isLive:false,title:''});
   }, []);
 
 
@@ -283,31 +278,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   }, [huntHistory, onUpdateHunt]);
 
   const importDiscordCalls = useCallback(async () => {
-    setDcImporting(true);
-    try {
-      const data = await apiFetch('/api/discord/import-calls');
-      if (!data.imported?.length) { alert('No new slot calls found in the last 20 minutes.'); return; }
-      upd(h => ({ ...h, calls: [...(h.calls||[]), ...data.imported] }));
-      alert(`✅ Imported ${data.count} slot call${data.count!==1?'s':''} from Discord.`);
-    } catch(e) { alert(`Discord import failed: ${e.message}`); }
-    finally { setDcImporting(false); }
-  }, [upd]);
+    alert('Discord import not available in desktop version');
+  }, []);
 
   const parseDiscordWinners = useCallback(async (defAmt) => {
-    setDcWinners(true);
-    try {
-      const data = await apiFetch('/api/discord/parse-winners');
-      if (!data.winners?.length) { alert(data.raw || 'No winner results found.'); return; }
-      const existing = new Set((hunt.equity||[]).map(e=>(e.name||'').toLowerCase().trim()));
-      const newWinners = data.winners
-        .filter(w => !existing.has(w.name.toLowerCase().trim()))
-        .map(w => ({ id: `w_${w.place}_${Date.now()}`, name: w.name, amount: defAmt||100, isRollWinner: true, roll: w.roll, luck: w.luck }));
-      if (!newWinners.length) { alert('All winners are already in equity.'); return; }
-      upd(h => ({ ...h, equity: [...(h.equity||[]), ...newWinners] }));
-      alert(`✅ Added ${newWinners.length} winner${newWinners.length!==1?'s':''} to equity.`);
-    } catch(e) { alert(`Parse failed: ${e.message}`); }
-    finally { setDcWinners(false); }
-  }, [upd, hunt.equity]);
+    alert('Discord winner parsing not available in desktop version');
+  }, []);
 
   const changeMode = mode => { setHuntMode(mode); upd(h=>({...h, huntMode:mode})); };
 
@@ -366,10 +342,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCallSlot(''); setCallModal(true);
   };
 
-  const addCall = async (slotOverride) => {
-    const slotVal = (slotOverride !== undefined ? slotOverride : callSlot).trim();
-    if (!callName||!slotVal) return;
-    const slots = slotVal.split(',');
+  const addCall = async () => {
+    if (!callName||!callSlot.trim()) return;
+    const slots = callSlot.split(',');
     const newCalls = [];
     for (const raw of slots) {
       const s=raw.trim(); if(!s) continue;
@@ -378,8 +353,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt) {
-        try { await apiFetch(`/api/hunts/${hunt.user?.id}/calls`,{method:'POST',body:JSON.stringify({slot:slotVal})}); }
-        catch(e){alert(e.message);return;}
+        // API call removed for desktop version - using local storage
+        upd(h=>({...h,calls:[...h.calls,...newCalls]}));
       } else if (huntMode==='creating') {
         upd(h=>({...h,calls:[...h.calls,...newCalls]}));
       } else {
@@ -414,12 +389,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const sendInvite = async () => {
     if(!inviteUser.trim()) return;
-    try { const res=await apiFetch('/api/my-hunt/invite',{method:'POST',body:JSON.stringify({username:inviteUser.trim()})});setInviteList(res.invitedEditors||[]);setInviteUser(''); }
-    catch(e){alert('Failed — check the username');}
+    // Invite feature removed for desktop version
+    alert('Invite feature not available in desktop version');
   };
   const removeInvite = async u => {
-    try { const res=await apiFetch('/api/my-hunt/invite',{method:'DELETE',body:JSON.stringify({username:u})});setInviteList(res.invitedEditors||[]); }
-    catch(e){}
+    // Invite feature removed for desktop version
   };
   const copyResults = () => {
     const sorted=equity.slice().sort((a,b)=>b.amount-a.amount);
@@ -438,25 +412,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const pending = queue.filter(c=>c.status==='pending');
   const done    = queue.filter(c=>c.status==='out');
   const canEdit = !readOnly && !!onUpdateHunt;
-  useEffect(() => {
-    const onNewReq = (data) => setCallRequests(data.requests || []);
-    const onUpdate = (data) => setCallRequests(data.requests || []);
-    const onGranted = (data) => { if (user?.id === data.userId) setReqStatus('granted'); };
-    const onDenied  = (data) => { if (user?.id === data.userId) setReqStatus('denied'); };
-    socket.on('calls:request:new',    onNewReq);
-    socket.on('calls:request:update', onUpdate);
-    socket.on('calls:granted',        onGranted);
-    socket.on('calls:denied',         onDenied);
-    if (!readOnly && onUpdateHunt && hunt.user?.id) {
-      apiFetch(`/api/hunts/${hunt.user.id}/call-requests`).then(setCallRequests).catch(()=>{});
-    }
-    return () => {
-      socket.off('calls:request:new', onNewReq);
-      socket.off('calls:request:update', onUpdate);
-      socket.off('calls:granted', onGranted);
-      socket.off('calls:denied', onDenied);
-    };
-  }, [readOnly, hunt.user?.id, user?.id]);
+  // Socket.io removed for desktop version
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
   /* ── Modal base style ── */
@@ -644,27 +600,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 </button>
                 {/* Call Limit */}
                 <button onClick={()=>{setLimitInput(String(callLimit));setLimitModal(true);}} title={callLimit?`Limit: ${callLimit}/person`:'Set call limit'}
-                  style={{height:26,width:26,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',position:'relative',transition:'all .1s'}}
+                  style={{height:26,width:26,background:callLimit?acDim:'transparent',border:`1px solid ${callLimit?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:callLimit?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s',fontFamily:G.mono,fontSize:callLimit>9?9:11,fontWeight:700}}
                   onMouseEnter={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}}
                   onMouseLeave={e=>{if(!callLimit){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  {callLimit>0&&<span style={{position:'absolute',top:-4,right:-4,background:accent,color:'#000',borderRadius:'50%',width:13,height:13,fontSize:7,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:G.mono}}>{callLimit}</span>}
+                  {callLimit>0
+                    ? <span>{callLimit}</span>
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  }
+                </button>
+                {/* Round Robin toggle */}
+                <button onClick={()=>upd(h=>({...h,roundRobin:!h.roundRobin}))} title={hunt.roundRobin?'Round Robin: ON':'Round Robin: OFF'}
+                  style={{height:26,width:26,background:hunt.roundRobin?acDim:'transparent',border:`1px solid ${hunt.roundRobin?accent:G.bdr}`,borderRadius:4,cursor:'pointer',color:hunt.roundRobin?accent:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s',fontFamily:G.mono,fontSize:8,fontWeight:700,letterSpacing:'-0.03em'}}
+                  onMouseEnter={e=>{if(!hunt.roundRobin){e.currentTarget.style.borderColor=G.t2;e.currentTarget.style.color=G.t1;}}}
+                  onMouseLeave={e=>{if(!hunt.roundRobin){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}}>
+                  RR
                 </button>
               </>}
               {!canEdit && !canAddCalls && user && hunt.isLive && (huntMode==='creating'||huntMode==='spinning') && (
                 <button onClick={async()=>{
-                  if(reqStatus==='pending'){alert('Your request is already pending.');return;}
-                  if(reqStatus==='granted'){return;}
-                  try{
-                    const r=await apiFetch(`/api/hunts/${hunt.user?.id}/request-calls`,{method:'POST'});
-                    setReqStatus(r.status==='already_member'?'granted':r.status==='pending'?'pending':'pending');
-                    if(r.status!=='already_member') alert('✅ Request sent! Waiting for host approval.');
-                  }catch(e){alert('Failed to send request.');}
+                  // Request calls feature removed for desktop version
+                  alert('This feature is not available in desktop version');
                 }} style={{height:26,padding:'0 10px',background:reqStatus==='granted'?'rgba(198,241,53,0.15)':reqStatus==='pending'?'rgba(251,146,60,0.12)':'rgba(88,101,242,0.12)',border:`1px solid ${reqStatus==='granted'?'rgba(198,241,53,0.4)':reqStatus==='pending'?'rgba(251,146,60,0.4)':'rgba(88,101,242,0.4)'}`,borderRadius:4,fontFamily:G.mono,fontSize:9,fontWeight:700,color:reqStatus==='granted'?G.gold:reqStatus==='pending'?'#fb923c':'#a5b4fc',cursor:reqStatus?'default':'pointer',whiteSpace:'nowrap'}}>
                   {reqStatus==='granted'?'✓ Access Granted':reqStatus==='pending'?'⏳ Pending…':'🙋 Request to Add Calls'}
                 </button>
               )}
-              <span style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{pending.length}</span>
+
             </div>
           </div>
 
@@ -1113,10 +1073,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   </div>
                   <div style={{display:'flex',gap:6,flexShrink:0}}>
                     <button onClick={async()=>{
-                      await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`,{method:'POST',body:JSON.stringify({action:'grant'})});
+                      // Grant/deny removed for desktop version
+                      alert('This feature is not available in desktop version');
                     }} style={{height:28,padding:'0 12px',background:'rgba(198,241,53,0.15)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>✓ Allow</button>
                     <button onClick={async()=>{
-                      await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`,{method:'POST',body:JSON.stringify({action:'deny'})});
+                      // Grant/deny removed for desktop version
+                      alert('This feature is not available in desktop version');
                     }} style={{height:28,padding:'0 12px',background:'rgba(255,68,68,0.1)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Deny</button>
                   </div>
                 </div>
@@ -1270,7 +1232,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={(name)=>addCall(name)} placeholder="Search or type slot name…" />
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
