@@ -1222,11 +1222,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   for (const block of blocks) {
                     const hm = block.header.match(HEADER_RE);
                     if (!hm) continue;
-                    // Group 2 is the raw caller field
+                    // Group 2 is the raw caller field — strip all Discord noise
                     let caller = hm[2]
-                      .replace(/Role\s*icon/gi, '')   // strip Discord role badge text
-                      .replace(/\[.*?\]/g, '')         // strip [BEAN] [LR] etc
-                      .replace(/,\s*$/, '')            // trailing comma
+                      .replace(/Role\s*icon/gi, '')        // "Role icon" badge text
+                      .replace(/\[.*?\]/g, '')              // [BEAN] [LR] [GUNZ] [VIP] etc
+                      .replace(/\bVIP\b/gi, '')             // standalone "VIP" label
+                      .replace(/,\s*$/, '')                 // trailing comma
                       .trim();
                     if (!caller) continue;
 
@@ -1238,7 +1239,41 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     });
                     if (!inEquity) { skippedCallers.add(caller); continue; }
 
-                    for (const line of block.lines) {
+                    // Use the canonical equity name (as stored) rather than the raw parsed caller
+                    const equityEntry = equity.find(e => {
+                      if (!e.name) return false;
+                      const n = e.name.toLowerCase().trim();
+                      const nNoSp = n.replace(/\s+/g,'');
+                      return n===callerLow||nNoSp===callerNoSp||n.includes(callerLow)||callerLow.includes(n);
+                    });
+                    const canonicalCaller = equityEntry?.name || caller;
+
+                    // Extract anything after the timestamp on the header line itself
+                    const afterTimestamp = block.header
+                      .replace(HEADER_RE, '')
+                      .replace(/^\s*at\s+\d{1,2}:\d{2}\s*(AM|PM)?\s*/i, '')
+                      .trim();
+                    const allLines = [...(afterTimestamp ? [afterTimestamp] : []), ...block.lines];
+
+                    // Slot lookup helper — fuzzy match against _cachedSlots, return canonical name + thumb
+                    const resolveSlot = (raw) => {
+                      if (!_cachedSlots.length) return { name: raw, thumb: null };
+                      const q = raw.toLowerCase().trim();
+                      // 1. Exact match
+                      let match = _cachedSlots.find(s => s.name.toLowerCase() === q);
+                      // 2. Starts-with match
+                      if (!match) match = _cachedSlots.find(s => s.name.toLowerCase().startsWith(q));
+                      // 3. Contains match (input contains slot name or vice versa)
+                      if (!match) match = _cachedSlots.find(s => {
+                        const sn = s.name.toLowerCase();
+                        return sn.includes(q) || q.includes(sn);
+                      });
+                      if (match) return { name: match.name, thumb: match.thumb || null };
+                      // No match — title-case the raw input
+                      const titled = raw.replace(/\b\w/g, c => c.toUpperCase());
+                      return { name: titled, thumb: null };
+                    };
+                    for (const line of allLines) {
                       const hasAtMention = /@\S+/.test(line);
                       // Strip @mentions to get slot content
                       const content = line.replace(/@\S+\s*/g,'').trim();
@@ -1260,28 +1295,41 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       // Split on comma, slash, and ". " (period-space between words = separator)
                       const parts = cleaned.split(/[,/]|(?<=[a-zA-Z])\.\s+(?=[A-Za-z])/);
                       for (const p of parts) {
-                        let slot = p
+                        let slotRaw = p
                           .replace(/:[a-zA-Z0-9_]+:/g,'')  // :discord_emoji:
                           .replace(/\[.*?\]/g,'')            // [tags]
                           .trim();
                         // Skip bare numbers or "N."
-                        if (!slot || /^\d+\.?$/.test(slot)) continue;
-                        if (slot.length < 2 || slot.length > 80) continue;
-                        if (!existing.has(slot.toLowerCase().trim())) {
-                          existing.add(slot.toLowerCase().trim());
-                          newCalls.push({id:uid(), slot, user:caller, status:'pending'});
+                        if (!slotRaw || /^\d+\.?$/.test(slotRaw)) continue;
+                        if (slotRaw.length < 2 || slotRaw.length > 80) continue;
+                        if (!existing.has(slotRaw.toLowerCase().trim())) {
+                          existing.add(slotRaw.toLowerCase().trim());
+                          const { name: slot, thumb } = resolveSlot(slotRaw);
+                          newCalls.push({id:uid(), slot, thumb, user:canonicalCaller, status:'pending'});
                         }
                       }
                     }
                   }
                 } else {
                   // Plain format: one per line or comma separated, no caller attribution
+                  const resolveSlot = (raw) => {
+                    if (!_cachedSlots.length) return { name: raw, thumb: null };
+                    const q = raw.toLowerCase().trim();
+                    let match = _cachedSlots.find(s => s.name.toLowerCase() === q);
+                    if (!match) match = _cachedSlots.find(s => s.name.toLowerCase().startsWith(q));
+                    if (!match) match = _cachedSlots.find(s => { const sn=s.name.toLowerCase(); return sn.includes(q)||q.includes(sn); });
+                    if (match) return { name: match.name, thumb: match.thumb || null };
+                    return { name: raw.replace(/\b\w/g,c=>c.toUpperCase()), thumb: null };
+                  };
                   const raw = text
                     .split(/[\n,]/)
                     .map(s => s.replace(/^[#\-•*\d.]+\s*/,'').replace(/:[a-zA-Z0-9_]+:/g,'').trim())
                     .filter(s => s.length > 1 && s.length < 80 && !existing.has(s.toLowerCase().trim()));
                   const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
-                  unique.forEach(slot => newCalls.push({id:uid(), slot, user:'', status:'pending'}));
+                  unique.forEach(slotRaw => {
+                    const { name: slot, thumb } = resolveSlot(slotRaw);
+                    newCalls.push({id:uid(), slot, thumb, user:'', status:'pending'});
+                  });
                 }
 
                 if (!newCalls.length) {
