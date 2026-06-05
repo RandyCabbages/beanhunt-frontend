@@ -38,10 +38,11 @@ async function fetchSlots() {
   if (_cachedSlots.length) return _cachedSlots;
   try {
     const res = await apiFetch('/api/slots/search?q=&limit=9999');
-    if (Array.isArray(res)) {
-      _cachedSlots = res.map(s => ({ name: s.name, thumb: s.thumb || null }));
+    if (Array.isArray(res) && res.length > 0) {
+      _cachedSlots = res.filter(s => s && s.name).map(s => ({ name: s.name, thumb: s.thumb || null }));
+      console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
     }
-  } catch(e) {}
+  } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
   return _cachedSlots;
 }
 
@@ -153,9 +154,22 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const search = useCallback(v => {
     if (v.length < 2) { setSuggestions([]); setOpen(false); return; }
     const q = v.toLowerCase();
-    const filtered = allSlotsRef.current.filter(s => s.name.toLowerCase().includes(q));
+    const pool = allSlotsRef.current;
+    const filtered = pool.filter(s => s && s.name && s.name.toLowerCase().includes(q));
+    // Sort: exact starts-with first, then word-starts-with, then contains
+    filtered.sort((a, b) => {
+      const an = a.name.toLowerCase(), bn = b.name.toLowerCase();
+      const aStarts = an.startsWith(q), bStarts = bn.startsWith(q);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      const aWordStarts = an.split(/\s+/).some(w => w.startsWith(q));
+      const bWordStarts = bn.split(/\s+/).some(w => w.startsWith(q));
+      if (aWordStarts && !bWordStarts) return -1;
+      if (!aWordStarts && bWordStarts) return 1;
+      return an.localeCompare(bn);
+    });
     setSuggestions(filtered.slice(0, 12));
-    setOpen(true);
+    setOpen(filtered.length > 0);
   }, []);
 
   const handleChange = v => { onChange(v); search(v); };
