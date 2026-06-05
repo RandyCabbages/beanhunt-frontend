@@ -1077,10 +1077,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Adds a blank roll winner row at the standard ${'{'}defAmt{'}'} per person amount. Enter their name after.</div>
                 </div>}
               </button>}
-              {canEdit && <button
-                onClick={()=>setShowTipsModal(true)}
-                title="Parse tips from Rainbet chat"
-                style={{height:34,padding:'0 11px',background:'rgba(52,211,153,0.12)',border:'1px solid rgba(52,211,153,0.35)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#6ee7b7',cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
               <button
                 onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{addPerson();setEqTooltip(null);}}
