@@ -60,18 +60,23 @@ export default function MyHunt({ user }) {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Join socket room so equity member calls appear instantly
+    // Join socket room so admin/editor changes and equity calls appear instantly
     socket.emit('watch:hunt', user.id);
     socket.emit('identify', user.id);
     const onHuntUpdate = (data) => {
-      // Only update calls from socket — don't overwrite local edits to bonuses/equity
       setHunt(prev => {
         if (!prev) return prev;
-        // If calls changed (equity member added one), update them
-        if (JSON.stringify(data.calls) !== JSON.stringify(prev.calls)) {
-          return { ...prev, calls: data.calls };
-        }
-        return prev;
+        // Merge all server-side fields — this handles admin edits, equity calls, mode changes
+        return {
+          ...prev,
+          bonuses:    data.bonuses    ?? prev.bonuses,
+          calls:      data.calls      ?? prev.calls,
+          equity:     data.equity     ?? prev.equity,
+          huntMode:   data.huntMode   ?? prev.huntMode,
+          callLimit:  data.callLimit  ?? prev.callLimit,
+          roundRobin: data.roundRobin ?? prev.roundRobin,
+          isLive:     data.isLive     ?? prev.isLive,
+        };
       });
     };
     socket.on('hunt:update', onHuntUpdate);
@@ -98,20 +103,17 @@ export default function MyHunt({ user }) {
   }, [offline, user]);
 
   const startOnlineHunt = async (huntType) => {
-    try {
-      await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
-      const emptyHunt = EMPTY_HUNT(user, huntType);
-      if (emptyHunt.equity.length > 0) {
-        await apiFetch('/api/my-hunt', {
-          method: 'PUT',
-          body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
-        }).catch(()=>{});
-      }
-      setHunt(emptyHunt);
-      setStarted(true); setOffline(false);
-    } catch(e) {
-      alert(e.message || 'Failed to start hunt — try refreshing the page');
+    await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
+    const emptyHunt = EMPTY_HUNT(user, huntType);
+    // Save initial equity (including creator) to server immediately
+    if (emptyHunt.equity.length > 0) {
+      await apiFetch('/api/my-hunt', {
+        method: 'PUT',
+        body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
+      }).catch(()=>{});
     }
+    setHunt(emptyHunt);
+    setStarted(true); setOffline(false);
   };
 
   const startOfflineHunt = (huntType) => {
@@ -121,12 +123,8 @@ export default function MyHunt({ user }) {
 
   const goLive = async () => {
     if (offline) return;
-    try {
-      await apiFetch('/api/my-hunt/golive', { method: 'POST' });
-      setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
-    } catch(e) {
-      alert(e.message || 'Failed to go live — try refreshing the page');
-    }
+    await apiFetch('/api/my-hunt/golive', { method: 'POST' });
+    setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
   };
 
   const endHunt = async () => {
