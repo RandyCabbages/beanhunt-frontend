@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { apiFetch, socket } from '../api';
 import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
@@ -36,7 +37,6 @@ let _cachedSlots = [];
 async function fetchSlots() {
   if (_cachedSlots.length) return _cachedSlots;
   try {
-    const { apiFetch } = await import('../api');
     const res = await apiFetch('/api/slots/search?q=&limit=9999');
     if (Array.isArray(res)) {
       _cachedSlots = res.map(s => ({ name: s.name, thumb: s.thumb || null }));
@@ -262,9 +262,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   }, [hunt.startedAt]);
 
   useEffect(() => {
-    // Bean live feature removed for desktop version
-    setBeanLive({isLive:false,title:''});
-  }, []);
+    // Bean live status
+    apiFetch('/api/bean-live').then(d => setBeanLive(d)).catch(()=>{});
+    const onBeanLive = d => setBeanLive(d);
+    socket.on('bean:live', onBeanLive);
+
+    // Call request notifications (hunt owner sees incoming requests)
+    const onReqNew = ({ requests }) => setCallRequests(requests||[]);
+    const onReqUpd = ({ requests }) => setCallRequests(requests||[]);
+    socket.on('calls:request:new', onReqNew);
+    socket.on('calls:request:update', onReqUpd);
+
+    // Equity member gets notified their request was granted/denied
+    const onGranted = ({ userId }) => { if (user?.id === userId) setReqStatus('granted'); };
+    const onDenied  = ({ userId }) => { if (user?.id === userId) setReqStatus('denied'); };
+    socket.on('calls:granted', onGranted);
+    socket.on('calls:denied',  onDenied);
+
+    return () => {
+      socket.off('bean:live', onBeanLive);
+      socket.off('calls:request:new', onReqNew);
+      socket.off('calls:request:update', onReqUpd);
+      socket.off('calls:granted', onGranted);
+      socket.off('calls:denied',  onDenied);
+    };
+  }, [user?.id]);
 
 
 
@@ -289,13 +311,33 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setTimeout(() => setSaveStatus(''), 2800);
   }, [huntHistory, onUpdateHunt]);
 
-  const importDiscordCalls = useCallback(async () => {
-    alert('Discord import not available in desktop version');
-  }, []);
-
   const parseDiscordWinners = useCallback(async (defAmt) => {
-    alert('Discord winner parsing not available in desktop version');
-  }, []);
+    if (dcWinners) return;
+    setDcWinners(true);
+    try {
+      const data = await apiFetch('/api/discord/parse-winners');
+      if (!data.winners?.length) { alert('No winners found in Discord.'); setDcWinners(false); return; }
+      const allWinnerNames = new Set(data.winners.map(w => w.name.toLowerCase().trim()));
+      upd(h => {
+        const mergedEq = h.equity.map(e => {
+          const n = (e.name||'').toLowerCase().trim();
+          if (n === 'bean' || e.id === 'bean_auto') return e;
+          if (n && allWinnerNames.has(n)) {
+            allWinnerNames.delete(n);
+            const prevRoll = e.rollAmount||0;
+            return {...e, amount: parseFloat((e.amount + defAmt).toFixed(2)), rollAmount: parseFloat((prevRoll + defAmt).toFixed(2)), isRollWinner: true};
+          }
+          return e;
+        });
+        const existingNames = new Set(mergedEq.map(e=>(e.name||'').toLowerCase().trim()));
+        const newWinners = data.winners
+          .filter(w => allWinnerNames.has(w.name.toLowerCase().trim()))
+          .map(w => ({id:uid(), name:w.name, amount:defAmt, isRollWinner:true}));
+        return {...h, equity: [...mergedEq, ...newWinners]};
+      });
+    } catch(e) { alert(e.message||'Failed to fetch winners'); }
+    setDcWinners(false);
+  }, [dcWinners, upd]);
 
   const changeMode = mode => { setHuntMode(mode); upd(h=>({...h, huntMode:mode})); };
 
@@ -364,9 +406,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       newCalls.push({id:uid(),slot:s,user:callName,status:'pending'});
     }
     if (newCalls.length) {
-      if (canAddCalls && !onUpdateHunt) {
-        // API call removed for desktop version - using local storage
-        upd(h=>({...h,calls:[...h.calls,...newCalls]}));
+      if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
+        // Equity member — POST each call to the backend so it persists and broadcasts to the hunt owner
+        for (const c of newCalls) {
+          try {
+            await apiFetch(`/api/hunts/${hunt.user.id}/calls`, {
+              method: 'POST',
+              body: JSON.stringify({ slot: c.slot })
+            });
+          } catch(e) {
+            alert(e.message || 'Failed to add call');
+          }
+        }
+        // Local state will be updated via the hunt:update socket event
       } else if (huntMode==='creating') {
         upd(h=>({...h,calls:[...h.calls,...newCalls]}));
       } else {
@@ -401,12 +453,18 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const setLimit       = ()          => { upd(h=>({...h,callLimit:parseInt(limitInput)||0})); setLimitModal(false); };
 
   const sendInvite = async () => {
-    if(!inviteUser.trim()) return;
-    // Invite feature removed for desktop version
-    alert('Invite feature not available in desktop version');
+    if (!inviteUser.trim()) return;
+    try {
+      const data = await apiFetch('/api/my-hunt/invite', { method:'POST', body: JSON.stringify({ username: inviteUser.trim() }) });
+      setInviteList(data.invitedEditors || []);
+      setInviteUser('');
+    } catch(e) { alert(e.message||'Failed to invite'); }
   };
   const removeInvite = async u => {
-    // Invite feature removed for desktop version
+    try {
+      const data = await apiFetch('/api/my-hunt/invite', { method:'DELETE', body: JSON.stringify({ username: u }) });
+      setInviteList(data.invitedEditors || []);
+    } catch(e) { alert(e.message||'Failed to remove invite'); }
   };
   const copyResults = () => {
     const sorted=equity.slice().sort((a,b)=>b.amount-a.amount);
@@ -425,7 +483,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const pending = queue.filter(c=>c.status==='pending');
   const done    = queue.filter(c=>c.status==='out');
   const canEdit = !readOnly && !!onUpdateHunt;
-  // Socket.io removed for desktop version
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
   /* ── Modal base style ── */
@@ -583,7 +640,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
             <div style={{display:'flex',alignItems:'center',gap:3}}>
               {canEdit && <>
-                {/* Parse Calls */}
+                {/* Discord auto-import calls */}
+                <button onClick={async()=>{
+                  if (dcImporting) return;
+                  setDcImporting(true);
+                  try {
+                    const data = await apiFetch('/api/discord/import-calls');
+                    if (!data.imported?.length) { alert('No new calls found in Discord.'); setDcImporting(false); return; }
+                    upd(h=>({...h,calls:[...(h.calls||[]),...data.imported]}));
+                    alert(`✅ Imported ${data.count} call${data.count!==1?'s':''} from Discord`);
+                  } catch(e) { alert(e.message||'Failed to import from Discord'); }
+                  setDcImporting(false);
+                }} title="Auto-import calls from Discord"
+                  style={{height:26,width:26,background:dcImporting?'rgba(88,101,242,0.15)':'transparent',border:`1px solid ${dcImporting?'rgba(88,101,242,0.5)':G.bdr}`,borderRadius:4,cursor:dcImporting?'default':'pointer',color:dcImporting?'#a5b4fc':G.t2,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
+                  onMouseEnter={e=>{if(!dcImporting){e.currentTarget.style.borderColor='rgba(88,101,242,0.5)';e.currentTarget.style.color='#a5b4fc';}}}
+                  onMouseLeave={e=>{if(!dcImporting){e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t2;}}}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                </button>
+                {/* Paste calls */}
                 <button onClick={()=>setShowPasteCalls(true)} title="Paste slot calls"
                   style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t2,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor=G.gold;e.currentTarget.style.color=G.gold;}}
@@ -631,8 +705,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </>}
               {!canEdit && !canAddCalls && user && hunt.isLive && (huntMode==='creating'||huntMode==='spinning') && (
                 <button onClick={async()=>{
-                  // Request calls feature removed for desktop version
-                  alert('This feature is not available in desktop version');
+                  if (reqStatus) return;
+                  try {
+                    const data = await apiFetch(`/api/hunts/${hunt.user?.id}/request-calls`, { method:'POST' });
+                    setReqStatus(data.status === 'already_member' ? 'granted' : 'pending');
+                  } catch(e) { alert(e.message||'Failed to send request'); }
                 }} style={{height:26,padding:'0 10px',background:reqStatus==='granted'?'rgba(198,241,53,0.15)':reqStatus==='pending'?'rgba(251,146,60,0.12)':'rgba(88,101,242,0.12)',border:`1px solid ${reqStatus==='granted'?'rgba(198,241,53,0.4)':reqStatus==='pending'?'rgba(251,146,60,0.4)':'rgba(88,101,242,0.4)'}`,borderRadius:4,fontFamily:G.mono,fontSize:9,fontWeight:700,color:reqStatus==='granted'?G.gold:reqStatus==='pending'?'#fb923c':'#a5b4fc',cursor:reqStatus?'default':'pointer',whiteSpace:'nowrap'}}>
                   {reqStatus==='granted'?'✓ Access Granted':reqStatus==='pending'?'⏳ Pending…':'🙋 Request to Add Calls'}
                 </button>
@@ -1037,34 +1114,105 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       {/* ── Paste Slot Calls Modal ── */}
       {canEdit && showPasteCalls && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowPasteCalls(false)}>
-          <div style={{background:G.card,border:`1px solid rgba(198,241,53,0.3)`,borderRadius:10,padding:'1.5rem',width:500,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
+          <div style={{background:G.card,border:`1px solid rgba(198,241,53,0.3)`,borderRadius:10,padding:'1.5rem',width:540,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
               <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,color:G.gold,letterSpacing:'0.04em'}}>📋 PARSE SLOT CALLS</span>
               <button onClick={()=>setShowPasteCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:20}}>×</button>
             </div>
             <p style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:10,lineHeight:1.6}}>
-              Paste any format — one per line, comma separated, or mixed. Duplicates are skipped automatically.
+              Paste Discord chat or plain slot names. Discord format auto-detects caller names and only imports calls from equity members.
             </p>
             <textarea value={pasteCallsText} onChange={e=>setPasteCallsText(e.target.value)} rows={10} autoFocus
-              placeholder={"Gates of Olympus\nSweet Bonanza, Wanted Dead or a Wild\nBig Bass Splash"}
+              placeholder={"Paste Discord chat or plain slot names here…"}
               style={{width:'100%',background:G.bg,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t1,resize:'vertical',lineHeight:1.6,marginBottom:10}}/>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <button onClick={()=>{
                 const existing = new Set((hunt.calls||[]).map(c=>(c.slot||'').toLowerCase().trim()));
-                const raw = pasteCallsText
-                  .split(/[\n,]/)
-                  .map(s=>s.replace(/^[#\-•*\d.]+\s*/, '').trim())
-                  .filter(s=>s.length>1 && s.length<80 && !existing.has(s.toLowerCase().trim()));
-                const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
-                if(!unique.length){alert('No new slot calls found.');return;}
-                upd(h=>({...h,calls:[...(h.calls||[]),...unique.map(slot=>({id:uid(),slot,status:'pending',user:''}))]}));
+                const text = pasteCallsText.trim();
+                const newCalls = [];
+                const equityNames = equity.filter(e=>e.name).map(e=>e.name.toLowerCase().trim());
+                const skippedCallers = new Set();
+
+                // Detect Discord format: blocks starting with "Name [TAG], — timestamp" or "Name — timestamp"
+                const isDiscordFormat = /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(text) || /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text);
+
+                if (isDiscordFormat) {
+                  // Split into message blocks — each starts with a header line containing a dash + date/time
+                  const blocks = text.split(/\n(?=.+[—–])/);
+                  blocks.forEach(block => {
+                    const lines = block.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+                    if (!lines.length) return;
+
+                    // Header: "Drakdude25Role icon, VIP — 5/27/2026 7:15 PM" or "Amerish88 — 10:49 AM"
+                    const headerLine = lines[0];
+                    const callerMatch = headerLine.match(/^([^,—–]+)/);
+                    const caller = callerMatch
+                      ? callerMatch[1]
+                          .replace(/Role\s*icon/gi, '')  // strip "Role icon" suffix
+                          .replace(/\[.*?\]/g, '')        // strip [TAG]
+                          .trim()
+                      : '';
+
+                    if (!caller) return;
+
+                    // Check if caller is in equity (case-insensitive, space-insensitive)
+                    const callerLow = caller.toLowerCase().trim();
+                    const callerNoSp = callerLow.replace(/\s+/g,'');
+                    const inEquity = equityNames.some(n => {
+                      const nNoSp = n.replace(/\s+/g,'');
+                      return n === callerLow || nNoSp === callerNoSp || n.includes(callerLow) || callerLow.includes(n);
+                    });
+
+                    if (!inEquity) { skippedCallers.add(caller); return; }
+
+                    // Parse slot lines — skip header, skip chat lines, extract slots
+                    const slotLines = lines.slice(1);
+                    for (const line of slotLines) {
+                      // Skip lines that look like chat
+                      const stripped = line.replace(/^(@\S+\s*)*/,'').trim(); // strip @mentions
+                      if (!stripped) continue;
+                      // Skip if it looks like chat (too many words, question marks, common chat words)
+                      const wordCount = stripped.split(/\s+/).length;
+                      if (wordCount > 8 || /[?!]$/.test(stripped)) continue;
+                      if (/\b(the|is|are|was|were|my|your|this|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|omg|wtf)\b/i.test(stripped)) continue;
+                      // Skip bare [TAG] lines
+                      if (/^\[.*?\]$/.test(stripped)) continue;
+
+                      // Split by comma or slash
+                      stripped.split(/[,/]/).forEach(s => {
+                        const slot = s.replace(/:[a-zA-Z0-9_]+:/g,'').replace(/\[.*?\]/g,'').trim(); // strip discord emoji codes and tags
+                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase().trim())) {
+                          existing.add(slot.toLowerCase().trim());
+                          newCalls.push({id:uid(), slot, user:caller, status:'pending'});
+                        }
+                      });
+                    }
+                  });
+                } else {
+                  // Plain format: one per line or comma separated, no caller attribution
+                  const raw = text
+                    .split(/[\n,]/)
+                    .map(s => s.replace(/^[#\-•*\d.]+\s*/,'').replace(/:[a-zA-Z0-9_]+:/g,'').trim())
+                    .filter(s => s.length > 1 && s.length < 80 && !existing.has(s.toLowerCase().trim()));
+                  const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
+                  unique.forEach(slot => newCalls.push({id:uid(), slot, user:'', status:'pending'}));
+                }
+
+                if (!newCalls.length) {
+                  const msg = skippedCallers.size
+                    ? `No calls added. Skipped non-equity callers: ${[...skippedCallers].join(', ')}`
+                    : 'No new slot calls found.';
+                  alert(msg); return;
+                }
+                upd(h=>({...h,calls:[...(h.calls||[]),...newCalls]}));
                 setPasteCallsText('');
                 setShowPasteCalls(false);
-                alert(`✅ Added ${unique.length} slot call${unique.length!==1?'s':''}`);
+                const skipMsg = skippedCallers.size ? ` (skipped: ${[...skippedCallers].join(', ')})` : '';
+                alert(`✅ Added ${newCalls.length} slot call${newCalls.length!==1?'s':''}${skipMsg}`);
               }} style={{height:38,padding:'0 20px',background:G.gold,color:'#000',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
                 Import Calls
               </button>
-              <button onClick={()=>{setPasteCallsText('');}} style={{height:38,padding:'0 14px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:6,fontFamily:G.body,fontSize:13,color:G.t3,cursor:'pointer'}}>Clear</button>
+              <button onClick={()=>setPasteCallsText('')} style={{height:38,padding:'0 14px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:6,fontFamily:G.body,fontSize:13,color:G.t3,cursor:'pointer'}}>Clear</button>
             </div>
           </div>
         </div>
@@ -1092,12 +1240,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   </div>
                   <div style={{display:'flex',gap:6,flexShrink:0}}>
                     <button onClick={async()=>{
-                      // Grant/deny removed for desktop version
-                      alert('This feature is not available in desktop version');
+                      try {
+                        await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`, { method:'POST', body: JSON.stringify({ action:'grant' }) });
+                        setCallRequests(prev => prev.filter(r => r.id !== req.id));
+                      } catch(e) { alert(e.message||'Failed to grant'); }
                     }} style={{height:28,padding:'0 12px',background:'rgba(198,241,53,0.15)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>✓ Allow</button>
                     <button onClick={async()=>{
-                      // Grant/deny removed for desktop version
-                      alert('This feature is not available in desktop version');
+                      try {
+                        await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`, { method:'POST', body: JSON.stringify({ action:'deny' }) });
+                        setCallRequests(prev => prev.filter(r => r.id !== req.id));
+                      } catch(e) { alert(e.message||'Failed to deny'); }
                     }} style={{height:28,padding:'0 12px',background:'rgba(255,68,68,0.1)',border:`1px solid rgba(255,68,68,0.35)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.red,cursor:'pointer'}}>✗ Deny</button>
                   </div>
                 </div>
