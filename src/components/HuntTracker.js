@@ -132,21 +132,31 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen]               = useState(false);
   const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : RAINBET_SLOTS_LEGACY);
-  const wrapRef    = useRef(null);
+  const allSlotsRef = useRef(allSlots);
+  const wrapRef     = useRef(null);
+
+  useEffect(() => {
+    allSlotsRef.current = allSlots;
+  }, [allSlots]);
 
   useEffect(() => {
     if (!_cachedSlots.length) {
-      fetchSlots().then(slots => { if (slots.length) setAllSlots(slots); });
+      fetchSlots().then(slots => {
+        if (slots.length) {
+          setAllSlots(slots);
+          allSlotsRef.current = slots;
+        }
+      });
     }
   }, []);
 
-  const search = v => {
+  const search = useCallback(v => {
     if (v.length < 2) { setSuggestions([]); setOpen(false); return; }
     const q = v.toLowerCase();
-    const filtered = allSlots.filter(s => s.name.toLowerCase().includes(q));
+    const filtered = allSlotsRef.current.filter(s => s.name.toLowerCase().includes(q));
     setSuggestions(filtered.slice(0, 12));
     setOpen(true);
-  };
+  }, []);
 
   const handleChange = v => { onChange(v); search(v); };
   const pick = s => { onChange(s.name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s.name); };
@@ -397,13 +407,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
 
   const addCall = async () => {
-    if (!callName||!callSlot.trim()) return;
-    const slots = callSlot.split(',');
+    if (!callName) return;
+    const slotRaw = callSlot.trim();
+    const slots = slotRaw ? slotRaw.split(',') : [''];
     const newCalls = [];
     for (const raw of slots) {
-      const s=raw.trim(); if(!s) continue;
-      if(calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())){alert(`"${s}" is already in the queue`);continue;}
-      newCalls.push({id:uid(),slot:s,user:callName,status:'pending'});
+      const s = raw.trim();
+      const slotName = s || '—'; // placeholder if no slot given
+      if (s && calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
+      newCalls.push({id:uid(), slot:slotName, user:callName, status:'pending'});
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
@@ -1402,8 +1414,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 Calling as <strong style={{color:G.t1}}>{callName}</strong>
               </div>
             )}
-            <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+              <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em'}}>SLOT NAME</div>
+              <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>(optional)</div>
+            </div>
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or leave blank…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
