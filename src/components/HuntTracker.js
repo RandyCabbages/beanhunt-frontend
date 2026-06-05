@@ -39,7 +39,7 @@ async function fetchSlots() {
   try {
     const res = await apiFetch('/api/slots/search?q=&limit=9999');
     if (Array.isArray(res) && res.length > 0) {
-      _cachedSlots = res.filter(s => s && s.name).map(s => ({ name: s.name, thumb: s.thumb || null }));
+      _cachedSlots = res.filter(s => s && s.name).map(s => ({ name: s.name, thumb: s.thumb || null, slug: s.slug || null, provider: s.provider || null }));
       console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
     }
   } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
@@ -199,7 +199,29 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
                 transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
               onMouseEnter={e => e.currentTarget.style.background = G.lift}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              {s.thumb && <img src={s.thumb} alt="" width={36} height={27} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}} />}
+              <a href={s.provider && s.slug ? `https://rainbet.com/casino/slots/${s.provider}-${s.slug}` : `https://rainbet.com/casino/slots?search=${encodeURIComponent(s.name)}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={e=>e.stopPropagation()}
+                title={`Play ${s.name} on Rainbet`}
+                style={{display:'block',flexShrink:0,textDecoration:'none'}}>
+                {s.thumb ? (
+                  <img src={s.thumb} alt="" width={36} height={27}
+                    style={{borderRadius:3,objectFit:'cover',display:'block',background:G.sur,cursor:'pointer',transition:'opacity .15s'}}
+                    onMouseEnter={e=>e.target.style.opacity='0.7'}
+                    onMouseLeave={e=>e.target.style.opacity='1'}
+                    onError={e=>{e.target.parentElement.style.display='none'}} />
+                ) : (
+                  <svg width={36} height={27} viewBox="0 0 36 27" style={{display:'block',borderRadius:3,cursor:'pointer'}}
+                    onMouseEnter={e=>e.currentTarget.style.opacity='0.7'}
+                    onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+                    <defs><linearGradient id="sdg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#1a1a2e"/><stop offset="100%" stopColor="#16213e"/></linearGradient></defs>
+                    <rect width={36} height={27} rx="3" fill="url(#sdg2)"/>
+                    <rect width={36} height={27} rx="3" fill="none" stroke="rgba(198,241,53,0.2)" strokeWidth="1"/>
+                    <circle cx={18} cy={11} r={5} fill="rgba(26,157,90,0.3)" stroke="rgba(26,157,90,0.5)" strokeWidth="0.7"/>
+                    <text x={18} y={14} textAnchor="middle" fontFamily="Arial" fontSize={6} fontWeight="900" fill="#1a9d5a">R</text>
+                  </svg>
+                )}
+              </a>
               <span>{s.name}</span>
             </div>
           ))}
@@ -423,7 +445,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   /* ── Actions ── */
   const addBonus = (slot, bet, scat=3, caller=null) => {
-    upd(h=>({...h,bonuses:[...h.bonuses,{id:uid(),slot:slot||slotInput||'Unknown',bet:parseFloat(bet||betInput)||0,win:0,mult:0,scat,caller}]}));
+    const slotName = slot||slotInput||'Unknown';
+    const slotData = _cachedSlots.find(s => s.name.toLowerCase() === slotName.toLowerCase());
+    upd(h=>({...h,bonuses:[...h.bonuses,{
+      id:uid(), slot:slotName, bet:parseFloat(bet||betInput)||0, win:0, mult:0, scat, caller,
+      thumb: slotData?.thumb || null,
+      slug: slotData?.slug || null,
+      provider: slotData?.provider || null,
+    }]}));
     setSlotInput(''); setBetInput('');
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
@@ -455,7 +484,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     for (const raw of slots) {
       const s = raw.trim(); if (!s) continue;
       if (calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
-      newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending'});
+      // Look up slug+provider for Rainbet link
+      const slotData = _cachedSlots.find(c => c.name.toLowerCase() === s.toLowerCase());
+      newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending',
+        thumb: slotData?.thumb || null,
+        slug: slotData?.slug || null,
+        provider: slotData?.provider || null,
+      });
     }
     if (!newCalls.length) { setCallModal(false); setCallName(''); setCallSlot(''); return; }
 
@@ -820,7 +855,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
                   <div style={{display:'flex',alignItems:'center',gap:8,paddingRight:14}}>
-                    <SlotThumb slot={c.slot} storedThumb={c.thumb||null} width={44} height={33} />
+                    <SlotThumb slot={c.slot} storedThumb={c.thumb||null} storedSlug={c.slug||null} storedProvider={c.provider||null} width={44} height={33} />
                     <div style={{minWidth:0,flex:1}}>
                       <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.slot}</div>
                       <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
@@ -952,7 +987,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     {isP?'▶':'·'}
                   </div>
                   <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:8}}>
-                    <SlotThumb slot={b.slot} storedThumb={b.thumb||null} width={44} height={33} />
+                    <SlotThumb slot={b.slot} storedThumb={b.thumb||null} storedSlug={b.slug||null} storedProvider={b.provider||null} width={44} height={33} />
                     {canEdit
                       ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{flex:1}} />
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
