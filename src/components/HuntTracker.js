@@ -421,15 +421,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
 
   const addCall = async () => {
-    if (!callName) return;
-    const slotRaw = callSlot.trim();
-    const slots = slotRaw ? slotRaw.split(',') : [''];
+    if (!callSlot.trim()) return;
+    const slots = callSlot.split(',');
     const newCalls = [];
     for (const raw of slots) {
-      const s = raw.trim();
-      const slotName = s || '—'; // placeholder if no slot given
-      if (s && calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
-      newCalls.push({id:uid(), slot:slotName, user:callName, status:'pending'});
+      const s = raw.trim(); if (!s) continue;
+      if (calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
+      newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending'});
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
@@ -1385,12 +1383,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{fontFamily:G.mono,fontSize:9,color:G.green,letterSpacing:'0.12em',textTransform:'uppercase',marginBottom:6}}>GOT IN!</div>
             <div style={{fontFamily:G.display,fontSize:'1.8rem',color:G.t1,marginBottom:12,letterSpacing:'0.03em'}}>{betPrompt.slot}</div>
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>SCATTER COUNT</div>
-            <div style={{display:'flex',gap:4,marginBottom:12}}>
-              {[3,4,5].map(n=>(
-                <button key={n} onClick={()=>setActiveScat(n)} style={{flex:1,height:30,border:`1px solid ${activeScat===n?accent:`${G.bdr}`}`,borderRadius:2,background:activeScat===n?acDim:'transparent',fontFamily:G.mono,fontSize:11,color:activeScat===n?accent:G.t3,cursor:'pointer',letterSpacing:'0.06em'}}>
-                  {n} SCAT
-                </button>
-              ))}
+            <div style={{display:'flex',gap:8,marginBottom:12,justifyContent:'center'}}>
+              <button onClick={()=>setActiveScat(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===3?accent:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===3?'scale(1.1)':'scale(1)'}}>
+                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/></g><circle cx="36" cy="36" r="22" fill="url(#bS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+              </button>
+              <button onClick={()=>setActiveScat(4)} title="Super Bonus (4 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===4?G.gold:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===4?'scale(1.1)':'scale(1)'}}>
+                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#bG)" stroke="#cc44ff" strokeWidth="1.5"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+              </button>
+              <button onClick={()=>setActiveScat(5)} title="Super Super Bonus (5 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===5?G.green:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===5?'scale(1.1)':'scale(1)'}}>
+                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="bD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#bD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#bD2)" stroke="#0088cc" strokeWidth="1"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+              </button>
             </div>
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>BET SIZE</div>
             <input autoFocus type="number" id="bet-inp-modal" placeholder="0.00"
@@ -1411,7 +1413,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,color:G.t1,letterSpacing:'0.06em',marginBottom:14}}>ADD SLOT CALL</div>
             {canEdit?(
               <>
-                <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>WHO'S CALLING?</div>
+                <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                  <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em'}}>WHO'S CALLING?</div>
+                  <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>(optional)</div>
+                </div>
                 <select value={equity.map(e=>e.name).filter(Boolean).includes(callName)?callName:'__custom__'}
                   onChange={e=>{if(e.target.value!=='__custom__')setCallName(e.target.value);else setCallName('');}}
                   style={{...inp,height:36,marginBottom:6}}>
@@ -1428,11 +1433,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 Calling as <strong style={{color:G.t1}}>{callName}</strong>
               </div>
             )}
-            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
-              <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em'}}>SLOT NAME</div>
-              <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>(optional)</div>
-            </div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or leave blank…" />
+            <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
