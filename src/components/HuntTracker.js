@@ -226,7 +226,7 @@ function StatTile({ label, value, color, accent, wide }) {
 }
 
 /* ── Main component ──────────────────────────────────────────────── */
-export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls, onUpdateHunt, onEndHunt, onResetHunt, onBack }) {
+export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls, onUpdateHunt, onEndHunt, onResetHunt, onBack, onHuntRefresh }) {
   const isVip   = hunt.huntType === 'vip';
   const accent  = isVip ? G.purple : G.gold;
   const acDim   = isVip ? G.pdim   : G.gdim;
@@ -456,7 +456,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     }
     if (newCalls.length) {
       if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
-        // Equity member — POST each call to the backend so it persists and broadcasts to the hunt owner
+        // Equity member — POST to server, then re-fetch so local state updates immediately
+        // (don't wait for socket which may be delayed or dropped)
         for (const c of newCalls) {
           try {
             await apiFetch(`/api/hunts/${hunt.user.id}/calls`, {
@@ -467,7 +468,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             alert(e.message || 'Failed to add call');
           }
         }
-        // Local state will be updated via the hunt:update socket event
+        // Re-fetch immediately so Walker sees his call without waiting for socket
+        try {
+          const updated = await apiFetch(`/api/hunts/${hunt.user.id}`);
+          if (updated && onHuntRefresh) onHuntRefresh(updated);
+        } catch(e) {}
       } else if (huntMode==='creating') {
         upd(h=>({...h,calls:[...h.calls,...newCalls]}));
       } else {
@@ -1255,39 +1260,80 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       .trim();
                     const allLines = [...(afterTimestamp ? [afterTimestamp] : []), ...block.lines];
 
-                    // Slot lookup helper — fuzzy match against _cachedSlots, return canonical name + thumb
+                    // Slot lookup — fuzzy match against cached slot list, return canonical name + thumb
                     const resolveSlot = (raw) => {
-                      if (!_cachedSlots.length) return { name: raw, thumb: null };
                       const q = raw.toLowerCase().trim();
+                      const qWords = q.split(/\s+/);
+                      const getName = g => g.name;
+                      const getThumb = g => {
+                        if (!g) return null;
+                        if (g.thumb) return g.thumb;
+                        // Try softswiss CDN fallback via slug
+                        return null;
+                      };
+                      const pool = _cachedSlots;
+                      if (!pool.length) return { name: raw.replace(/\b\w/g, c => c.toUpperCase()), thumb: null };
+
                       // 1. Exact match
-                      let match = _cachedSlots.find(s => s.name.toLowerCase() === q);
-                      // 2. Starts-with match
-                      if (!match) match = _cachedSlots.find(s => s.name.toLowerCase().startsWith(q));
-                      // 3. Contains match (input contains slot name or vice versa)
-                      if (!match) match = _cachedSlots.find(s => {
-                        const sn = s.name.toLowerCase();
-                        return sn.includes(q) || q.includes(sn);
+                      let m = pool.find(s => s.name.toLowerCase() === q);
+                      if (m) return { name: m.name, thumb: m.thumb || null };
+
+                      // 2. Slot name starts with query, only slightly longer (e.g. "chaos crew 2" -> "Chaos Crew 2: Megaways")
+                      const sw2 = pool.filter(s => s.name.toLowerCase().startsWith(q));
+                      if (sw2.length) {
+                        const best = sw2.reduce((a,b) => (a.name.length - q.length) < (b.name.length - q.length) ? a : b);
+                        if (best.name.length - q.length <= 12) return { name: best.name, thumb: best.thumb || null };
+                      }
+
+                      // 3. Query starts with slot name, and slot name is at least 65% of query length
+                      // (prevents "hades" matching "hades harvest" — 5/13 = 38%, below threshold)
+                      const sw3 = pool.filter(s => s.name.length > 4 && q.startsWith(s.name.toLowerCase()) && s.name.length / q.length >= 0.65);
+                      if (sw3.length) {
+                        const best = sw3.reduce((a,b) => a.name.length > b.name.length ? a : b);
+                        return { name: best.name, thumb: best.thumb || null };
+                      }
+
+                      // 4. All query words appear in slot name
+                      const sw4 = pool.filter(s => qWords.every(w => s.name.toLowerCase().includes(w)));
+                      if (sw4.length) {
+                        const best = sw4.reduce((a,b) => Math.abs(a.name.length - q.length) < Math.abs(b.name.length - q.length) ? a : b);
+                        return { name: best.name, thumb: best.thumb || null };
+                      }
+
+                      // 5. All slot name words (2+) appear in query, length ratio >= 0.6
+                      const sw5 = pool.filter(s => {
+                        const sWords = s.name.toLowerCase().split(/\s+/);
+                        return sWords.length >= 2 && sWords.every(w => q.includes(w)) && s.name.length / q.length >= 0.6;
                       });
-                      if (match) return { name: match.name, thumb: match.thumb || null };
+                      if (sw5.length) {
+                        const best = sw5.reduce((a,b) => a.name.length > b.name.length ? a : b);
+                        return { name: best.name, thumb: best.thumb || null };
+                      }
+
                       // No match — title-case the raw input
-                      const titled = raw.replace(/\b\w/g, c => c.toUpperCase());
-                      return { name: titled, thumb: null };
+                      return { name: raw.replace(/\b\w/g, c => c.toUpperCase()), thumb: null };
                     };
+                    // Does this block have any @mention lines? If so it's a slot call block
+                    const blockHasAtMention = allLines.some(l => /@\S+/.test(l));
+
                     for (const line of allLines) {
                       const hasAtMention = /@\S+/.test(line);
                       // Strip @mentions to get slot content
                       const content = line.replace(/@\S+\s*/g,'').trim();
                       if (!content) continue;
 
-                      // Only process as slot calls if:
-                      // - Line has an @mention (directed at someone = slot call context)
-                      // - OR line has commas/slashes (a list)
+                      // A line is slot content if:
+                      // - It directly has an @mention, OR
+                      // - The block has @mentions AND this line is a plain list (comma/slash separated)
+                      //   AND it's not obviously chat
                       const isList = content.includes(',') || content.includes('/');
-                      if (!hasAtMention && !isList) continue;
+                      if (!hasAtMention && !(blockHasAtMention && isList)) continue;
 
-                      // Skip obvious chat even in list/mention context
-                      if (/\b(lol|lmao|gz|gg|wtf|omg|streak|loss streak|checked in|check in)\b/i.test(content)) continue;
+                      // Skip chat lines — first-person sentences, common chat phrases
+                      if (/\b(im|i'm|ill|i'll|i\s+will|i\s+need|i\s+want|going|gonna|playing|play|snooker|profit|hour|boys|earphone|worry|present|lighting|good enough|loss|streak|checked|check\s+in|lol|lmao|gz|gg|wtf|omg|same|nvm|crazy|thank|sorry|reroll|deal|twice|plz)\b/i.test(content)) continue;
                       if (/[?!]$/.test(content.trim())) continue;
+                      // Skip lines that start with first person
+                      if (/^(i\b|im\b|ill\b)/i.test(content.trim())) continue;
 
                       // Strip intro noise like "my slot calls CULT. " or "my calls:"
                       const cleaned = content.replace(/^(my\s+slot\s+calls?\s*\w*\s*[.:]?\s*)/i,'');
@@ -1312,14 +1358,22 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   }
                 } else {
                   // Plain format: one per line or comma separated, no caller attribution
-                  const resolveSlot = (raw) => {
-                    if (!_cachedSlots.length) return { name: raw, thumb: null };
+                  // (resolveSlot not available here — define inline)
+                  const resolveSlotPlain = (raw) => {
                     const q = raw.toLowerCase().trim();
-                    let match = _cachedSlots.find(s => s.name.toLowerCase() === q);
-                    if (!match) match = _cachedSlots.find(s => s.name.toLowerCase().startsWith(q));
-                    if (!match) match = _cachedSlots.find(s => { const sn=s.name.toLowerCase(); return sn.includes(q)||q.includes(sn); });
-                    if (match) return { name: match.name, thumb: match.thumb || null };
-                    return { name: raw.replace(/\b\w/g,c=>c.toUpperCase()), thumb: null };
+                    const qWords = q.split(/\s+/);
+                    const pool = _cachedSlots;
+                    if (!pool.length) return { name: raw.replace(/\b\w/g,c=>c.toUpperCase()), thumb: null };
+                    let m = pool.find(s=>s.name.toLowerCase()===q); if(m) return {name:m.name,thumb:m.thumb||null};
+                    const sw2=pool.filter(s=>s.name.toLowerCase().startsWith(q));
+                    if(sw2.length){const b=sw2.reduce((a,c)=>(a.name.length-q.length)<(c.name.length-q.length)?a:c);if(b.name.length-q.length<=12)return{name:b.name,thumb:b.thumb||null};}
+                    const sw3=pool.filter(s=>s.name.length>4&&q.startsWith(s.name.toLowerCase())&&s.name.length/q.length>=0.65);
+                    if(sw3.length){const b=sw3.reduce((a,c)=>a.name.length>c.name.length?a:c);return{name:b.name,thumb:b.thumb||null};}
+                    const sw4=pool.filter(s=>qWords.every(w=>s.name.toLowerCase().includes(w)));
+                    if(sw4.length){const b=sw4.reduce((a,c)=>Math.abs(a.name.length-q.length)<Math.abs(c.name.length-q.length)?a:c);return{name:b.name,thumb:b.thumb||null};}
+                    const sw5=pool.filter(s=>{const sw=s.name.toLowerCase().split(/\s+/);return sw.length>=2&&sw.every(w=>q.includes(w))&&s.name.length/q.length>=0.6;});
+                    if(sw5.length){const b=sw5.reduce((a,c)=>a.name.length>c.name.length?a:c);return{name:b.name,thumb:b.thumb||null};}
+                    return{name:raw.replace(/\b\w/g,c=>c.toUpperCase()),thumb:null};
                   };
                   const raw = text
                     .split(/[\n,]/)
@@ -1327,7 +1381,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     .filter(s => s.length > 1 && s.length < 80 && !existing.has(s.toLowerCase().trim()));
                   const unique = [...new Map(raw.map(s=>[s.toLowerCase(),s])).values()];
                   unique.forEach(slotRaw => {
-                    const { name: slot, thumb } = resolveSlot(slotRaw);
+                    const { name: slot, thumb } = resolveSlotPlain(slotRaw);
                     newCalls.push({id:uid(), slot, thumb, user:'', status:'pending'});
                   });
                 }

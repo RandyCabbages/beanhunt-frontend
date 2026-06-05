@@ -61,12 +61,16 @@ export default function MyHunt({ user }) {
       .finally(() => setLoading(false));
 
     // Join socket room so admin/editor changes and equity calls appear instantly
-    socket.emit('watch:hunt', user.id);
-    socket.emit('identify', user.id);
+    const joinRoom = () => {
+      socket.emit('watch:hunt', user.id);
+      socket.emit('identify', user.id);
+    };
+    joinRoom();
+    socket.on('connect', joinRoom);
+
     const onHuntUpdate = (data) => {
       setHunt(prev => {
         if (!prev) return prev;
-        // Merge all server-side fields — this handles admin edits, equity calls, mode changes
         return {
           ...prev,
           bonuses:    data.bonuses    ?? prev.bonuses,
@@ -80,7 +84,10 @@ export default function MyHunt({ user }) {
       });
     };
     socket.on('hunt:update', onHuntUpdate);
-    return () => { socket.off('hunt:update', onHuntUpdate); };
+    return () => {
+      socket.off('hunt:update', onHuntUpdate);
+      socket.off('connect', joinRoom);
+    };
   }, [user]);
 
   const save = useCallback((newHunt) => {

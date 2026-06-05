@@ -12,7 +12,7 @@ export default function WatchHunt({ user }) {
   const [canAddCalls, setCanAddCalls] = useState(false);
   const saveTimer = useRef(null);
 
-  const fetchHunt = useCallback(() => {
+  useEffect(() => {
     apiFetch(`/api/hunts/${userId}`)
       .then(data => {
         setHunt(data);
@@ -20,48 +20,42 @@ export default function WatchHunt({ user }) {
         setCanAddCalls(!!data.canAddCalls);
       })
       .catch(() => setNotFound(true));
-  }, [userId]);
 
-  useEffect(() => {
-    fetchHunt();
+    const joinRoom = () => {
+      socket.emit('watch:hunt', userId);
+      if (user?.id) socket.emit('identify', user.id);
+    };
+    joinRoom();
 
-    socket.emit('watch:hunt', userId);
-    if (user?.id) socket.emit('identify', user.id);
-
-    socket.on('hunt:update', data => {
+    const onHuntUpdate = data => {
       setHunt(data);
-      // hunt:update comes from the server without canEdit/canAddCalls computed per-user,
-      // so re-fetch permissions whenever the hunt updates to keep Add Call button accurate
-      if (user?.id) {
-        apiFetch(`/api/hunts/${userId}`)
-          .then(d => {
-            setCanEdit(!!d.canEdit);
-            setCanAddCalls(!!d.canAddCalls);
-          })
-          .catch(() => {});
-      }
-    });
+      if (data && data.canEdit !== undefined) { setCanEdit(!!data.canEdit); setCanAddCalls(!!data.canAddCalls); }
+    };
+    socket.on('hunt:update', onHuntUpdate);
 
-    const onReinvite = () => fetchHunt();
+    // Rejoin room after reconnect so updates keep flowing
+    socket.on('connect', joinRoom);
+
+    const onReinvite = () => {
+      apiFetch(`/api/hunts/${userId}`)
+        .then(data => { setHunt(data); setCanEdit(!!data.canEdit); setCanAddCalls(!!data.canAddCalls); })
+        .catch(() => {});
+    };
     socket.on('hunt:reinvite', onReinvite);
 
-    return () => { socket.off('hunt:update'); socket.off('hunt:reinvite', onReinvite); };
-  }, [userId, user?.id, fetchHunt]);
+    return () => {
+      socket.off('hunt:update', onHuntUpdate);
+      socket.off('hunt:reinvite', onReinvite);
+      socket.off('connect', joinRoom);
+    };
+  }, [userId]);
 
   const save = useCallback((newHunt) => {
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       apiFetch(`/api/hunts/${userId}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          bonuses:   newHunt.bonuses,
-          equity:    newHunt.equity,
-          calls:     newHunt.calls,
-          huntType:  newHunt.huntType,
-          callLimit: newHunt.callLimit,
-          huntMode:  newHunt.huntMode,
-          roundRobin: newHunt.roundRobin,
-        })
+        body: JSON.stringify({ bonuses: newHunt.bonuses, equity: newHunt.equity, calls: newHunt.calls, huntType: newHunt.huntType })
       }).catch(console.error);
     }, 500);
   }, [userId]);
@@ -123,6 +117,7 @@ export default function WatchHunt({ user }) {
       onEndHunt={canEdit ? endHunt : undefined}
       onResetHunt={canEdit ? resetHunt : undefined}
       onBack={() => navigate('/')}
+      onHuntRefresh={setHunt}
     />
   );
 }

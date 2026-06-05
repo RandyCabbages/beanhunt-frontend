@@ -6,6 +6,11 @@ export const socket = io(API, {
   autoConnect: false,
   transports: ['websocket', 'polling'],
   withCredentials: true,
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 20000,
 });
 
 export async function apiFetch(path, options = {}) {
