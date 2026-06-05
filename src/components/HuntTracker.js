@@ -785,8 +785,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
                   <div style={{display:'flex',alignItems:'center',gap:8,paddingRight:14}}>
                     <SlotThumb slot={c.slot} storedThumb={c.thumb||null} width={44} height={33} />
-                    <div>
-                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1}}>{c.slot}</div>
+                    <div style={{minWidth:0,flex:1}}>
+                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.slot}</div>
                       <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
                     </div>
                   </div>

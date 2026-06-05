@@ -32,10 +32,7 @@ export default function MyHunt({ user }) {
     if (!user) { setLoading(false); return; }
     apiFetch('/api/my-hunt')
       .then(data => {
-        if (!data || !data.huntType) { setLoading(false); return; }
-        const autoEquityCount = data.huntType === 'vip' ? 2 : 0;
-        const hasUserEquity = (data.equity||[]).length > autoEquityCount;
-        if (data.isLive || (data.bonuses||[]).length > 0 || (data.calls||[]).length > 0 || hasUserEquity) {
+        if (data && data.huntType) {
           // Ensure Bean is always in VIP equity
           if (data.huntType === 'vip') {
             let changed = false;
@@ -60,7 +57,7 @@ export default function MyHunt({ user }) {
           setHunt(data); setStarted(true); setOffline(false);
         }
       })
-      .catch(() => { setLoading(false); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -70,23 +67,34 @@ export default function MyHunt({ user }) {
     saveTimer.current = setTimeout(() => {
       apiFetch('/api/my-hunt', {
         method: 'PUT',
-        body: JSON.stringify({ bonuses: newHunt.bonuses, equity: newHunt.equity, calls: newHunt.calls, huntType: newHunt.huntType })
+        body: JSON.stringify({
+          bonuses:    newHunt.bonuses,
+          equity:     newHunt.equity,
+          calls:      newHunt.calls,
+          huntType:   newHunt.huntType,
+          callLimit:  newHunt.callLimit,
+          huntMode:   newHunt.huntMode,
+          roundRobin: newHunt.roundRobin,
+        })
       }).catch(console.error);
     }, 500);
   }, [offline, user]);
 
   const startOnlineHunt = async (huntType) => {
-    await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
-    const emptyHunt = EMPTY_HUNT(user, huntType);
-    // Save initial equity (including creator) to server immediately
-    if (emptyHunt.equity.length > 0) {
-      await apiFetch('/api/my-hunt', {
-        method: 'PUT',
-        body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
-      }).catch(()=>{});
+    try {
+      await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
+      const emptyHunt = EMPTY_HUNT(user, huntType);
+      if (emptyHunt.equity.length > 0) {
+        await apiFetch('/api/my-hunt', {
+          method: 'PUT',
+          body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
+        }).catch(()=>{});
+      }
+      setHunt(emptyHunt);
+      setStarted(true); setOffline(false);
+    } catch(e) {
+      alert(e.message || 'Failed to start hunt — try refreshing the page');
     }
-    setHunt(emptyHunt);
-    setStarted(true); setOffline(false);
   };
 
   const startOfflineHunt = (huntType) => {
@@ -96,8 +104,12 @@ export default function MyHunt({ user }) {
 
   const goLive = async () => {
     if (offline) return;
-    await apiFetch('/api/my-hunt/golive', { method: 'POST' });
-    setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
+    try {
+      await apiFetch('/api/my-hunt/golive', { method: 'POST' });
+      setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
+    } catch(e) {
+      alert(e.message || 'Failed to go live — try refreshing the page');
+    }
   };
 
   const endHunt = async () => {
