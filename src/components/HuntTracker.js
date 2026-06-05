@@ -457,38 +457,43 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       if (calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
       newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending'});
     }
-    if (newCalls.length) {
-      if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
-        // Equity member — POST to server, then re-fetch so local state updates immediately
-        // (don't wait for socket which may be delayed or dropped)
-        for (const c of newCalls) {
-          try {
-            await apiFetch(`/api/hunts/${hunt.user.id}/calls`, {
-              method: 'POST',
-              body: JSON.stringify({ slot: c.slot })
-            });
-          } catch(e) {
-            alert(e.message || 'Failed to add call');
-          }
-        }
-        // Re-fetch immediately so Walker sees his call without waiting for socket
+    if (!newCalls.length) { setCallModal(false); setCallName(''); setCallSlot(''); return; }
+
+    if (canAddCalls && !onUpdateHunt && hunt.user?.id) {
+      // Equity member path — close modal first so it feels responsive
+      setCallModal(false); setCallName(''); setCallSlot('');
+      let anyFailed = false;
+      for (const c of newCalls) {
         try {
-          const updated = await apiFetch(`/api/hunts/${hunt.user.id}`);
-          if (updated && onHuntRefresh) onHuntRefresh(updated);
-        } catch(e) {}
-      } else if (huntMode==='creating') {
-        upd(h=>({...h,calls:[...h.calls,...newCalls]}));
-      } else {
-        upd(h=>{
-          const pending=h.calls.filter(c=>c.status==='pending');
-          const others=h.calls.filter(c=>c.status!=='pending');
-          const insertAt=Math.min(3,pending.length);
-          const newP=[...pending.slice(0,insertAt),...newCalls,...pending.slice(insertAt)];
-          return{...h,calls:[...newP,...others]};
-        });
+          await apiFetch(`/api/hunts/${hunt.user.id}/calls`, {
+            method: 'POST',
+            body: JSON.stringify({ slot: c.slot })
+          });
+        } catch(e) {
+          anyFailed = true;
+          alert(e.message || `Failed to add "${c.slot}" — try again`);
+        }
       }
+      // Re-fetch to get confirmed server state with correct IDs and caller names
+      try {
+        const updated = await apiFetch(`/api/hunts/${hunt.user.id}`);
+        if (updated && onHuntRefresh) onHuntRefresh(updated);
+      } catch(e) {
+        // Re-fetch failed — socket update will eventually sync
+      }
+    } else if (huntMode==='creating') {
+      upd(h=>({...h,calls:[...h.calls,...newCalls]}));
+      setCallModal(false); setCallName(''); setCallSlot('');
+    } else {
+      upd(h=>{
+        const pending=h.calls.filter(c=>c.status==='pending');
+        const others=h.calls.filter(c=>c.status!=='pending');
+        const insertAt=Math.min(3,pending.length);
+        const newP=[...pending.slice(0,insertAt),...newCalls,...pending.slice(insertAt)];
+        return{...h,calls:[...newP,...others]};
+      });
+      setCallModal(false); setCallName(''); setCallSlot('');
     }
-    setCallModal(false); setCallName(''); setCallSlot('');
   };
 
   const generateRandom = () => {

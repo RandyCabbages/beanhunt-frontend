@@ -28,8 +28,15 @@ export default function WatchHunt({ user }) {
     joinRoom();
 
     const onHuntUpdate = data => {
-      setHunt(data);
-      if (data && data.canEdit !== undefined) { setCanEdit(!!data.canEdit); setCanAddCalls(!!data.canAddCalls); }
+      setHunt(prev => {
+        // If equity changed, re-fetch permissions (someone may have been added)
+        if (prev && JSON.stringify(data.equity) !== JSON.stringify(prev.equity)) {
+          apiFetch(`/api/hunts/${userId}`)
+            .then(d => { setCanEdit(!!d.canEdit); setCanAddCalls(!!d.canAddCalls); })
+            .catch(()=>{});
+        }
+        return data;
+      });
     };
     socket.on('hunt:update', onHuntUpdate);
 
