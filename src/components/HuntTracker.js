@@ -1196,61 +1196,84 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 const equityNames = equity.filter(e=>e.name).map(e=>e.name.toLowerCase().trim());
                 const skippedCallers = new Set();
 
-                // Detect Discord format: blocks starting with "Name [TAG], — timestamp" or "Name — timestamp"
-                const isDiscordFormat = /[—–]\s*\d{1,2}\/\d{1,2}\/\d{4}/.test(text) || /[—–]\s*\d{1,2}:\d{2}\s*(AM|PM)/i.test(text);
+                // Detect Discord format: any line has an em/en dash + timestamp keyword
+                const isDiscordFormat = /[—–]\s*(Yesterday|Today|\d{1,2}:\d{2}|\d{1,2}\/\d{1,2})/i.test(text);
 
                 if (isDiscordFormat) {
-                  // Split into message blocks — each starts with a header line containing a dash + date/time
-                  const blocks = text.split(/\n(?=.+[—–])/);
-                  blocks.forEach(block => {
-                    const lines = block.trim().split('\n').map(l=>l.trim()).filter(Boolean);
-                    if (!lines.length) return;
+                  // Block header pattern: optional "N. " prefix, then name, then " — Yesterday/Today/time"
+                  const HEADER_RE = /^(\d+\.\s+)?(.+?)\s*[—–]\s*(Yesterday|Today|\d{1,2}:\d{2}|\d{1,2}\/\d{1,2})/i;
 
-                    // Header: "Drakdude25Role icon, VIP — 5/27/2026 7:15 PM" or "Amerish88 — 10:49 AM"
-                    const headerLine = lines[0];
-                    const callerMatch = headerLine.match(/^([^,—–]+)/);
-                    const caller = callerMatch
-                      ? callerMatch[1]
-                          .replace(/Role\s*icon/gi, '')  // strip "Role icon" suffix
-                          .replace(/\[.*?\]/g, '')        // strip [TAG]
-                          .trim()
-                      : '';
+                  // Split lines into message blocks
+                  const rawLines = text.split('\n');
+                  const blocks = [];
+                  let cur = null;
+                  for (const line of rawLines) {
+                    const stripped = line.trim();
+                    if (!stripped) continue;
+                    if (HEADER_RE.test(stripped)) {
+                      if (cur) blocks.push(cur);
+                      cur = { header: stripped, lines: [] };
+                    } else if (cur) {
+                      cur.lines.push(stripped);
+                    }
+                  }
+                  if (cur) blocks.push(cur);
 
-                    if (!caller) return;
+                  for (const block of blocks) {
+                    const hm = block.header.match(HEADER_RE);
+                    if (!hm) continue;
+                    // Group 2 is the raw caller field
+                    let caller = hm[2]
+                      .replace(/Role\s*icon/gi, '')   // strip Discord role badge text
+                      .replace(/\[.*?\]/g, '')         // strip [BEAN] [LR] etc
+                      .replace(/,\s*$/, '')            // trailing comma
+                      .trim();
+                    if (!caller) continue;
 
-                    // Check if caller is in equity (case-insensitive, space-insensitive)
                     const callerLow = caller.toLowerCase().trim();
                     const callerNoSp = callerLow.replace(/\s+/g,'');
                     const inEquity = equityNames.some(n => {
                       const nNoSp = n.replace(/\s+/g,'');
                       return n === callerLow || nNoSp === callerNoSp || n.includes(callerLow) || callerLow.includes(n);
                     });
+                    if (!inEquity) { skippedCallers.add(caller); continue; }
 
-                    if (!inEquity) { skippedCallers.add(caller); return; }
+                    for (const line of block.lines) {
+                      const hasAtMention = /@\S+/.test(line);
+                      // Strip @mentions to get slot content
+                      const content = line.replace(/@\S+\s*/g,'').trim();
+                      if (!content) continue;
 
-                    // Parse slot lines — skip header, skip chat lines, extract slots
-                    const slotLines = lines.slice(1);
-                    for (const line of slotLines) {
-                      // Skip lines that look like chat
-                      const stripped = line.replace(/^(@\S+\s*)*/,'').trim(); // strip @mentions
-                      if (!stripped) continue;
-                      // Skip if it looks like chat (too many words, question marks, common chat words)
-                      const wordCount = stripped.split(/\s+/).length;
-                      if (wordCount > 8 || /[?!]$/.test(stripped)) continue;
-                      if (/\b(the|is|are|was|were|my|your|this|what|when|why|how|obv|lol|lmao|gz|gg|bro|man|yeah|nah|omg|wtf)\b/i.test(stripped)) continue;
-                      // Skip bare [TAG] lines
-                      if (/^\[.*?\]$/.test(stripped)) continue;
+                      // Only process as slot calls if:
+                      // - Line has an @mention (directed at someone = slot call context)
+                      // - OR line has commas/slashes (a list)
+                      const isList = content.includes(',') || content.includes('/');
+                      if (!hasAtMention && !isList) continue;
 
-                      // Split by comma or slash
-                      stripped.split(/[,/]/).forEach(s => {
-                        const slot = s.replace(/:[a-zA-Z0-9_]+:/g,'').replace(/\[.*?\]/g,'').trim(); // strip discord emoji codes and tags
-                        if (slot.length > 1 && slot.length < 80 && !existing.has(slot.toLowerCase().trim())) {
+                      // Skip obvious chat even in list/mention context
+                      if (/\b(lol|lmao|gz|gg|wtf|omg|streak|loss streak|checked in|check in)\b/i.test(content)) continue;
+                      if (/[?!]$/.test(content.trim())) continue;
+
+                      // Strip intro noise like "my slot calls CULT. " or "my calls:"
+                      const cleaned = content.replace(/^(my\s+slot\s+calls?\s*\w*\s*[.:]?\s*)/i,'');
+
+                      // Split on comma, slash, and ". " (period-space between words = separator)
+                      const parts = cleaned.split(/[,/]|(?<=[a-zA-Z])\.\s+(?=[A-Za-z])/);
+                      for (const p of parts) {
+                        let slot = p
+                          .replace(/:[a-zA-Z0-9_]+:/g,'')  // :discord_emoji:
+                          .replace(/\[.*?\]/g,'')            // [tags]
+                          .trim();
+                        // Skip bare numbers or "N."
+                        if (!slot || /^\d+\.?$/.test(slot)) continue;
+                        if (slot.length < 2 || slot.length > 80) continue;
+                        if (!existing.has(slot.toLowerCase().trim())) {
                           existing.add(slot.toLowerCase().trim());
                           newCalls.push({id:uid(), slot, user:caller, status:'pending'});
                         }
-                      });
+                      }
                     }
-                  });
+                  }
                 } else {
                   // Plain format: one per line or comma separated, no caller attribution
                   const raw = text
@@ -1270,7 +1293,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 upd(h=>({...h,calls:[...(h.calls||[]),...newCalls]}));
                 setPasteCallsText('');
                 setShowPasteCalls(false);
-                const skipMsg = skippedCallers.size ? ` (skipped: ${[...skippedCallers].join(', ')})` : '';
+                const skipMsg = skippedCallers.size ? ` (skipped non-equity: ${[...skippedCallers].join(', ')})` : '';
                 alert(`✅ Added ${newCalls.length} slot call${newCalls.length!==1?'s':''}${skipMsg}`);
               }} style={{height:38,padding:'0 20px',background:G.gold,color:'#000',border:'none',borderRadius:6,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>
                 Import Calls
