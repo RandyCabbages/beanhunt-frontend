@@ -635,10 +635,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:huntMode==='rolling'?`0 1fr 460px`:`300px 1fr 460px`,height:'calc(100vh - 46px)',overflow:'hidden',transition:'grid-template-columns .2s ease'}}>
+      <div style={{display:'grid',gridTemplateColumns:(!canEdit&&huntMode==='rolling')?`0 1fr 460px`:`300px 1fr 460px`,height:'calc(100vh - 46px)',overflow:'hidden',transition:'grid-template-columns .2s ease'}}>
 
-        {/* ── LEFT: Slot calls — hidden in rolling mode ── */}
-        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden',visibility:huntMode==='rolling'?'hidden':'visible',width:huntMode==='rolling'?0:undefined}}>
+        {/* ── LEFT: Slot calls — hidden for viewers in rolling mode ── */}
+        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden',visibility:(!canEdit&&huntMode==='rolling')?'hidden':'visible'}}>
           {/* Mode toggle */}
           {canEdit && (
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',gap:2}}>
