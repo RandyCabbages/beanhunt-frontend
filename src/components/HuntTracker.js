@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
@@ -30,7 +31,21 @@ const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
 
 /* ── Slot list ───────────────────────────────────────────────────── */
-const RAINBET_SLOTS = [
+// Slot list is fetched from the API at runtime (see fetchSlots in HuntTracker)
+let _cachedSlots = [];
+async function fetchSlots() {
+  if (_cachedSlots.length) return _cachedSlots;
+  try {
+    const { apiFetch } = await import('../api');
+    const res = await apiFetch('/api/slots/search?q=&limit=9999');
+    if (Array.isArray(res)) {
+      _cachedSlots = res.map(s => ({ name: s.name, thumb: s.thumb || null }));
+    }
+  } catch(e) {}
+  return _cachedSlots;
+}
+
+const RAINBET_SLOTS_LEGACY = [
   'Gates of Olympus','Gates of Olympus 1000',
   'Sweet Bonanza','Sweet Bonanza 1000','Sweet Bonanza Xmas',
   'Starlight Princess','Starlight Princess 1000','Starlight Princess 100',
@@ -100,7 +115,7 @@ const RAINBET_SLOTS = [
   'Stampede','Stallion Strike',"Tiger's Glory","Blackbeard's Compass",
   "Joker's Jewels","Joker's Jewels Deluxe",
   "Dragon's Fire","Dragon's Fire Megaways",
-].sort();
+].sort().map(s => ({ name: s, thumb: null }));
 
 function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
 
@@ -115,28 +130,31 @@ function buildQueue(calls){
 /* ── Slot autocomplete input ─────────────────────────────────────── */
 function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const [suggestions, setSuggestions] = useState([]);
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef(null);
-  const searchTimer = useRef(null);
+  const [open, setOpen]               = useState(false);
+  const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : RAINBET_SLOTS_LEGACY);
+  const wrapRef    = useRef(null);
 
-  const handleChange = v => {
-    onChange(v);
-    if (v.length >= 2) {
-      const filtered = RAINBET_SLOTS.filter(s => s.toLowerCase().includes(v.toLowerCase()));
-      setSuggestions(filtered.slice(0, 10));
-      setOpen(true);
-    } else {
-      setSuggestions([]);
-      setOpen(false);
+  useEffect(() => {
+    if (!_cachedSlots.length) {
+      fetchSlots().then(slots => { if (slots.length) setAllSlots(slots); });
     }
+  }, []);
+
+  const search = v => {
+    if (v.length < 2) { setSuggestions([]); setOpen(false); return; }
+    const q = v.toLowerCase();
+    const filtered = allSlots.filter(s => s.name.toLowerCase().includes(q));
+    setSuggestions(filtered.slice(0, 12));
+    setOpen(true);
   };
 
-  const pick = s => { const name = typeof s === 'string' ? s : s.name; onChange(name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(name); };
+  const handleChange = v => { onChange(v); search(v); };
+  const pick = s => { onChange(s.name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s.name); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
       <input value={value} onChange={e => handleChange(e.target.value)}
-        onFocus={async () => { if (value.length >= 2) { const filtered = RAINBET_SLOTS.filter(s => s.toLowerCase().includes(value.toLowerCase())); setSuggestions(filtered.slice(0, 10)); setOpen(true); } }}
+        onFocus={() => search(value)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onKeyDown={e => {
           if (e.key === 'Enter' && suggestions.length > 0) { pick(suggestions[0]); }
@@ -149,23 +167,18 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
       />
       {open && suggestions.length > 0 && (
         <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
-          border:`1px solid ${G.bb}`, borderRadius:3, zIndex:60, maxHeight:200, overflowY:'auto' }}>
-          {suggestions.map((s,i) => {
-            const name = typeof s === 'string' ? s : s.name;
-            const thumb = typeof s === 'object' ? s.thumb : null;
-            return (
-              <div key={i} onMouseDown={() => pick(name)}
-                style={{ padding:'6px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
-                  cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
-                  transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
-                onMouseEnter={e => e.currentTarget.style.background = G.lift}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                {thumb && <img src={thumb} alt="" width={36} height={27} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}}
-                  onError={e=>{e.target.style.display='none'}} />}
-                <span>{name}</span>
-              </div>
-            );
-          })}
+          border:`1px solid ${G.bb}`, borderRadius:3, zIndex:60, maxHeight:220, overflowY:'auto' }}>
+          {suggestions.map((s,i) => (
+            <div key={i} onMouseDown={() => pick(s)}
+              style={{ padding:'5px 10px', fontFamily:G.body, fontSize:13, color:G.t2,
+                cursor:'pointer', borderBottom:`1px solid ${G.bdr}`, letterSpacing:'0.01em',
+                transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
+              onMouseEnter={e => e.currentTarget.style.background = G.lift}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              {s.thumb && <img src={s.thumb} alt="" width={36} height={27} style={{borderRadius:3,objectFit:'cover',flexShrink:0,background:G.sur}} onError={e=>{e.target.style.display='none'}} />}
+              <span>{s.name}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -374,7 +387,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if(!names.length){alert('Add equity members first');return;}
     const count=parseInt(slotCountInput)||35;
     const existing=new Set(calls.map(c=>c.slot.toLowerCase()));
-    const slots=shuffle(RAINBET_SLOTS).filter(s=>!existing.has(s.toLowerCase())).slice(0,count);
+    const pool = (_cachedSlots.length ? _cachedSlots : RAINBET_SLOTS_LEGACY).map(s=>s.name);
+    const slots=shuffle(pool).filter(s=>!existing.has(s.toLowerCase())).slice(0,count);
     const newCalls=slots.map((slot,i)=>({id:uid(),slot,user:names[i%names.length],status:'pending'}));
     upd(h=>({...h,calls:[...h.calls,...newCalls]}));
     setSlotCountModal(false);
@@ -666,8 +680,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   {canEdit && !isLocked && <button className="icon-btn-danger" onClick={()=>removeCall(c.id)} style={{position:'absolute',top:4,right:4,background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:12,lineHeight:1}}>×</button>}
                   {isLocked&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>🔒 {i===0?'UP NEXT':`NEXT ${i+1}`}</div>}
                   {!isLocked&&i===0&&huntMode==='creating'&&<div style={{fontFamily:G.mono,fontSize:8,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:3}}>▶ UP NEXT</div>}
-                  <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1,paddingRight:14}}>{c.slot}</div>
-                  <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,paddingRight:14}}>
+                    <SlotThumb slot={c.slot} storedThumb={c.thumb||null} width={44} height={33} />
+                    <div>
+                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:15,color:G.t1}}>{c.slot}</div>
+                      <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:G.t3,marginTop:3,letterSpacing:'0.02em'}}>{c.user}</div>
+                    </div>
+                  </div>
                   {canEdit&&(
                     <div style={{display:'flex',gap:4,marginTop:6}}>
                       <button onClick={()=>setBetPrompt({callId:c.id,slot:c.slot,caller:c.user})} style={{height:26,padding:'0 12px',background:G.gndim,border:`1px solid ${G.green}66`,borderRadius:3,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.green,cursor:'pointer'}}>✓ Got In</button>
@@ -779,9 +798,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
                   </div>
-                  <div style={{padding:'7px 6px',alignSelf:'center'}}>
+                  <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:8}}>
+                    <SlotThumb slot={b.slot} storedThumb={b.thumb||null} width={44} height={33} />
                     {canEdit
-                      ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{}} />
+                      ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{flex:1}} />
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
                     }
                     {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
