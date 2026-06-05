@@ -300,9 +300,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [defAmt,        setDefAmt]        = useState(100);
   const [beanAmt,       setBeanAmt]       = useState(1000);
   const [inviteModal,   setInviteModal]   = useState(false);
-  const [showTipsModal, setShowTipsModal] = useState(false);
-  const [tipsText,      setTipsText]      = useState('');
-  const [tipsPreview,   setTipsPreview]   = useState(null);
   const [inviteUser,    setInviteUser]    = useState('');
   const [inviteList,    setInviteList]    = useState(hunt.invitedEditors||[]);
   const [saveStatus,    setSaveStatus]    = useState('');
@@ -1084,8 +1081,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 onClick={()=>setShowTipsModal(true)}
                 title="Parse tips from Rainbet chat"
                 style={{height:34,padding:'0 11px',background:'rgba(52,211,153,0.12)',border:'1px solid rgba(52,211,153,0.35)',borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:'#6ee7b7',cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-                💸 Tips
-              </button>}
               <button
                 onMouseEnter={()=>setEqTooltip('extra')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{addPerson();setEqTooltip(null);}}
@@ -1737,80 +1732,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
       )}
 
-      {/* ── Tips Parser Modal ── */}
-      {showTipsModal&&(
-        <div style={modalBg}>
-          <div style={{...modal,width:480,maxHeight:'80vh',display:'flex',flexDirection:'column'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
-              <div style={{fontFamily:G.display,fontSize:'1.5rem',color:G.t1,letterSpacing:'0.04em'}}>💸 PARSE TIPS</div>
-              <button onClick={()=>{setShowTipsModal(false);setTipsText('');setTipsPreview(null);}} style={{background:'none',border:'none',color:G.t3,cursor:'pointer',fontSize:18,lineHeight:1}}>×</button>
-            </div>
-            <div style={{fontFamily:G.body,fontSize:13,color:G.t3,marginBottom:12,lineHeight:1.6}}>Paste Rainbet chat. Tip messages (<em>X sent $Y to Z</em>) are auto-detected and matched to equity members.</div>
-            <textarea
-              value={tipsText}
-              onChange={e=>{
-                setTipsText(e.target.value);
-                // Live preview
-                const TIP_RE = /^(.+?)\s+sent\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+to\s+(.+)$/im;
-                const tips = e.target.value.split('\n').map(l=>l.trim().match(/^(.+?)\s+sent\s+\$([0-9,]+(?:\.[0-9]{2})?)\s+to\s+(.+)$/i)).filter(Boolean).map(m=>({from:m[1].trim(),amount:parseFloat(m[2].replace(/,/g,'')),to:m[3].trim()}));
-                if (tips.length) setTipsPreview(tips); else setTipsPreview(null);
-              }}
-              placeholder="Paste Rainbet chat here..."
-              style={{...inp,height:180,resize:'vertical',fontFamily:G.mono,fontSize:11,lineHeight:1.6,marginBottom:12}}
-            />
-            {tipsPreview&&(
-              <div style={{background:G.sur,border:`1px solid ${G.bdr}`,borderRadius:4,padding:'10px 12px',marginBottom:12,overflowY:'auto',maxHeight:200,flexShrink:0}}>
-                <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:8}}>PREVIEW — {tipsPreview.length} tip{tipsPreview.length!==1?'s':''} found</div>
-                {(() => {
-                  // Group by recipient, match to equity
-                  const totals = {};
-                  tipsPreview.forEach(t => { totals[t.to.toLowerCase()] = (totals[t.to.toLowerCase()]||{name:t.to,total:0,tips:[]}); totals[t.to.toLowerCase()].total += t.amount; totals[t.to.toLowerCase()].tips.push(t); });
-                  return Object.values(totals).sort((a,b)=>b.total-a.total).map(r => {
-                    const equityMatch = equity.find(e => {
-                      const en = (e.name||'').toLowerCase().trim();
-                      const rn = r.name.toLowerCase().trim();
-                      return en===rn || en.replace(/\s+/g,'')===rn.replace(/\s+/g,'') || en.includes(rn) || rn.includes(en);
-                    });
-                    return (
-                      <div key={r.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${G.bdr}`}}>
-                        <div>
-                          <span style={{fontFamily:G.body,fontWeight:700,fontSize:13,color:equityMatch?G.t1:G.t4}}>{r.name}</span>
-                          {equityMatch&&<span style={{fontFamily:G.mono,fontSize:10,color:'#6ee7b7',marginLeft:6}}>→ {equityMatch.name}</span>}
-                          {!equityMatch&&<span style={{fontFamily:G.mono,fontSize:10,color:G.t4,marginLeft:6}}>not in equity</span>}
-                        </div>
-                        <div style={{fontFamily:G.mono,fontSize:13,fontWeight:700,color:'#6ee7b7'}}>${r.total.toFixed(2)}</div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-            <div style={{display:'flex',gap:6,flexShrink:0}}>
-              <button onClick={()=>{
-                if (!tipsPreview?.length) return;
-                // Group tips by recipient, match to equity, add to their amount
-                const totals = {};
-                tipsPreview.forEach(t => { const k=t.to.toLowerCase(); totals[k]=(totals[k]||0)+t.amount; });
-                let matched = 0;
-                upd(h => ({
-                  ...h,
-                  equity: h.equity.map(e => {
-                    const en = (e.name||'').toLowerCase().trim();
-                    const tipEntry = Object.entries(totals).find(([k]) => {
-                      return en===k || en.replace(/\s+/g,'')===k.replace(/\s+/g,'') || en.includes(k) || k.includes(en);
-                    });
-                    if (tipEntry) { matched++; return {...e, amount: (e.amount||0) + tipEntry[1]}; }
-                    return e;
-                  })
-                }));
-                setShowTipsModal(false); setTipsText(''); setTipsPreview(null);
-                alert(`✅ Applied tips to ${matched} equity member${matched!==1?'s':''}`);
-              }} style={{flex:1,...btnPrimary,background:'rgba(52,211,153,0.2)',color:'#6ee7b7',border:'1px solid rgba(52,211,153,0.4)'}}>Apply Tips to Equity</button>
-              <button onClick={()=>{setShowTipsModal(false);setTipsText('');setTipsPreview(null);}} style={btnGhost}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
