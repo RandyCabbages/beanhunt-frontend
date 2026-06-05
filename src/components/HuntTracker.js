@@ -34,6 +34,22 @@ const uid  = () => Math.random().toString(36).slice(2,8);
 /* ── Slot list ───────────────────────────────────────────────────── */
 // Slot list is fetched from the API at runtime (see fetchSlots in HuntTracker)
 let _cachedSlots = [];
+
+// Maps slot.report provider slugs → Rainbet URL provider prefix
+const RAINBET_PROVIDER_MAP = {
+  'pragmatic-play':'pragmatic-play','playngo':'play-n-go','hacksaw-gaming':'hacksaw',
+  'nolimit-city':'nolimit','relax-gaming':'relax','bgaming':'bgaming',
+  'elk-studios':'elk-studios','red-tiger':'red-tiger','push-gaming':'push-gaming',
+  'blueprint-gaming':'blueprint','quickspin':'quickspin','thunderkick':'thunderkick',
+  'yggdrasil':'yggdrasil','netent':'netent','big-time-gaming':'big-time-gaming',
+  'wazdan':'wazdan','spinomenal':'spinomenal',
+};
+function toRainbetUrl(provider, slug, name) {
+  const rbp = RAINBET_PROVIDER_MAP[provider] || provider;
+  if (rbp && slug) return `https://rainbet.com/casino/slots/${rbp}-${slug}`;
+  if (name) return `https://rainbet.com/casino/slots?search=${encodeURIComponent(name)}`;
+  return 'https://rainbet.com/casino/slots';
+}
 async function fetchSlots() {
   if (_cachedSlots.length) return _cachedSlots;
   try {
@@ -199,7 +215,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
                 transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
               onMouseEnter={e => e.currentTarget.style.background = G.lift}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <a href={s.provider && s.slug ? `https://rainbet.com/casino/slots/${s.provider}-${s.slug}` : `https://rainbet.com/casino/slots?search=${encodeURIComponent(s.name)}`}
+              <a href={toRainbetUrl(s.provider, s.slug, s.name)}
                 target="_blank" rel="noopener noreferrer"
                 onClick={e=>e.stopPropagation()}
                 title={`Play ${s.name} on Rainbet`}

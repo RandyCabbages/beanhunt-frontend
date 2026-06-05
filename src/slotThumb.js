@@ -3,9 +3,32 @@ import { apiFetch } from './api';
 
 export const thumbCache = {};
 
+// slot.report provider_slug → Rainbet URL prefix
+// Confirmed from actual Rainbet URLs
+const RAINBET_PROVIDER_MAP = {
+  'pragmatic-play':   'pragmatic-play',
+  'playngo':          'play-n-go',
+  'hacksaw-gaming':   'hacksaw',
+  'nolimit-city':     'nolimit',
+  'relax-gaming':     'relax',
+  'bgaming':          'bgaming',
+  'elk-studios':      'elk-studios',
+  'red-tiger':        'red-tiger',
+  'push-gaming':      'push-gaming',
+  'blueprint-gaming': 'blueprint',
+  'quickspin':        'quickspin',
+  'thunderkick':      'thunderkick',
+  'yggdrasil':        'yggdrasil',
+  'netent':           'netent',
+  'big-time-gaming':  'big-time-gaming',
+  'wazdan':           'wazdan',
+  'spinomenal':       'spinomenal',
+};
+
 // Builds Rainbet slot URL from provider slug + game slug
 function rainbetUrl(provider, slug, name) {
-  if (provider && slug) return `https://rainbet.com/casino/slots/${provider}-${slug}`;
+  const rbProvider = RAINBET_PROVIDER_MAP[provider] || provider;
+  if (rbProvider && slug) return `https://rainbet.com/casino/slots/${rbProvider}-${slug}`;
   // Fallback: search page
   if (name) return `https://rainbet.com/casino/slots?search=${encodeURIComponent(name)}`;
   return 'https://rainbet.com/casino/slots';
