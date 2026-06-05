@@ -261,6 +261,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [limitInput,    setLimitInput]    = useState(String(hunt.callLimit||0));
   const [dragCallId,    setDragCallId]    = useState(null);
   const [dragEquityId,  setDragEquityId]  = useState(null);
+  const [dragBonusId,   setDragBonusId]   = useState(null);
   const [huntHistory,   setHuntHistory]   = useState([]);
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
@@ -275,6 +276,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
+
+  // Sync huntMode from incoming hunt prop (socket updates for viewers)
+  useEffect(() => {
+    if (hunt.huntMode && hunt.huntMode !== huntMode) {
+      setHuntMode(hunt.huntMode);
+    }
+  }, [hunt.huntMode]);
 
   useEffect(() => {
     const tick = () => {
@@ -627,10 +635,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:'300px 1fr 460px',height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:huntMode==='rolling'?`0 1fr 460px`:`300px 1fr 460px`,height:'calc(100vh - 46px)',overflow:'hidden',transition:'grid-template-columns .2s ease'}}>
 
-        {/* ── LEFT: Slot calls ── */}
-        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        {/* ── LEFT: Slot calls — hidden in rolling mode ── */}
+        <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden',visibility:huntMode==='rolling'?'hidden':'visible',width:huntMode==='rolling'?0:undefined}}>
           {/* Mode toggle */}
           {canEdit && (
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',gap:2}}>
@@ -891,10 +899,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               const isP=currentSlot===b.id;
               return (
                 <div key={b.id} className="row-hover"
+                  draggable={canEdit}
+                  onDragStart={()=>setDragBonusId(b.id)}
+                  onDragOver={e=>e.preventDefault()}
+                  onDrop={()=>{
+                    if(!dragBonusId||dragBonusId===b.id)return;
+                    upd(h=>{
+                      const arr=h.bonuses.slice();
+                      const fi=arr.findIndex(x=>x.id===dragBonusId),ti=arr.findIndex(x=>x.id===b.id);
+                      const[m]=arr.splice(fi,1);arr.splice(ti,0,m);
+                      return{...h,bonuses:arr};
+                    });
+                    setDragBonusId(null);
+                  }}
                   style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}`:undefined,
                     opacity:b.win>0?1:.5,
+                    cursor:canEdit?'grab':'default',
                     transition:'background .08s'}}>
                   <div style={{padding:'8px',fontFamily:G.mono,fontSize:14,color:isP?accent:G.t4,cursor:'pointer',userSelect:'none',alignSelf:'center',textAlign:'center'}}
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
