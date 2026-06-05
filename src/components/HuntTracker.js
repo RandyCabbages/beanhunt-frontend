@@ -420,8 +420,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCallSlot(''); setCallModal(true);
   };
 
-  const addCall = async (slotOverride) => {
-    const slotVal = (slotOverride || callSlot).trim();
+  const addCall = async () => {
+    const slotVal = callSlot.trim();
     if (!slotVal) return;
     const slots = slotVal.split(',');
     const newCalls = [];
@@ -1435,7 +1435,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={(slotName)=>addCall(slotName)} placeholder="Search or type slot name…" />
+            <SlotInput value={callSlot} onChange={setCallSlot} placeholder="Search or type slot name…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
@@ -1485,7 +1485,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         <div style={modalBg}>
           <div style={{...modal,width:360}}>
             <div style={{fontFamily:G.display,fontSize:'1.5rem',color:G.t1,letterSpacing:'0.04em',marginBottom:4}}>INVITE CO-EDITOR</div>
-            <div style={{fontFamily:G.body,fontSize:13,color:G.t3,marginBottom:14,lineHeight:1.6}}>They must be logged in with Discord. Enter their username.</div>
+            <div style={{fontFamily:G.body,fontSize:13,color:G.t3,marginBottom:14,lineHeight:1.6}}>Enter their Discord display name. They'll get full edit access next time they open the hunt.</div>
             {inviteList.length>0&&(
               <div style={{background:G.sur,border:`1px solid ${G.bdr}`,borderRadius:3,padding:'8px 10px',marginBottom:10}}>
                 <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:6}}>CURRENT EDITORS</div>
