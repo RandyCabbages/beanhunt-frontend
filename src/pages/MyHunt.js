@@ -110,17 +110,18 @@ export default function MyHunt({ user }) {
   }, [offline, user]);
 
   const startOnlineHunt = async (huntType) => {
-    await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
-    const emptyHunt = EMPTY_HUNT(user, huntType);
-    // Save initial equity (including creator) to server immediately
-    if (emptyHunt.equity.length > 0) {
-      await apiFetch('/api/my-hunt', {
-        method: 'PUT',
-        body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
-      }).catch(()=>{});
-    }
-    setHunt(emptyHunt);
-    setStarted(true); setOffline(false);
+    try {
+      await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
+      const emptyHunt = EMPTY_HUNT(user, huntType);
+      if (emptyHunt.equity.length > 0) {
+        await apiFetch('/api/my-hunt', {
+          method: 'PUT',
+          body: JSON.stringify({ bonuses: [], equity: emptyHunt.equity, calls: [], huntType })
+        }).catch(()=>{});
+      }
+      setHunt(emptyHunt);
+      setStarted(true); setOffline(false);
+    } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing'); }
   };
 
   const startOfflineHunt = (huntType) => {
@@ -130,8 +131,10 @@ export default function MyHunt({ user }) {
 
   const goLive = async () => {
     if (offline) return;
-    await apiFetch('/api/my-hunt/golive', { method: 'POST' });
-    setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
+    try {
+      await apiFetch('/api/my-hunt/golive', { method: 'POST' });
+      setHunt(h => ({ ...h, isLive: true, startedAt: new Date().toISOString() }));
+    } catch(e) { alert(e.message || 'Failed to go live — try refreshing'); }
   };
 
   const endHunt = async () => {

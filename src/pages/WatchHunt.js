@@ -44,6 +44,7 @@ export default function WatchHunt({ user }) {
     socket.on('hunt:reinvite', onReinvite);
 
     return () => {
+      socket.emit('leave:hunt', userId);
       socket.off('hunt:update', onHuntUpdate);
       socket.off('hunt:reinvite', onReinvite);
       socket.off('connect', joinRoom);
@@ -55,7 +56,15 @@ export default function WatchHunt({ user }) {
     saveTimer.current = setTimeout(() => {
       apiFetch(`/api/hunts/${userId}`, {
         method: 'PUT',
-        body: JSON.stringify({ bonuses: newHunt.bonuses, equity: newHunt.equity, calls: newHunt.calls, huntType: newHunt.huntType })
+        body: JSON.stringify({
+          bonuses:    newHunt.bonuses,
+          equity:     newHunt.equity,
+          calls:      newHunt.calls,
+          huntType:   newHunt.huntType,
+          callLimit:  newHunt.callLimit,
+          huntMode:   newHunt.huntMode,
+          roundRobin: newHunt.roundRobin,
+        })
       }).catch(console.error);
     }, 500);
   }, [userId]);

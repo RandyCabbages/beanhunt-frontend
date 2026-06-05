@@ -206,11 +206,18 @@ export default function Hub({ user }) {
   useEffect(() => {
     apiFetch('/api/hunts').then(setHunts).catch(()=>{}).finally(()=>setLoading(false));
     apiFetch('/api/bean-live').then(setBeanLive).catch(()=>{});
-    socket.emit('watch:hub');
+    const joinHub = () => socket.emit('watch:hub');
+    joinHub();
+    socket.on('connect', joinHub);
     socket.on('hub:update', setHunts);
     socket.on('bean:live',  setBeanLive);
-    return () => { socket.off('hub:update',setHunts); socket.off('bean:live',setBeanLive); };
+    return () => { socket.off('hub:update',setHunts); socket.off('bean:live',setBeanLive); socket.off('connect',joinHub); };
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    apiFetch('/api/admin/hunts').then(setAllHunts).catch(()=>{});
+  }, [isAdmin, hunts]);
 
   useEffect(() => {
     if (!user) return;
