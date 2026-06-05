@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch, API } from '../api';
+import { apiFetch, socket, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
 
 const BEAN_EQUITY = { id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false };
@@ -59,6 +59,23 @@ export default function MyHunt({ user }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Join socket room so equity member calls appear instantly
+    socket.emit('watch:hunt', user.id);
+    socket.emit('identify', user.id);
+    const onHuntUpdate = (data) => {
+      // Only update calls from socket — don't overwrite local edits to bonuses/equity
+      setHunt(prev => {
+        if (!prev) return prev;
+        // If calls changed (equity member added one), update them
+        if (JSON.stringify(data.calls) !== JSON.stringify(prev.calls)) {
+          return { ...prev, calls: data.calls };
+        }
+        return prev;
+      });
+    };
+    socket.on('hunt:update', onHuntUpdate);
+    return () => { socket.off('hunt:update', onHuntUpdate); };
   }, [user]);
 
   const save = useCallback((newHunt) => {

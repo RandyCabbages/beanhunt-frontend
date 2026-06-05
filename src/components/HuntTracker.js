@@ -420,9 +420,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCallSlot(''); setCallModal(true);
   };
 
-  const addCall = async () => {
-    if (!callSlot.trim()) return;
-    const slots = callSlot.split(',');
+  const addCall = async (slotOverride) => {
+    const slotVal = (slotOverride || callSlot).trim();
+    if (!slotVal) return;
+    const slots = slotVal.split(',');
     const newCalls = [];
     for (const raw of slots) {
       const s = raw.trim(); if (!s) continue;
@@ -1434,7 +1435,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             )}
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:5}}>SLOT NAME</div>
-            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={()=>addCall()} placeholder="Search or type slot name…" />
+            <SlotInput value={callSlot} onChange={setCallSlot} onCommit={(slotName)=>addCall(slotName)} placeholder="Search or type slot name…" />
             <div style={{display:'flex',gap:6,marginTop:12}}>
               <button onClick={addCall} style={{flex:1,...btnPrimary}}>Add Call</button>
               <button onClick={()=>{setCallModal(false);setCallName('');setCallSlot('');}} style={btnGhost}>Cancel</button>
