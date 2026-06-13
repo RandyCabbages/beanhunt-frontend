@@ -641,6 +641,47 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const canEdit = !readOnly && !!onUpdateHunt;
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
+  // ── Preferred slot auto-injection ────────────────────────────────
+  // Safe to place here — canEdit is defined above, no TDZ risk
+  const injectPreferredSlots = useCallback(async (equityMember, currentCalls) => {
+    if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
+    try {
+      const data = await apiFetch(`/api/settings/${equityMember.id}`);
+      const preferred = data?.preferredSlots || [];
+      if (!preferred.length) return;
+      upd(h => {
+        const existing = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
+        const newCalls = preferred
+          .filter(s => s?.name && !existing.has(s.name.toLowerCase().trim()))
+          .map(s => ({
+            id: uid(), userId: equityMember.id, displayName: equityMember.name,
+            avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
+            provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
+          }));
+        if (!newCalls.length) return h;
+        return { ...h, calls: [...(h.calls||[]), ...newCalls] };
+      });
+    } catch(e) { /* silently ignore */ }
+  }, [upd]);
+
+  const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
+  useEffect(() => {
+    if (!canEdit) return;
+    const current = hunt.equity || [];
+    const currentIds = new Set(current.map(e=>e.id).filter(Boolean));
+    const newMembers = current.filter(e =>
+      e.id &&
+      !prevEquityIdsRef.current.has(e.id) &&
+      e.id !== 'bean_auto' &&
+      e.id !== 'creator_auto' &&
+      /^\d{17,19}$/.test(e.id) // only real Discord IDs (17-19 digit snowflakes)
+    );
+    if (newMembers.length) {
+      newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
+    }
+    prevEquityIdsRef.current = currentIds;
+  }, [hunt.equity, hunt.calls, canEdit, injectPreferredSlots]);
+
   /* ── Modal base style ── */
   const modalBg = { position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeUp .15s ease' };
   const modal   = { background:G.card,border:`1px solid ${G.bb}`,borderRadius:6,padding:'1.75rem',width:320,animation:'popIn .15s ease' };
