@@ -269,6 +269,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [showWinners,   setShowWinners]   = useState(false);
   const [slotInput,     setSlotInput]     = useState('');
   const [betInput,      setBetInput]      = useState('');
+  const [callerInput,   setCallerInput]   = useState('');
   const [betPrompt,     setBetPrompt]     = useState(null);
   const [activeScat,    setActiveScat]    = useState(3);
   const [callModal,     setCallModal]     = useState(false);
@@ -439,13 +440,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const addBonus = (slot, bet, scat=3, caller=null) => {
     const slotName = slot||slotInput||'Unknown';
     const slotData = _cachedSlots.find(s => s.name.toLowerCase() === slotName.toLowerCase());
+    const callerName = caller || callerInput || null;
     upd(h=>({...h,bonuses:[...h.bonuses,{
-      id:uid(), slot:slotName, bet:parseFloat(bet||betInput)||0, win:0, mult:0, scat, caller,
+      id:uid(), slot:slotName, bet:parseFloat(bet||betInput)||0, win:0, mult:0, scat, caller:callerName,
       thumb: slotData?.thumb || null,
       slug: slotData?.slug || null,
       provider: slotData?.provider || null,
     }]}));
-    setSlotInput(''); setBetInput('');
+    setSlotInput(''); setBetInput(''); setCallerInput('');
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
     if(b.id!==id)return b;const num=parseFloat(val)||0;
@@ -913,8 +915,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Add bonus form */}
           {canEdit&&(
-            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
-              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus" />
+            <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'1fr 100px 90px auto auto',gap:6,flexShrink:0,background:G.bg2}}>
+              <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus"
+                onCommit={()=>addBonus(null,null,scatInput)} />
+              <input value={callerInput} onChange={e=>setCallerInput(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
+                placeholder="Caller" style={{...inp, height:34}} />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
                 placeholder="Bet $" style={{...inp, height:34}} />
