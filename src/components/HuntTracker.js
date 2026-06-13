@@ -1078,7 +1078,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Table header */}
-          <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 85px 95px 75px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 85px 95px 75px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0,maxWidth:1100,width:'100%'}}>
             {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
               <div key={i} style={{padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t3,letterSpacing:'0.12em',fontWeight:700,
                 textAlign: i>=2 && i<=4 ? 'right' : 'left',
@@ -1119,7 +1119,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     opacity:b.win>0?1:.5,
                     cursor:canEdit?'grab':'default',
                     transition:'background .08s',
-                    minHeight:56}}>
+                    minHeight:56,
+                    maxWidth:1100,
+                    width:'100%'}}>
                   <div style={{padding:'8px',fontFamily:G.mono,fontSize:14,color:isP?accent:G.t4,cursor:'pointer',userSelect:'none',alignSelf:'center',textAlign:'center'}}
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
