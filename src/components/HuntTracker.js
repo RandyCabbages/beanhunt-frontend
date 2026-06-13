@@ -320,7 +320,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragCallId,    setDragCallId]    = useState(null);
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [dragBonusId,   setDragBonusId]   = useState(null);
-  const [huntHistory,   setHuntHistory]   = useState([]);
+  const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
+  const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, totalPayout, huntCount}
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
   const [showPasteCalls, setShowPasteCalls] = useState(false);
@@ -688,6 +689,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         .icon-btn:hover{color:${G.t1}!important}
         .icon-btn-danger:hover{color:${G.red}!important}
         .tag-btn:hover{opacity:1!important}
+        .equity-flip{transform-style:preserve-3d;}
       `}</style>
 
       {/* ── Bean live banner ── */}
@@ -1198,20 +1200,99 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   const pct=totalPot>0?(e.amount/totalPot)*100:0;
                   const share=totalPot>0?(e.amount/totalPot)*totalWon:0;
                   const pl=share-e.amount;const hw=totalWon>0;
+                  const isFlipped = flippedCard===e.id;
+                  const cardInfo = cardInfoMap[e.id];
                   return (
-                    <div key={e.id} style={{background:G.card,border:`1px solid ${e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr}`,borderRadius:6,padding:'8px 10px',position:'relative'}}>
-                      <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
-                        {iconFor(e,13)}
-                        <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
+                    <div key={e.id}
+                      onClick={()=>{
+                        if(flippedCard===e.id){setFlippedCard(null);return;}
+                        setFlippedCard(e.id);
+                        if(!cardInfoMap[e.id]&&e.id&&e.id!=='bean_auto'&&e.id!=='creator_auto'){
+                          // Fetch settings + hunt history for this member
+                          Promise.all([
+                            apiFetch(`/api/settings/${e.id}`).catch(()=>({})),
+                            apiFetch('/api/hunts/archived').catch(()=>[]),
+                          ]).then(([settings, archived])=>{
+                            // Compute total payout across all archived hunts
+                            let totalOut=0, huntCount=0;
+                            const memberName=(e.name||'').toLowerCase().trim();
+                            (archived||[]).forEach(h=>{
+                              const eq=(h.equity||[]).find(x=>(x.id===e.id)||(x.name||'').toLowerCase().trim()===memberName);
+                              if(eq){
+                                const pot=(h.equity||[]).reduce((s,x)=>s+x.amount,0);
+                                const won=(h.bonuses||[]).reduce((s,b)=>s+b.win,0);
+                                if(pot>0){ totalOut+=((eq.amount/pot)*won); huntCount++; }
+                              }
+                            });
+                            setCardInfoMap(prev=>({...prev,[e.id]:{
+                              rainbetName: settings?.rainbetName||'',
+                              totalPayout: totalOut,
+                              huntCount,
+                              loaded:true,
+                            }}));
+                          });
+                        }
+                      }}
+                      style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
+                        position:'relative',cursor:'pointer',minHeight:90,
+                        transition:'border-color .15s',userSelect:'none',
+                        perspective:600,
+                      }}>
+                      {/* Front face */}
+                      <div style={{
+                        position:'absolute',inset:0,borderRadius:6,padding:'8px 10px',
+                        backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',
+                        transition:'transform .35s cubic-bezier(.4,0,.2,1)',
+                        transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                        transformStyle:'preserve-3d',
+                      }}>
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
+                          {iconFor(e,13)}
+                          <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
+                        </div>
+                        <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
+                          {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
+                            ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
+                            : fmt(e.amount)}
+                        </div>
+                        <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
+                        {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
+                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
-                      <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
-                        {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
-                          ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
-                          : fmt(e.amount)}
+                      {/* Back face */}
+                      <div style={{
+                        position:'absolute',inset:0,borderRadius:6,padding:'8px 10px',
+                        backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',
+                        transition:'transform .35s cubic-bezier(.4,0,.2,1)',
+                        transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
+                        transformStyle:'preserve-3d',
+                        background: G.lift,
+                        display:'flex',flexDirection:'column',justifyContent:'center',gap:5,
+                      }}>
+                        <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:2}}>{e.name||'—'}</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          <div>
+                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>Discord</div>
+                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>Rainbet</div>
+                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              {!cardInfo ? <span style={{color:G.t4}}>loading…</span>
+                                : cardInfo.rainbetName || <span style={{color:G.t4}}>not set</span>}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>All-time payout</div>
+                            <div style={{fontFamily:G.display,fontSize:'1.15rem',fontWeight:700,color:cardInfo?.totalPayout>0?G.green:G.t3}}>
+                              {!cardInfo ? '…'
+                                : cardInfo.huntCount > 0 ? fmt(cardInfo.totalPayout) : '—'}
+                            </div>
+                            {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
+                          </div>
+                        </div>
+                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
-                      <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
-                      {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
-
                     </div>
                   );
                 })}
