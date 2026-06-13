@@ -32,8 +32,8 @@ const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
 
 /* ── Slot list ───────────────────────────────────────────────────── */
-// Slot list is fetched from the API at runtime (see fetchSlots in HuntTracker)
 let _cachedSlots = [];
+let _fetchPromise = null; // shared promise so all SlotInput instances await the same request
 
 // Maps slot.report provider slugs → Rainbet URL provider prefix
 const RAINBET_PROVIDER_MAP = {
@@ -53,24 +53,27 @@ function toRainbetUrl(provider, slug, name) {
 }
 async function fetchSlots() {
   if (_cachedSlots.length) return _cachedSlots;
-  try {
-    const res = await apiFetch('/api/slots/search?q=&limit=9999');
-    if (Array.isArray(res) && res.length > 0) {
-      _cachedSlots = res.filter(s => s && s.name).map(s => {
-        // Fix relative proxy URLs — prefix with API base URL
-        let thumb = s.thumb || null;
-        if (thumb && thumb.startsWith('/api/img-proxy')) {
-          thumb = `${API}${thumb}`;
-        }
-        return { name: s.name, thumb, slug: s.slug || null, provider: s.provider || null };
-      });
-      console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
-    }
-  } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
-  return _cachedSlots;
+  if (_fetchPromise) return _fetchPromise; // already in-flight — don't double-fetch
+  _fetchPromise = (async () => {
+    try {
+      const res = await apiFetch('/api/slots/search?q=&limit=9999');
+      if (Array.isArray(res) && res.length > 0) {
+        _cachedSlots = res.filter(s => s && s.name).map(s => {
+          let thumb = s.thumb || null;
+          if (thumb && thumb.startsWith('/api/img-proxy')) {
+            thumb = `${API}${thumb}`;
+          }
+          return { name: s.name, thumb, slug: s.slug || null, provider: s.provider || null };
+        });
+        console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
+      }
+    } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
+    return _cachedSlots;
+  })();
+  return _fetchPromise;
 }
 
-// Pre-fetch slot list immediately on module load so dropdown is ready
+// Pre-fetch on module load — slot list is ready before user opens any dropdown
 fetchSlots().catch(() => {});
 
 const RAINBET_SLOTS_LEGACY = [
@@ -168,13 +171,8 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   }, [allSlots]);
 
   useEffect(() => {
-    // If already cached from module-level pre-fetch, use immediately
-    if (_cachedSlots.length) {
-      setAllSlots(_cachedSlots);
-      allSlotsRef.current = _cachedSlots;
-      return;
-    }
-    // Otherwise kick off fetch (or wait for the module-level one to finish)
+    // fetchSlots() returns the shared in-flight promise if already started,
+    // so this always gets the same result as the module-level pre-fetch
     fetchSlots().then(slots => {
       if (slots.length) {
         setAllSlots(slots);
