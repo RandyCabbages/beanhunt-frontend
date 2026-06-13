@@ -1078,11 +1078,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Table header */}
-          <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 110px 130px 100px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 85px 95px 75px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
             {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
-              <div key={i} style={{padding:'10px 10px',fontFamily:G.mono,fontSize:12,color:G.t3,letterSpacing:'0.12em',fontWeight:700,
+              <div key={i} style={{padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t3,letterSpacing:'0.12em',fontWeight:700,
+                textAlign: i>=2 && i<=4 ? 'right' : 'left',
                 cursor:h==='BET'&&canEdit?'pointer':'default',
-                borderBottom:h==='BET'&&canEdit?`1px dashed ${G.t3}`:'none',display:'inline-block'}}
+                borderBottom:h==='BET'&&canEdit?`1px dashed ${G.t3}`:'none'}}
                 onClick={()=>{if(h==='BET'&&canEdit){const v=prompt('Set bet for all:');if(v!=null){const b=parseFloat(v);if(!isNaN(b))upd(h=>({...h,bonuses:h.bonuses.map(x=>({...x,bet:b}))}));}}}}>
                 {h}
               </div>
@@ -1112,7 +1113,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     });
                     setDragBonusId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 110px 130px 100px 32px',
+                  style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 85px 95px 75px 32px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}`:undefined,
                     opacity:b.win>0?1:.5,
@@ -1139,13 +1140,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       )}
                     </div>
                   </div>
-                  <div style={{padding:'8px 10px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} placeholder="—" style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none'}}/>:fmt(b.bet)}
+                  <div style={{padding:'8px 12px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center',textAlign:'right'}}>
+                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} placeholder="—" style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none',textAlign:'right'}}/>:fmt(b.bet)}
                   </div>
-                  <div style={{padding:'8px 10px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
+                  <div style={{padding:'8px 12px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center',textAlign:'right'}}>
+                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none',textAlign:'right'}}/>:(b.win>0?fmt(b.win):'—')}
                   </div>
-                  <div style={{padding:'8px 10px',fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
+                  <div style={{padding:'8px 12px',fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em',textAlign:'right'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
                   </div>
                   <div style={{padding:'8px 4px',alignSelf:'center',textAlign:'center'}}>
