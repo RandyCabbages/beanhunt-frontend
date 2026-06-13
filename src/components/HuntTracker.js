@@ -643,17 +643,18 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
     if (!equityMember.name) return;
     try {
-      let lookupId = equityMember.id;
-      if (!/^\d{17,19}$/.test(lookupId) && user) {
-        const memberNameLower = equityMember.name.toLowerCase().trim();
-        const userNameLower = (user.displayName || user.username || '').toLowerCase().trim();
-        if (memberNameLower === userNameLower) {
-          lookupId = user.id;
-        } else {
-          return;
-        }
+      let data;
+      // If member has a real Discord ID, look up directly by ID
+      if (/^\d{17,19}$/.test(equityMember.id)) {
+        data = await apiFetch(`/api/settings/${equityMember.id}`);
+      } else if (user && (equityMember.name.toLowerCase().trim() === (user.displayName || user.username || '').toLowerCase().trim())) {
+        // It's the hunt owner adding themselves — use their own ID
+        data = await apiFetch(`/api/settings/${user.id}`);
+      } else {
+        // Look up by typed name (matches against saved Discord username/displayName)
+        data = await apiFetch(`/api/settings/by-name/${encodeURIComponent(equityMember.name)}`);
       }
-      const data = await apiFetch(`/api/settings/${lookupId}`);
+
       let preferred = (data?.preferredSlots || []).filter(Boolean);
       if (!preferred.length) return;
 
@@ -678,9 +679,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         const newCalls = preferred
           .filter(s => !alreadyIn.has(s.name.toLowerCase().trim()))
           .map(s => ({
-            id: uid(), userId: lookupId, displayName: equityMember.name,
-            avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
-            provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
+            id: uid(), user: equityMember.name,
+            slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
+            provider: s.provider||null, status: 'pending',
           }));
         if (!newCalls.length) return h;
         return { ...h, calls: [...(h.calls||[]), ...newCalls] };
@@ -1261,9 +1262,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         if(flippedCard===e.id){setFlippedCard(null);return;}
                         setFlippedCard(e.id);
                         if(!cardInfoMap[e.id]&&e.id&&e.id!=='bean_auto'&&e.id!=='creator_auto'){
-                          // Fetch settings + hunt history for this member
+                          // Use Discord ID lookup if it's a real snowflake, otherwise look up by name
+                          const settingsPath = /^\d{17,19}$/.test(e.id)
+                            ? `/api/settings/${e.id}`
+                            : `/api/settings/by-name/${encodeURIComponent(e.name||'')}`;
                           Promise.all([
-                            apiFetch(`/api/settings/${e.id}`).catch(()=>({})),
+                            apiFetch(settingsPath).catch(()=>({})),
                             apiFetch('/api/hunts/archived').catch(()=>[]),
                           ]).then(([settings, archived])=>{
                             // Compute total payout across all archived hunts
