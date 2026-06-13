@@ -1078,9 +1078,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Table header */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 80px 100px 80px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 110px 130px 100px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
             {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
-              <div key={i} style={{padding:'7px 8px',fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.1em',fontWeight:700,
+              <div key={i} style={{padding:'10px 10px',fontFamily:G.mono,fontSize:12,color:G.t3,letterSpacing:'0.12em',fontWeight:700,
                 cursor:h==='BET'&&canEdit?'pointer':'default',
                 borderBottom:h==='BET'&&canEdit?`1px dashed ${G.t3}`:'none',display:'inline-block'}}
                 onClick={()=>{if(h==='BET'&&canEdit){const v=prompt('Set bet for all:');if(v!=null){const b=parseFloat(v);if(!isNaN(b))upd(h=>({...h,bonuses:h.bonuses.map(x=>({...x,bet:b}))}));}}}}>
@@ -1112,37 +1112,44 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     });
                     setDragBonusId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'28px 1fr 80px 100px 80px 28px',
+                  style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 110px 130px 100px 32px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}`:undefined,
                     opacity:b.win>0?1:.5,
                     cursor:canEdit?'grab':'default',
-                    transition:'background .08s'}}>
+                    transition:'background .08s',
+                    minHeight:56}}>
                   <div style={{padding:'8px',fontFamily:G.mono,fontSize:14,color:isP?accent:G.t4,cursor:'pointer',userSelect:'none',alignSelf:'center',textAlign:'center'}}
                     onClick={()=>!readOnly&&setCurrentSlot(prev=>prev===b.id?null:b.id)}>
                     {isP?'▶':'·'}
                   </div>
-                  <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:8}}>
-                    <SlotThumb slot={b.slot} storedThumb={b.thumb||null} storedSlug={b.slug||null} storedProvider={b.provider||null} width={44} height={33} />
-                    {canEdit
-                      ? <input value={b.slot} onChange={e=>updateBonus(b.id,'slot',e.target.value)}
-                          style={{flex:1,background:'transparent',border:'none',color:G.t1,fontFamily:G.body,fontSize:14,fontWeight:700,padding:0,outline:'none'}}/>
-                      : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
-                    }
-                    {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
-                    {b.caller&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:2,letterSpacing:'0.03em'}}>({b.caller})</div>}
+                  <div style={{padding:'8px 10px',alignSelf:'center',display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                    <SlotThumb slot={b.slot} storedThumb={b.thumb||null} storedSlug={b.slug||null} storedProvider={b.provider||null} width={48} height={36} />
+                    <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',gap:2}}>
+                      {canEdit
+                        ? <input value={b.slot} onChange={e=>updateBonus(b.id,'slot',e.target.value)}
+                            style={{width:'100%',background:'transparent',border:'none',color:G.t1,fontFamily:G.body,fontSize:16,fontWeight:700,padding:0,outline:'none',textOverflow:'ellipsis'}}/>
+                        : <span style={{fontFamily:G.body,fontSize:16,fontWeight:700,color:G.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{b.slot}</span>
+                      }
+                      {(b.caller || b.scat>3) && (
+                        <div style={{display:'flex',alignItems:'center',gap:6}}>
+                          {b.caller && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.03em'}}>{b.caller}</span>}
+                          {b.scat>3 && <span style={{fontFamily:G.mono,fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:2,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:14,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:14,padding:0,outline:'none'}}/>:fmt(b.bet)}
+                  <div style={{padding:'8px 10px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center'}}>
+                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} placeholder="—" style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none'}}/>:fmt(b.bet)}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:14,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:14,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
+                  <div style={{padding:'8px 10px',fontFamily:G.mono,fontSize:16,fontWeight:600,color:G.t2,alignSelf:'center'}}>
+                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:16,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.25rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
+                  <div style={{padding:'8px 10px',fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
                   </div>
-                  <div style={{padding:'8px',alignSelf:'center',textAlign:'center'}}>
-                    {canEdit&&<button className="icon-btn-danger" onClick={()=>removeBonus(b.id)} style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:15,lineHeight:1}}>×</button>}
+                  <div style={{padding:'8px 4px',alignSelf:'center',textAlign:'center'}}>
+                    {canEdit&&<button className="icon-btn-danger" onClick={()=>removeBonus(b.id)} style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:18,lineHeight:1}}>×</button>}
                   </div>
                 </div>
               );
