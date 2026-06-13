@@ -111,7 +111,7 @@ export default function MyHunt({ user }) {
     }, 500);
   }, [offline, user]);
 
-  const startOnlineHunt = async (huntType) => {
+  const startOnlineHunt = useCallback(async (huntType) => {
     try {
       await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
       const emptyHunt = EMPTY_HUNT(user, huntType);
@@ -124,7 +124,7 @@ export default function MyHunt({ user }) {
       setHunt(emptyHunt);
       setStarted(true); setOffline(false);
     } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing'); }
-  };
+  }, [user]);
 
   // Auto-start from URL param (?type=community or ?type=vip)
   const autoStartedRef = useRef(false);
@@ -133,12 +133,7 @@ export default function MyHunt({ user }) {
       autoStartedRef.current = true;
       startOnlineHunt(urlType);
     }
-  }, [loading, started, urlType, user]);
-
-  // Show loading while auto-start is in progress (urlType present but not yet started)
-  if (loading || (urlType && user && !started && autoStartedRef.current)) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Starting hunt…</div>
-  );
+  }, [loading, started, urlType, user, startOnlineHunt]);
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));
@@ -175,6 +170,11 @@ export default function MyHunt({ user }) {
       return next;
     });
   }, [save]);
+
+  // Show loading while auto-start is in progress
+  if (loading || (urlType && user && !started && autoStartedRef.current)) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Starting hunt…</div>
+  );
 
   // Start screen
   if (!started || !hunt) return (
