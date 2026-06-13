@@ -35,7 +35,6 @@ export default function MyHunt({ user }) {
     apiFetch('/api/my-hunt')
       .then(data => {
         if (data && data.huntType) {
-          // Ensure Bean is always in VIP equity
           if (data.huntType === 'vip') {
             let changed = false;
             const hasBean = (data.equity||[]).some(e => e.name === 'Bean' || e.id === 'bean_auto');
@@ -62,7 +61,6 @@ export default function MyHunt({ user }) {
       .catch(() => {})
       .finally(() => setLoading(false));
 
-    // Join socket room so admin/editor changes and equity calls appear instantly
     const joinRoom = () => {
       socket.emit('watch:hunt', user.id);
       socket.emit('identify', user.id);
@@ -111,7 +109,7 @@ export default function MyHunt({ user }) {
     }, 500);
   }, [offline, user]);
 
-  const startOnlineHunt = useCallback(async (huntType) => {
+  const startOnlineHunt = async (huntType) => {
     try {
       await apiFetch('/api/my-hunt/start', { method: 'POST', body: JSON.stringify({ huntType }) });
       const emptyHunt = EMPTY_HUNT(user, huntType);
@@ -122,22 +120,9 @@ export default function MyHunt({ user }) {
         }).catch(()=>{});
       }
       setHunt(emptyHunt);
-      setStarted(true);
-      setOffline(false);
-    } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing'); }
-  }, [user]);
-
-  // Auto-start from URL param (?type=community or ?type=vip)
-  // Use a ref to prevent double-firing, and a state flag to show loading UI
-  const autoStartedRef = useRef(false);
-  const [autoStarting, setAutoStarting] = useState(false);
-  useEffect(() => {
-    if (!loading && !started && urlType && user && !autoStartedRef.current) {
-      autoStartedRef.current = true;
-      setAutoStarting(true);
-      startOnlineHunt(urlType).finally(() => setAutoStarting(false));
-    }
-  }, [loading, started, urlType, user, startOnlineHunt]);
+      setStarted(true); setOffline(false);
+    } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing the page'); }
+  };
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));
@@ -175,9 +160,8 @@ export default function MyHunt({ user }) {
     });
   }, [save]);
 
-  // Show loading while initial fetch or auto-start in progress
-  if (loading || autoStarting) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Starting hunt…</div>
+  if (loading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Loading...</div>
   );
 
   // Start screen
@@ -210,11 +194,16 @@ export default function MyHunt({ user }) {
               <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:13, color:'#cccccc' }}>{user.displayName}</span>
             </div>
             <div style={{ display:'flex', gap:10 }}>
-              <button onClick={() => startOnlineHunt('community')} style={{ flex:1, height:46, background:'transparent', border:'2px solid #c6f135', borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#c6f135', cursor:'pointer' }}>
+              <button onClick={() => startOnlineHunt('community')}
+                style={{ flex:1, height:46, background: urlType==='community' ? 'rgba(198,241,53,0.15)' : 'transparent',
+                  border: urlType==='community' ? '2px solid #c6f135' : '2px solid #c6f135',
+                  borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#c6f135', cursor:'pointer' }}>
                 🎰 Community
               </button>
               {(user.isVipHost || user.isAdmin) && (
-                <button onClick={() => startOnlineHunt('vip')} style={{ flex:1, height:46, background:'transparent', border:'2px solid #bb86fc', borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#bb86fc', cursor:'pointer' }}>
+                <button onClick={() => startOnlineHunt('vip')}
+                  style={{ flex:1, height:46, background: urlType==='vip' ? 'rgba(187,134,252,0.15)' : 'transparent',
+                    border:'2px solid #bb86fc', borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#bb86fc', cursor:'pointer' }}>
                   👑 VIP
                 </button>
               )}
