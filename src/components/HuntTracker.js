@@ -42,7 +42,8 @@ const RAINBET_PROVIDER_MAP = {
   'elk-studios':'elk-studios','red-tiger':'red-tiger','push-gaming':'push-gaming',
   'blueprint-gaming':'blueprint','quickspin':'quickspin','thunderkick':'thunderkick',
   'yggdrasil':'yggdrasil','netent':'netent','big-time-gaming':'big-time-gaming',
-  'wazdan':'wazdan','spinomenal':'spinomenal',
+  'wazdan':'wazdan','spinomenal':'spinomenal','iron-dog-studio':'iron-dog-studio',
+  'backseat-gaming':'hacksaw','isoftbet':'isoftbet','gameart':'gameart',
 };
 function toRainbetUrl(provider, slug, name) {
   const rbp = RAINBET_PROVIDER_MAP[provider] || provider;
@@ -1319,38 +1320,32 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     // Slot lookup — fuzzy match against cached slot list, return canonical name + thumb
                     const resolveSlot = (raw) => {
                       const q = raw.toLowerCase().trim();
-                      const qWords = q.split(/\s+/);
-                      const getName = g => g.name;
-                      const getThumb = g => {
-                        if (!g) return null;
-                        if (g.thumb) return g.thumb;
-                        // Try softswiss CDN fallback via slug
-                        return null;
-                      };
+                      const normPunct = s => s.replace(/[,!.]/g, '').replace(/\s+/g, ' ').trim();
+                      const qNorm = normPunct(q);
+                      const qWords = qNorm.split(/\s+/);
                       const pool = _cachedSlots;
                       if (!pool.length) return { name: raw.replace(/\b\w/g, c => c.toUpperCase()), thumb: null };
 
-                      // 1. Exact match
-                      let m = pool.find(s => s.name.toLowerCase() === q);
+                      // 1. Exact match (with and without punctuation)
+                      let m = pool.find(s => s.name.toLowerCase() === q || normPunct(s.name.toLowerCase()) === qNorm);
                       if (m) return { name: m.name, thumb: m.thumb || null };
 
-                      // 2. Slot name starts with query, only slightly longer (e.g. "chaos crew 2" -> "Chaos Crew 2: Megaways")
-                      const sw2 = pool.filter(s => s.name.toLowerCase().startsWith(q));
+                      // 2. Slot name starts with query, only slightly longer
+                      const sw2 = pool.filter(s => normPunct(s.name.toLowerCase()).startsWith(qNorm));
                       if (sw2.length) {
                         const best = sw2.reduce((a,b) => (a.name.length - q.length) < (b.name.length - q.length) ? a : b);
                         if (best.name.length - q.length <= 12) return { name: best.name, thumb: best.thumb || null };
                       }
 
-                      // 3. Query starts with slot name, and slot name is at least 65% of query length
-                      // (prevents "hades" matching "hades harvest" — 5/13 = 38%, below threshold)
-                      const sw3 = pool.filter(s => s.name.length > 4 && q.startsWith(s.name.toLowerCase()) && s.name.length / q.length >= 0.65);
+                      // 3. Query starts with slot name, at least 65% length ratio
+                      const sw3 = pool.filter(s => s.name.length > 4 && qNorm.startsWith(normPunct(s.name.toLowerCase())) && s.name.length / q.length >= 0.65);
                       if (sw3.length) {
                         const best = sw3.reduce((a,b) => a.name.length > b.name.length ? a : b);
                         return { name: best.name, thumb: best.thumb || null };
                       }
 
                       // 4. All query words appear in slot name
-                      const sw4 = pool.filter(s => qWords.every(w => s.name.toLowerCase().includes(w)));
+                      const sw4 = pool.filter(s => qWords.every(w => normPunct(s.name.toLowerCase()).includes(w)));
                       if (sw4.length) {
                         const best = sw4.reduce((a,b) => Math.abs(a.name.length - q.length) < Math.abs(b.name.length - q.length) ? a : b);
                         return { name: best.name, thumb: best.thumb || null };
@@ -1358,15 +1353,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
                       // 5. All slot name words (2+) appear in query, length ratio >= 0.6
                       const sw5 = pool.filter(s => {
-                        const sWords = s.name.toLowerCase().split(/\s+/);
-                        return sWords.length >= 2 && sWords.every(w => q.includes(w)) && s.name.length / q.length >= 0.6;
+                        const sWords = normPunct(s.name.toLowerCase()).split(/\s+/);
+                        return sWords.length >= 2 && sWords.every(w => qNorm.includes(w)) && s.name.length / q.length >= 0.6;
                       });
                       if (sw5.length) {
                         const best = sw5.reduce((a,b) => a.name.length > b.name.length ? a : b);
                         return { name: best.name, thumb: best.thumb || null };
                       }
 
-                      // No match — title-case the raw input
                       return { name: raw.replace(/\b\w/g, c => c.toUpperCase()), thumb: null };
                     };
                     // Does this block have any @mention lines? If so it's a slot call block
@@ -1417,17 +1411,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   // (resolveSlot not available here — define inline)
                   const resolveSlotPlain = (raw) => {
                     const q = raw.toLowerCase().trim();
-                    const qWords = q.split(/\s+/);
+                    const normPunct = s => s.replace(/[,!.]/g,'').replace(/\s+/g,' ').trim();
+                    const qNorm = normPunct(q);
                     const pool = _cachedSlots;
                     if (!pool.length) return { name: raw.replace(/\b\w/g,c=>c.toUpperCase()), thumb: null };
-                    let m = pool.find(s=>s.name.toLowerCase()===q); if(m) return {name:m.name,thumb:m.thumb||null};
-                    const sw2=pool.filter(s=>s.name.toLowerCase().startsWith(q));
+                    let m = pool.find(s=>s.name.toLowerCase()===q||normPunct(s.name.toLowerCase())===qNorm); if(m) return {name:m.name,thumb:m.thumb||null};
+                    const sw2=pool.filter(s=>normPunct(s.name.toLowerCase()).startsWith(qNorm));
                     if(sw2.length){const b=sw2.reduce((a,c)=>(a.name.length-q.length)<(c.name.length-q.length)?a:c);if(b.name.length-q.length<=12)return{name:b.name,thumb:b.thumb||null};}
-                    const sw3=pool.filter(s=>s.name.length>4&&q.startsWith(s.name.toLowerCase())&&s.name.length/q.length>=0.65);
+                    const sw3=pool.filter(s=>s.name.length>4&&qNorm.startsWith(normPunct(s.name.toLowerCase()))&&s.name.length/q.length>=0.65);
                     if(sw3.length){const b=sw3.reduce((a,c)=>a.name.length>c.name.length?a:c);return{name:b.name,thumb:b.thumb||null};}
-                    const sw4=pool.filter(s=>qWords.every(w=>s.name.toLowerCase().includes(w)));
+                    const qWords=qNorm.split(/\s+/);
+                    const sw4=pool.filter(s=>qWords.every(w=>normPunct(s.name.toLowerCase()).includes(w)));
                     if(sw4.length){const b=sw4.reduce((a,c)=>Math.abs(a.name.length-q.length)<Math.abs(c.name.length-q.length)?a:c);return{name:b.name,thumb:b.thumb||null};}
-                    const sw5=pool.filter(s=>{const sw=s.name.toLowerCase().split(/\s+/);return sw.length>=2&&sw.every(w=>q.includes(w))&&s.name.length/q.length>=0.6;});
+                    const sw5=pool.filter(s=>{const sw=normPunct(s.name.toLowerCase()).split(/\s+/);return sw.length>=2&&sw.every(w=>qNorm.includes(w))&&s.name.length/q.length>=0.6;});
                     if(sw5.length){const b=sw5.reduce((a,c)=>a.name.length>c.name.length?a:c);return{name:b.name,thumb:b.thumb||null};}
                     return{name:raw.replace(/\b\w/g,c=>c.toUpperCase()),thumb:null};
                   };
