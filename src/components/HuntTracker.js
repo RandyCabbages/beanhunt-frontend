@@ -216,29 +216,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
                 transition:'background .08s', display:'flex', alignItems:'center', gap:10 }}
               onMouseEnter={e => e.currentTarget.style.background = G.lift}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <a href={toRainbetUrl(s.provider, s.slug, s.name)}
-                target="_blank" rel="noopener noreferrer"
-                onClick={e=>e.stopPropagation()}
-                title={`Play ${s.name} on Rainbet`}
-                style={{display:'block',flexShrink:0,textDecoration:'none'}}>
-                {s.thumb ? (
-                  <img src={s.thumb} alt="" width={36} height={27}
-                    style={{borderRadius:3,objectFit:'cover',display:'block',background:G.sur,cursor:'pointer',transition:'opacity .15s'}}
-                    onMouseEnter={e=>e.target.style.opacity='0.7'}
-                    onMouseLeave={e=>e.target.style.opacity='1'}
-                    onError={e=>{e.target.parentElement.style.display='none'}} />
-                ) : (
-                  <svg width={36} height={27} viewBox="0 0 36 27" style={{display:'block',borderRadius:3,cursor:'pointer'}}
-                    onMouseEnter={e=>e.currentTarget.style.opacity='0.7'}
-                    onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
-                    <defs><linearGradient id="sdg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#1a1a2e"/><stop offset="100%" stopColor="#16213e"/></linearGradient></defs>
-                    <rect width={36} height={27} rx="3" fill="url(#sdg2)"/>
-                    <rect width={36} height={27} rx="3" fill="none" stroke="rgba(198,241,53,0.2)" strokeWidth="1"/>
-                    <circle cx={18} cy={11} r={5} fill="rgba(26,157,90,0.3)" stroke="rgba(26,157,90,0.5)" strokeWidth="0.7"/>
-                    <text x={18} y={14} textAnchor="middle" fontFamily="Arial" fontSize={6} fontWeight="900" fill="#1a9d5a">R</text>
-                  </svg>
-                )}
-              </a>
+              <SlotThumb slot={s.name} storedThumb={s.thumb||null} storedSlug={s.slug||null} storedProvider={s.provider||null} width={36} height={27} />
               <span>{s.name}</span>
             </div>
           ))}
