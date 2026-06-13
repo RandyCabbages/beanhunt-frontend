@@ -56,12 +56,22 @@ async function fetchSlots() {
   try {
     const res = await apiFetch('/api/slots/search?q=&limit=9999');
     if (Array.isArray(res) && res.length > 0) {
-      _cachedSlots = res.filter(s => s && s.name).map(s => ({ name: s.name, thumb: s.thumb || null, slug: s.slug || null, provider: s.provider || null }));
+      _cachedSlots = res.filter(s => s && s.name).map(s => {
+        // Fix relative proxy URLs — prefix with API base URL
+        let thumb = s.thumb || null;
+        if (thumb && thumb.startsWith('/api/img-proxy')) {
+          thumb = `${API}${thumb}`;
+        }
+        return { name: s.name, thumb, slug: s.slug || null, provider: s.provider || null };
+      });
       console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
     }
   } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
   return _cachedSlots;
 }
+
+// Pre-fetch slot list immediately on module load so dropdown is ready
+fetchSlots().catch(() => {});
 
 const RAINBET_SLOTS_LEGACY = [
   'Gates of Olympus','Gates of Olympus 1000',
@@ -149,7 +159,7 @@ function buildQueue(calls){
 function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen]               = useState(false);
-  const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : RAINBET_SLOTS_LEGACY);
+  const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : []);
   const allSlotsRef = useRef(allSlots);
   const wrapRef     = useRef(null);
 
@@ -158,14 +168,19 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
   }, [allSlots]);
 
   useEffect(() => {
-    if (!_cachedSlots.length) {
-      fetchSlots().then(slots => {
-        if (slots.length) {
-          setAllSlots(slots);
-          allSlotsRef.current = slots;
-        }
-      });
+    // If already cached from module-level pre-fetch, use immediately
+    if (_cachedSlots.length) {
+      setAllSlots(_cachedSlots);
+      allSlotsRef.current = _cachedSlots;
+      return;
     }
+    // Otherwise kick off fetch (or wait for the module-level one to finish)
+    fetchSlots().then(slots => {
+      if (slots.length) {
+        setAllSlots(slots);
+        allSlotsRef.current = slots;
+      }
+    });
   }, []);
 
   const search = useCallback(v => {
@@ -220,6 +235,13 @@ function SlotInput({ value, onChange, onCommit, placeholder, style }) {
               <span>{s.name}</span>
             </div>
           ))}
+        </div>
+      )}
+      {open && suggestions.length === 0 && value.length >= 2 && (
+        <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
+          border:`1px solid ${G.bb}`, borderRadius:3, zIndex:60, padding:'10px 12px',
+          fontFamily:G.mono, fontSize:11, color:G.t4, letterSpacing:'0.04em' }}>
+          {allSlotsRef.current.length === 0 ? 'Loading slots…' : 'No slots found'}
         </div>
       )}
     </div>
