@@ -127,11 +127,18 @@ export default function MyHunt({ user }) {
   };
 
   // Auto-start from URL param (?type=community or ?type=vip)
+  const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (!loading && !started && urlType && user) {
+    if (!loading && !started && urlType && user && !autoStartedRef.current) {
+      autoStartedRef.current = true;
       startOnlineHunt(urlType);
     }
-  }, [loading, urlType, user]);
+  }, [loading, started, urlType, user]);
+
+  // Show loading while auto-start is in progress (urlType present but not yet started)
+  if (loading || (urlType && user && !started && autoStartedRef.current)) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Starting hunt…</div>
+  );
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));
@@ -168,10 +175,6 @@ export default function MyHunt({ user }) {
       return next;
     });
   }, [save]);
-
-  if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Loading...</div>
-  );
 
   // Start screen
   if (!started || !hunt) return (
