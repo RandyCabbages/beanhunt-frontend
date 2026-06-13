@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiFetch } from './api';
+import { apiFetch, API } from './api';
 
 export const thumbCache = {};
 
@@ -46,7 +46,10 @@ export function useSlotThumb(slotName) {
       .then(res => {
         const match = Array.isArray(res) && res.find(g => g.name.toLowerCase() === key);
         const hit = match || res?.[0];
-        const data = { thumb: hit?.thumb || null, slug: hit?.slug || null, provider: hit?.provider || null };
+        const rawThumb = hit?.thumb || null;
+        // Normalize relative proxy URLs to absolute
+        const thumb = rawThumb?.startsWith('/api/img-proxy') ? `${API}${rawThumb}` : rawThumb;
+        const data = { thumb, slug: hit?.slug || null, provider: hit?.provider || null };
         thumbCache[key] = data;
         setResult(data);
       }).catch(() => {
@@ -61,7 +64,9 @@ export function useSlotThumb(slotName) {
 
 export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width = 44, height = 33, style = {} }) {
   const looked = useSlotThumb(storedThumb != null ? null : slot);
-  const thumb    = storedThumb  ?? looked.thumb;
+  // Normalize any relative /api/img-proxy URLs to absolute
+  const normalizeThumb = t => t?.startsWith('/api/img-proxy') ? `${API}${t}` : t || null;
+  const thumb    = normalizeThumb(storedThumb)  ?? looked.thumb;
   const slug     = storedSlug   ?? looked.slug;
   const provider = storedProvider ?? looked.provider;
   const [imgFailed, setImgFailed] = useState(false);
@@ -70,15 +75,21 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
 
   // Truncate slot name for display in fallback tile
   const displayName = slot || '';
+  // Split into up to 2 lines fitting within the tile width
+  // Approx 1 char ≈ fontSize*0.6px wide, tile width = `width`
+  const maxChars = Math.floor(width / (fontSize * 0.62));
   const words = displayName.split(' ');
   let line1 = '', line2 = '', cur = '';
   for (const w of words) {
-    if (!line1 && (cur + ' ' + w).trim().length > 12) { line1 = cur.trim(); cur = w; }
-    else { cur = cur ? cur + ' ' + w : w; }
+    const candidate = cur ? cur + ' ' + w : w;
+    if (!line1 && candidate.length > maxChars) { line1 = cur || w.slice(0, maxChars); cur = cur ? w : ''; }
+    else { cur = candidate; }
   }
   if (!line1) { line1 = cur.trim(); cur = ''; }
-  else { line2 = cur.trim(); }
-  if (line2.length > 12) line2 = line2.slice(0, 11) + '…';
+  else if (cur) { line2 = cur.trim(); }
+  // Hard truncate with ellipsis
+  if (line1.length > maxChars) line1 = line1.slice(0, maxChars - 1) + '…';
+  if (line2.length > maxChars) line2 = line2.slice(0, maxChars - 1) + '…';
 
   const showFallback = !thumb || imgFailed;
   const fontSize = width < 44 ? 6 : 7;
@@ -99,9 +110,13 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
               <stop offset="0%" stopColor="#1a1a2e"/>
               <stop offset="100%" stopColor="#16213e"/>
             </linearGradient>
+            <clipPath id={`clip_${gradId}`}>
+              <rect width={width} height={height} rx="3"/>
+            </clipPath>
           </defs>
           <rect width={width} height={height} rx="3" fill={`url(#${gradId})`}/>
           <rect width={width} height={height} rx="3" fill="none" stroke="rgba(198,241,53,0.25)" strokeWidth="1"/>
+          <g clipPath={`url(#clip_${gradId})`}>
           <circle cx={width/2} cy={height*0.35} r={height*0.18} fill="rgba(26,157,90,0.3)" stroke="rgba(26,157,90,0.6)" strokeWidth="0.8"/>
           <text x={width/2} y={height*0.35+3} textAnchor="middle" fontFamily="Arial,sans-serif" fontSize={fontSize+1} fontWeight="900" fill="#1a9d5a">R</text>
           <text x={width/2} y={line2 ? height*0.72 : height*0.78} textAnchor="middle"
@@ -116,6 +131,7 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
               {line2}
             </text>
           )}
+          </g>
         </svg>
       </a>
     );
