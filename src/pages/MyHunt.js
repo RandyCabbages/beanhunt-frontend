@@ -122,16 +122,20 @@ export default function MyHunt({ user }) {
         }).catch(()=>{});
       }
       setHunt(emptyHunt);
-      setStarted(true); setOffline(false);
+      setStarted(true);
+      setOffline(false);
     } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing'); }
   }, [user]);
 
   // Auto-start from URL param (?type=community or ?type=vip)
+  // Use a ref to prevent double-firing, and a state flag to show loading UI
   const autoStartedRef = useRef(false);
+  const [autoStarting, setAutoStarting] = useState(false);
   useEffect(() => {
     if (!loading && !started && urlType && user && !autoStartedRef.current) {
       autoStartedRef.current = true;
-      startOnlineHunt(urlType);
+      setAutoStarting(true);
+      startOnlineHunt(urlType).finally(() => setAutoStarting(false));
     }
   }, [loading, started, urlType, user, startOnlineHunt]);
 
@@ -171,8 +175,8 @@ export default function MyHunt({ user }) {
     });
   }, [save]);
 
-  // Show loading while auto-start is in progress
-  if (loading || (urlType && user && !started && autoStartedRef.current)) return (
+  // Show loading while initial fetch or auto-start in progress
+  if (loading || autoStarting) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Starting hunt…</div>
   );
 
