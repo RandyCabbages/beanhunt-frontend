@@ -164,43 +164,42 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight 
   const [open, setOpen]               = useState(false);
   const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : []);
   const allSlotsRef = useRef(allSlots);
+  const valueRef    = useRef(value);
   const wrapRef     = useRef(null);
 
-  useEffect(() => {
-    allSlotsRef.current = allSlots;
-  }, [allSlots]);
+  useEffect(() => { valueRef.current = value; }, [value]);
 
-  useEffect(() => {
-    // fetchSlots() returns the shared in-flight promise if already started,
-    // so this always gets the same result as the module-level pre-fetch
-    fetchSlots().then(slots => {
-      if (slots.length) {
-        setAllSlots(slots);
-        allSlotsRef.current = slots;
-      }
-    });
-  }, []);
-
-  const search = useCallback(v => {
+  const search = useCallback((v, pool) => {
     if (v.length < 2) { setSuggestions([]); setOpen(false); return; }
     const q = v.toLowerCase();
-    const pool = allSlotsRef.current;
-    const filtered = pool.filter(s => s && s.name && s.name.toLowerCase().includes(q));
-    // Sort: exact starts-with first, then word-starts-with, then contains
+    const slots = pool || allSlotsRef.current;
+    if (!slots.length) return; // slots not loaded yet — wait
+    const filtered = slots.filter(s => s && s.name && s.name.toLowerCase().includes(q));
     filtered.sort((a, b) => {
       const an = a.name.toLowerCase(), bn = b.name.toLowerCase();
       const aStarts = an.startsWith(q), bStarts = bn.startsWith(q);
       if (aStarts && !bStarts) return -1;
       if (!aStarts && bStarts) return 1;
-      const aWordStarts = an.split(/\s+/).some(w => w.startsWith(q));
-      const bWordStarts = bn.split(/\s+/).some(w => w.startsWith(q));
-      if (aWordStarts && !bWordStarts) return -1;
-      if (!aWordStarts && bWordStarts) return 1;
+      const aWord = an.split(/\s+/).some(w => w.startsWith(q));
+      const bWord = bn.split(/\s+/).some(w => w.startsWith(q));
+      if (aWord && !bWord) return -1;
+      if (!aWord && bWord) return 1;
       return an.localeCompare(bn);
     });
     setSuggestions(filtered.slice(0, 12));
     setOpen(filtered.length > 0);
   }, []);
+
+  useEffect(() => {
+    fetchSlots().then(slots => {
+      if (slots.length) {
+        setAllSlots(slots);
+        allSlotsRef.current = slots;
+        // Re-run search if user already typed something while fetch was in flight
+        if (valueRef.current.length >= 2) search(valueRef.current, slots);
+      }
+    });
+  }, [search]);
 
   const handleChange = v => { onChange(v); search(v); };
   const pick = s => { onChange(s.name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s.name); };
@@ -217,7 +216,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight 
         }}
         placeholder={placeholder || 'Slot name…'}
         style={{ width:'100%', height: inputHeight || 34, background:G.sur, border:`1px solid ${G.bdr}`,
-          borderRadius:3, padding:'0 10px', fontFamily:G.body, fontSize:13, color:G.t1, outline:'none' }}
+          borderRadius:3, padding:'0 14px', fontFamily:G.body, fontSize:15, color:G.t1, outline:'none' }}
       />
       {open && suggestions.length > 0 && (
         <div style={{ position:'absolute', top:'calc(100% + 2px)', left:0, right:0, background:G.card,
@@ -935,15 +934,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Add bonus form */}
           {canEdit&&(
-            <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'3fr 2fr 90px auto auto',gap:6,alignItems:'center',flexShrink:0,background:G.bg2}}>
+            <div style={{padding:'6px 10px',borderBottom:`1px solid ${G.bdr}`,display:'grid',gridTemplateColumns:'7fr 3fr 90px auto auto',gap:6,alignItems:'center',flexShrink:0,background:G.bg2}}>
               <SlotInput value={slotInput} onChange={setSlotInput} placeholder="e.g. Gates of Olympus"
                 onCommit={()=>addBonus(null,null,scatInput)} inputHeight={52} />
               <input value={callerInput} onChange={e=>setCallerInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
-                placeholder="Caller" style={{...inp, height:52}} />
+                placeholder="Caller" style={{...inp, height:52, fontSize:15, padding:'0 14px'}} />
               <input type="number" value={betInput} onChange={e=>setBetInput(e.target.value)}
                 onKeyDown={e=>e.key==='Enter'&&addBonus(null,null,scatInput)}
-                placeholder="Bet $" style={{...inp, height:52}} />
+                placeholder="Bet $" style={{...inp, height:52, fontSize:15, padding:'0 14px'}} />
               <div style={{display:'flex',gap:3,alignItems:'center'}}>
                 <button onClick={()=>setScatInput(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===3?accent:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===3?'scale(1.1)':'scale(1)'}}>
                   <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/><polygon points="5,22 26,33 4,20 25,32"/><polygon points="67,22 46,33 68,20 47,32"/><polygon points="5,50 26,39 4,52 25,40"/><polygon points="67,50 46,39 68,52 47,40"/></g><circle cx="36" cy="36" r="22" fill="url(#sS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
