@@ -215,7 +215,7 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight 
   }, [search]);
 
   const handleChange = v => { onChange(v); search(v); };
-  const pick = s => { onChange(s.name); setSuggestions([]); setOpen(false); if (onCommit) onCommit(s.name); };
+  const pick = s => { onChange(s.name); setSuggestions([]); setOpen(false); };
 
   return (
     <div ref={wrapRef} style={{ position:'relative', ...style }}>
