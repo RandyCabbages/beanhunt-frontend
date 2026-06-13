@@ -333,6 +333,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
   const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, totalPayout, huntCount}
+  const [huntHistory,   setHuntHistory]   = useState([]);     // undo stack
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcImporting,   setDcImporting]   = useState(false);
   const [showPasteCalls, setShowPasteCalls] = useState(false);
