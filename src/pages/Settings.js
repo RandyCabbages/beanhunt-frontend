@@ -280,7 +280,7 @@ export default function Settings({ user }) {
           </a>
           {rainbetName && (
             <div style={{ marginTop:14 }}>
-              <a href="https://beantwitch.com/rewards" target="_blank" rel="noopener noreferrer"
+              <a href={`https://rainbet.com/user/${rainbetName}`} target="_blank" rel="noopener noreferrer"
                 style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px',
                   background:'rgba(26,157,90,0.1)', border:'1px solid rgba(26,157,90,0.5)', borderRadius:5,
                   color:'#4ade80', fontFamily:C.font, fontSize:13, fontWeight:700,
