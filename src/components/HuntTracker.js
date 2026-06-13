@@ -1267,30 +1267,54 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
                         transformStyle:'preserve-3d',
                         background: G.lift,
-                        display:'flex',flexDirection:'column',justifyContent:'center',gap:5,
+                        display:'flex',flexDirection:'column',gap:4,
                       }}>
-                        <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:2}}>{e.name||'—'}</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                        {/* Name header */}
+                        <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase'}}>{e.name||'—'}</div>
+
+                        {/* Discord + Rainbet row */}
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>Discord</div>
-                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
+                            <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Discord</div>
+                            <div style={{fontFamily:G.body,fontSize:11,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
                           </div>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>Rainbet</div>
-                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                              {!cardInfo ? <span style={{color:G.t4}}>loading…</span>
+                            <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Rainbet</div>
+                            <div style={{fontFamily:G.body,fontSize:11,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                              {!cardInfo ? <span style={{color:G.t4}}>…</span>
                                 : cardInfo.rainbetName || <span style={{color:G.t4}}>not set</span>}
                             </div>
                           </div>
-                          <div>
-                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase'}}>All-time payout</div>
-                            <div style={{fontFamily:G.display,fontSize:'1.15rem',fontWeight:700,color:cardInfo?.totalPayout>0?G.green:G.t3}}>
-                              {!cardInfo ? '…'
-                                : cardInfo.huntCount > 0 ? fmt(cardInfo.totalPayout) : '—'}
+                        </div>
+
+                        {/* Divider */}
+                        <div style={{height:1,background:G.bdr,flexShrink:0}}/>
+
+                        {/* Current hunt payout — the tip number */}
+                        <div>
+                          <div style={{fontFamily:G.mono,fontSize:7,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Current Hunt Payout</div>
+                          <div style={{fontFamily:G.display,fontSize:'1.45rem',fontWeight:700,letterSpacing:'0.02em',
+                            color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3}}>
+                            {hw&&totalWon>0 ? fmt(share) : '—'}
+                          </div>
+                          {hw&&totalWon>0&&(
+                            <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:pl>=0?G.green:G.red}}>
+                              {fmtS(pl)} ({pct.toFixed(1)}% · in {fmt(e.amount)})
+                            </div>
+                          )}
+                        </div>
+
+                        {/* All-time payout — small at bottom */}
+                        <div style={{marginTop:'auto',paddingTop:2,borderTop:`1px solid ${G.bdr}`}}>
+                          <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>All-time payout</div>
+                          <div style={{display:'flex',alignItems:'baseline',gap:6}}>
+                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?G.t2:G.t4}}>
+                              {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
                             </div>
                             {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
                           </div>
                         </div>
+
                         <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
                     </div>
