@@ -347,23 +347,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
 
-  // When equity changes and a member has a real Discord ID, inject their preferred slots
-  const prevEquityIds = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
-  useEffect(() => {
-    if (readOnly || !canEdit) return;
-    const current = hunt.equity || [];
-    const currentIds = new Set(current.map(e=>e.id).filter(Boolean));
-    // Find newly added members (IDs that weren't there before)
-    const newMembers = current.filter(e =>
-      e.id && !prevEquityIds.current.has(e.id) &&
-      e.id !== 'bean_auto' && e.id !== 'creator_auto' &&
-      !/^[a-z0-9]{4,8}$/.test(e.id) // skip uid() generated IDs, only real Discord IDs (numeric)
-    );
-    if (newMembers.length) {
-      newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
-    }
-    prevEquityIds.current = currentIds;
-  }, [hunt.equity, hunt.calls, readOnly, canEdit, injectPreferredSlots]);
+
   useEffect(() => {
     if (hunt.huntMode && hunt.huntMode !== huntMode) {
       setHuntMode(hunt.huntMode);
@@ -512,38 +496,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const addPerson      = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:0,isRollWinner:false}]}));
   const addRollWinner  = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:defAmt,isRollWinner:true}]}));
 
-  // When an equity member's name/ID is set, fetch their preferred slots and inject
-  const injectPreferredSlots = useCallback(async (equityMember, currentCalls) => {
-    if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
-    try {
-      const data = await apiFetch(`/api/settings/${equityMember.id}`);
-      const preferred = data?.preferredSlots || [];
-      if (!preferred.length) return;
-      // Get current slot names already in calls to avoid duplicates
-      const existingSlots = new Set((currentCalls || []).map(c => (c.slot||'').toLowerCase().trim()));
-      const toAdd = preferred.filter(s => s?.name && !existingSlots.has(s.name.toLowerCase().trim()));
-      if (!toAdd.length) return;
-      upd(h => {
-        const existing = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
-        const newCalls = toAdd
-          .filter(s => !existing.has(s.name.toLowerCase().trim()))
-          .map(s => ({
-            id: uid(), userId: equityMember.id, displayName: equityMember.name,
-            avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
-            provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
-          }));
-        if (!newCalls.length) return h;
-        return { ...h, calls: [...(h.calls||[]), ...newCalls] };
-      });
-    } catch(e) { /* silently ignore — user may not have settings */ }
-  }, [upd]);
+
   const updatePerson = (id,f,v) => upd(h=>({...h,equity:h.equity.map(e=>e.id!==id?e:{...e,[f]:f==='name'?v:parseFloat(v)||0})}));
   const removePerson = id     => upd(h=>({...h,equity:h.equity.filter(e=>e.id!==id)}));
   const recalc       = (da,ba) => upd(h=>({...h,equity:h.equity.map(e=>({...e,amount:e.name==='Bean'?ba:da}))}));
 
   const openCallModal = () => {
     const names = equity.map(e=>e.name).filter(Boolean);
-    if (!canEdit && canAddCalls && user) setCallName(user.displayName||user.username||'');
+    if (!readOnly && !onUpdateHunt && canAddCalls && user) setCallName(user.displayName||user.username||'');
     else setCallName(names.length===1?names[0]:'');
     setCallSlot(''); setCallModal(true);
   };
