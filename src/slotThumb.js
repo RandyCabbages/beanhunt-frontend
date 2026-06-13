@@ -75,8 +75,7 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
 
   // Truncate slot name for display in fallback tile
   const displayName = slot || '';
-  // Split into up to 2 lines fitting within the tile width
-  // Approx 1 char ≈ fontSize*0.6px wide, tile width = `width`
+  const fontSize = width < 44 ? 6 : 7;
   const maxChars = Math.floor(width / (fontSize * 0.62));
   const words = displayName.split(' ');
   let line1 = '', line2 = '', cur = '';
@@ -92,7 +91,6 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
   if (line2.length > maxChars) line2 = line2.slice(0, maxChars - 1) + '…';
 
   const showFallback = !thumb || imgFailed;
-  const fontSize = width < 44 ? 6 : 7;
   const gradId = `sg_${(slug||displayName).replace(/[^a-zA-Z0-9]/g,'')}`;
 
   if (showFallback) {
