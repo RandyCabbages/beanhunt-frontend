@@ -73,8 +73,8 @@ async function fetchSlots() {
   return _fetchPromise;
 }
 
-// Pre-fetch on module load — slot list is ready before user opens any dropdown
-fetchSlots().catch(() => {});
+// fetchSlots is called by SlotInput on mount — not at module level
+// (module-level calls run before React initializes and cause circular init errors)
 
 const RAINBET_SLOTS_LEGACY = [
   'Gates of Olympus','Gates of Olympus 1000',
