@@ -644,24 +644,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   // ── Preferred slot auto-injection ────────────────────────────────
   // Safe to place here — canEdit is defined above, no TDZ risk
   const injectPreferredSlots = useCallback(async (equityMember, currentCalls) => {
+    console.log('[inject] called for:', equityMember.name, 'id:', equityMember.id);
     if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
     if (!equityMember.name) return;
     try {
-      // Use real Discord ID: either the member already has one (snowflake),
-      // or their name matches the logged-in user (hunt owner adding themselves)
       let lookupId = equityMember.id;
       if (!/^\d{17,19}$/.test(lookupId) && user) {
         const memberNameLower = equityMember.name.toLowerCase().trim();
         const userNameLower = (user.displayName || user.username || '').toLowerCase().trim();
+        console.log('[inject] name match check:', memberNameLower, 'vs', userNameLower);
         if (memberNameLower === userNameLower) {
-          lookupId = user.id; // use own real Discord ID
+          lookupId = user.id;
+          console.log('[inject] matched own name, using user.id:', lookupId);
         } else {
-          return; // can't resolve to real ID, skip
+          console.log('[inject] no name match, skipping');
+          return;
         }
       }
+      console.log('[inject] fetching settings for id:', lookupId);
       const data = await apiFetch(`/api/settings/${lookupId}`);
+      console.log('[inject] settings response:', data);
       const preferred = data?.preferredSlots || [];
-      if (!preferred.length) return;
+      if (!preferred.length) { console.log('[inject] no preferred slots saved'); return; }
+      console.log('[inject] injecting', preferred.length, 'slots');
       upd(h => {
         const existing = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
         const newCalls = preferred
@@ -671,10 +676,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
             provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
           }));
-        if (!newCalls.length) return h;
+        if (!newCalls.length) { console.log('[inject] all slots already in queue'); return h; }
+        console.log('[inject] added', newCalls.length, 'new calls');
         return { ...h, calls: [...(h.calls||[]), ...newCalls] };
       });
-    } catch(e) { /* silently ignore */ }
+    } catch(e) { console.error('[inject] error:', e); }
   }, [upd, user]);
 
   const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
@@ -696,6 +702,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     });
 
     if (newMembers.length) {
+      console.log('[inject] new equity members detected:', newMembers.map(m=>m.name));
       newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
     }
     prevEquityIdsRef.current = currentIds;
