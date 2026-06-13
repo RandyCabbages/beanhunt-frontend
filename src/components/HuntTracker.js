@@ -1235,10 +1235,17 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         if(flippedCard===e.id){setFlippedCard(null);return;}
                         setFlippedCard(e.id);
                         if(!cardInfoMap[e.id]&&e.id&&e.id!=='bean_auto'&&e.id!=='creator_auto'){
-                          // Use Discord ID lookup if it's a real snowflake, otherwise look up by name
-                          const settingsPath = /^\d{17,19}$/.test(e.id)
-                            ? `/api/settings/${e.id}`
-                            : `/api/settings/by-name/${encodeURIComponent(e.name||'')}`;
+                          // Use Discord ID lookup if it's a real snowflake.
+                          // If member's name matches the logged-in user, use the user's own ID directly.
+                          // Otherwise look up by name (matches saved Discord username/displayName).
+                          let settingsPath;
+                          if (/^\d{17,19}$/.test(e.id)) {
+                            settingsPath = `/api/settings/${e.id}`;
+                          } else if (user && (e.name||'').toLowerCase().trim() === (user.displayName || user.username || '').toLowerCase().trim()) {
+                            settingsPath = `/api/settings/${user.id}`;
+                          } else {
+                            settingsPath = `/api/settings/by-name/${encodeURIComponent(e.name||'')}`;
+                          }
                           Promise.all([
                             apiFetch(settingsPath).catch(()=>({})),
                             apiFetch('/api/hunts/archived').catch(()=>[]),
