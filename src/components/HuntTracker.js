@@ -27,6 +27,91 @@ const RainbetLogo = ({size=14}) => (
   </span>
 );
 
+// Scatter tier icon — clean, distinct shapes per tier
+const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
+  const id = `si${scat}${idSuffix}`;
+  if (scat === 3) {
+    // BONUS — gold sun with star
+    return (
+      <svg width={size} height={size} viewBox="0 0 72 72">
+        <defs>
+          <radialGradient id={id} cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#fff4a0"/>
+            <stop offset="50%" stopColor="#ffc73a"/>
+            <stop offset="100%" stopColor="#c87800"/>
+          </radialGradient>
+        </defs>
+        <g fill="#ffaa00" opacity="0.5">
+          <polygon points="36,2 38,18 40,2 39,18"/>
+          <polygon points="36,70 38,54 40,70 39,54"/>
+          <polygon points="2,36 18,38 2,40 18,39"/>
+          <polygon points="70,36 54,38 70,40 54,39"/>
+          <polygon points="10,10 23,23 8,8 22,22"/>
+          <polygon points="62,10 49,23 64,8 50,22"/>
+          <polygon points="10,62 23,49 8,64 22,50"/>
+          <polygon points="62,62 49,49 64,64 50,50"/>
+        </g>
+        <circle cx="36" cy="36" r="24" fill={`url(#${id})`} stroke="#8a4500" strokeWidth="2"/>
+        <polygon points="36,18 40,32 54,32 43,41 47,54 36,46 25,54 29,41 18,32 32,32" fill="#fff" opacity="0.95" stroke="#8a4500" strokeWidth="0.6"/>
+      </svg>
+    );
+  }
+  if (scat === 4) {
+    // SUPER BONUS — purple hexagon with 4 scatter dots
+    return (
+      <svg width={size} height={size} viewBox="0 0 72 72">
+        <defs>
+          <linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#e0b3ff"/>
+            <stop offset="50%" stopColor="#a855f7"/>
+            <stop offset="100%" stopColor="#5b21b6"/>
+          </linearGradient>
+        </defs>
+        <g fill="#c084fc" opacity="0.4">
+          <polygon points="36,3 38,14 40,3 39,14"/>
+          <polygon points="36,69 38,58 40,69 39,58"/>
+          <polygon points="3,36 14,38 3,40 14,39"/>
+          <polygon points="69,36 58,38 69,40 58,39"/>
+        </g>
+        <polygon points="36,8 58,22 58,50 36,64 14,50 14,22" fill={`url(#${id})`} stroke="#3b0764" strokeWidth="2"/>
+        <g fill="#fff" opacity="0.95">
+          <circle cx="26" cy="26" r="3.2"/>
+          <circle cx="46" cy="26" r="3.2"/>
+          <circle cx="26" cy="46" r="3.2"/>
+          <circle cx="46" cy="46" r="3.2"/>
+        </g>
+      </svg>
+    );
+  }
+  // scat === 5: SUPER SUPER BONUS — cyan diamond with 5 scatter dots
+  return (
+    <svg width={size} height={size} viewBox="0 0 72 72">
+      <defs>
+        <linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#a3f1ff"/>
+          <stop offset="40%" stopColor="#22d3ee"/>
+          <stop offset="100%" stopColor="#0e7490"/>
+        </linearGradient>
+      </defs>
+      <g fill="#22d3ee" opacity="0.4">
+        <polygon points="36,2 38,14 40,2 39,14"/>
+        <polygon points="36,70 38,58 40,70 39,58"/>
+        <polygon points="2,36 14,38 2,40 14,39"/>
+        <polygon points="70,36 58,38 70,40 58,39"/>
+      </g>
+      <polygon points="36,6 62,24 56,54 36,68 16,54 10,24" fill={`url(#${id})`} stroke="#083344" strokeWidth="2"/>
+      <polygon points="36,14 54,26 48,48 36,58 24,48 18,26" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.45"/>
+      <g fill="#fff" opacity="0.95">
+        <circle cx="36" cy="22" r="2.8"/>
+        <circle cx="24" cy="32" r="2.8"/>
+        <circle cx="48" cy="32" r="2.8"/>
+        <circle cx="28" cy="48" r="2.8"/>
+        <circle cx="44" cy="48" r="2.8"/>
+      </g>
+    </svg>
+  );
+};
+
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
@@ -1038,13 +1123,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 placeholder="Bet $" style={{...inp, height:52, fontSize:18, padding:'0 14px'}} />
               <div style={{display:'flex',gap:3,alignItems:'center'}}>
                 <button onClick={()=>setScatInput(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===3?accent:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===3?'scale(1.1)':'scale(1)'}}>
-                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/><polygon points="5,22 26,33 4,20 25,32"/><polygon points="67,22 46,33 68,20 47,32"/><polygon points="5,50 26,39 4,52 25,40"/><polygon points="67,50 46,39 68,52 47,40"/></g><circle cx="36" cy="36" r="22" fill="url(#sS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+                  <ScatterIcon scat={3} size={48} idSuffix="form" />
                 </button>
                 <button onClick={()=>setScatInput(4)} title="Super Bonus (4 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===4?G.gold:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===4?'scale(1.1)':'scale(1)'}}>
-                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#sG)" stroke="#cc44ff" strokeWidth="1.5"/><line x1="36" y1="10" x2="36" y2="62" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="14" y1="26" x2="58" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><line x1="58" y1="26" x2="14" y2="48" stroke="#f0aaff" strokeWidth="0.8" opacity="0.4"/><ellipse cx="28" cy="24" rx="5" ry="3" fill="white" opacity="0.25" transform="rotate(-20,28,24)"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+                  <ScatterIcon scat={4} size={48} idSuffix="form" />
                 </button>
                 <button onClick={()=>setScatInput(5)} title="Super Super Bonus (5 scatter)" style={{background:'transparent',border:`2px solid ${scatInput===5?G.green:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:scatInput===5?'scale(1.1)':'scale(1)'}}>
-                  <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="sD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="sD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#sD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#sD2)" stroke="#0088cc" strokeWidth="1"/><polygon points="24,14 30,20 20,22 18,24 22,19" fill="white" opacity="0.4"/><line x1="36" y1="20" x2="36" y2="64" stroke="#aaeeff" strokeWidth="0.7" opacity="0.35"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+                  <ScatterIcon scat={5} size={48} idSuffix="form" />
                 </button>
               </div>
               <button onClick={()=>addBonus(null,null,scatInput)} style={{height:52,padding:'0 18px',background:accent,color:'#000',border:'none',borderRadius:3,fontFamily:G.body,fontSize:13,fontWeight:700,cursor:'pointer'}}>+ Add</button>
@@ -1597,13 +1682,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>SCATTER COUNT</div>
             <div style={{display:'flex',gap:8,marginBottom:12,justifyContent:'center'}}>
               <button onClick={()=>setActiveScat(3)} title="Bonus (3 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===3?accent:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===3?'scale(1.1)':'scale(1)'}}>
-                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bS" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#fff7a0"/><stop offset="60%" stopColor="#ffcc00"/><stop offset="100%" stopColor="#e07000"/></radialGradient></defs><g fill="#ffaa00" stroke="#cc6600" strokeWidth="0.5"><polygon points="36,3 38,26 40,3 39,26"/><polygon points="36,69 38,46 40,69 39,46"/><polygon points="3,36 26,38 3,40 26,39"/><polygon points="69,36 46,38 69,40 46,39"/><polygon points="9,9 27,28 11,7 28,27"/><polygon points="63,9 45,28 61,7 44,27"/><polygon points="9,63 27,44 11,65 28,45"/><polygon points="63,63 45,44 61,65 44,45"/></g><circle cx="36" cy="36" r="22" fill="url(#bS)" stroke="#cc7700" strokeWidth="1.5"/><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="13" fontWeight="900" fill="#3d1a00" letterSpacing="1.5" paintOrder="stroke" stroke="#ffe066" strokeWidth="3">BONUS</text></svg>
+                <ScatterIcon scat={3} size={48} idSuffix="modal" />
               </button>
               <button onClick={()=>setActiveScat(4)} title="Super Bonus (4 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===4?G.gold:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===4?'scale(1.1)':'scale(1)'}}>
-                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bG" cx="35%" cy="25%" r="75%"><stop offset="0%" stopColor="#f0c8ff"/><stop offset="50%" stopColor="#aa44ff"/><stop offset="100%" stopColor="#440088"/></radialGradient></defs><g fill="#cc66ff" opacity="0.7"><polygon points="36,4 37.5,15 39,4 38,15"/><polygon points="36,68 37.5,57 39,68 38,57"/><polygon points="4,36 15,37.5 4,39 15,38"/><polygon points="68,36 57,37.5 68,39 57,38"/><polygon points="12,12 24,24 10,10 23,23"/><polygon points="60,12 48,24 62,10 49,23"/><polygon points="12,60 24,48 10,62 23,49"/><polygon points="60,60 48,48 62,62 49,49"/></g><polygon points="36,10 58,26 58,48 36,62 14,48 14,26" fill="url(#bG)" stroke="#cc44ff" strokeWidth="1.5"/><text x="36" y="34" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">SUPER</text><text x="36" y="46" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="9.5" fontWeight="900" fill="#ffffff" letterSpacing="1" paintOrder="stroke" stroke="#660099" strokeWidth="2.5">BONUS</text></svg>
+                <ScatterIcon scat={4} size={48} idSuffix="modal" />
               </button>
               <button onClick={()=>setActiveScat(5)} title="Super Super Bonus (5 scatter)" style={{background:'transparent',border:`2px solid ${activeScat===5?G.green:'transparent'}`,borderRadius:8,padding:2,cursor:'pointer',transition:'all .12s',transform:activeScat===5?'scale(1.1)':'scale(1)'}}>
-                <svg width="48" height="48" viewBox="0 0 72 72"><defs><radialGradient id="bD1" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#eefffe"/><stop offset="30%" stopColor="#88eeff"/><stop offset="70%" stopColor="#00aaff"/><stop offset="100%" stopColor="#0033cc"/></radialGradient><radialGradient id="bD2" cx="38%" cy="28%" r="72%"><stop offset="0%" stopColor="#ccffff"/><stop offset="100%" stopColor="#004499"/></radialGradient></defs><g fill="#44ddff" opacity="0.65"><polygon points="36,2 37.5,13 39,2 38,13"/><polygon points="36,70 37.5,59 39,70 38,59"/><polygon points="2,36 13,37.5 2,39 13,38"/><polygon points="70,36 59,37.5 70,39 59,38"/><polygon points="8,8 19,19 6,6 18,18"/><polygon points="64,8 53,19 66,6 54,18"/><polygon points="8,64 19,53 6,66 18,54"/><polygon points="64,64 53,53 66,66 54,54"/></g><polygon points="36,8 54,24 36,20 18,24" fill="#ccf5ff" stroke="#00bbff" strokeWidth="1"/><polygon points="18,24 54,24 58,36 14,36" fill="#88ddff" stroke="#00aaee" strokeWidth="0.8"/><polygon points="14,36 36,64 36,36" fill="url(#bD1)" stroke="#0099dd" strokeWidth="1"/><polygon points="58,36 36,64 36,36" fill="url(#bD2)" stroke="#0088cc" strokeWidth="1"/><text x="36" y="30" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="7" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">SUPER SUPER</text><text x="36" y="40" textAnchor="middle" fontFamily="'Chakra Petch',sans-serif" fontSize="8" fontWeight="900" fill="#ffffff" letterSpacing="0.5" paintOrder="stroke" stroke="#003399" strokeWidth="2.5">BONUS</text></svg>
+                <ScatterIcon scat={5} size={48} idSuffix="modal" />
               </button>
             </div>
             <div style={{fontFamily:G.mono,fontSize:9,color:G.t3,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:6}}>BET SIZE</div>
