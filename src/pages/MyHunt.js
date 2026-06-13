@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch, socket, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
 
@@ -21,6 +21,8 @@ const EMPTY_HUNT = (user, huntType) => {
 
 export default function MyHunt({ user }) {
   const navigate   = useNavigate();
+  const location   = useLocation();
+  const urlType    = new URLSearchParams(location.search).get('type'); // 'community' | 'vip'
   const [hunt,     setHunt]     = useState(null);
   const [started,  setStarted]  = useState(false);
   const [offline,  setOffline]  = useState(false);
@@ -123,6 +125,13 @@ export default function MyHunt({ user }) {
       setStarted(true); setOffline(false);
     } catch(e) { alert(e.message || 'Failed to start hunt — try refreshing'); }
   };
+
+  // Auto-start from URL param (?type=community or ?type=vip)
+  useEffect(() => {
+    if (!loading && !started && urlType && user) {
+      startOnlineHunt(urlType);
+    }
+  }, [loading, urlType, user]);
 
   const startOfflineHunt = (huntType) => {
     setHunt(EMPTY_HUNT(null, huntType));

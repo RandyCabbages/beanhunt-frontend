@@ -206,6 +206,7 @@ export default function Hub({ user }) {
   useEffect(() => {
     apiFetch('/api/hunts').then(setHunts).catch(()=>{}).finally(()=>setLoading(false));
     apiFetch('/api/bean-live').then(setBeanLive).catch(()=>{});
+    apiFetch('/api/hunts/archived').then(setAllHunts).catch(()=>{});
     const joinHub = () => socket.emit('watch:hub');
     joinHub();
     socket.on('connect', joinHub);
@@ -216,8 +217,13 @@ export default function Hub({ user }) {
 
   useEffect(() => {
     if (!isAdmin) return;
-    apiFetch('/api/admin/hunts').then(setAllHunts).catch(()=>{});
-  }, [isAdmin, hunts]);
+    apiFetch('/api/admin/hunts').then(d => setAllHunts(prev => {
+      // Merge admin all-hunts with archived, dedupe by userId+archivedAt
+      const seen = new Set(prev.map(h => h.userId + h.archivedAt));
+      const extra = d.filter(h => !seen.has(h.userId + h.archivedAt));
+      return [...prev, ...extra];
+    })).catch(()=>{});
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!user) return;
@@ -281,9 +287,16 @@ export default function Hub({ user }) {
                   <span style={{fontFamily:C.font,fontSize:13,fontWeight:500,color:C.txt}}>{user.displayName}</span>
                   {isAdmin && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
-                <button onClick={()=>navigate('/hunt')} style={{height:34,padding:'0 16px',background:hasHunt?'transparent':C.gold,color:hasHunt?C.gold:'#000',border:hasHunt?`1px solid ${C.gold}`:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer',letterSpacing:'0.01em'}}>
-                  {hasHunt ? '↩ Continue Hunt' : '🎰 Start a Hunt'}
-                </button>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={()=>navigate('/hunt?type=community')} style={{height:34,padding:'0 14px',background:hasHunt?'transparent':'#c6f135',color:hasHunt?'#c6f135':'#000',border:hasHunt?`1px solid #c6f135`:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                    {hasHunt ? '↩ Continue Hunt' : '🎰 Community'}
+                  </button>
+                  {(user?.isVipHost||user?.isAdmin)&&!hasHunt&&(
+                    <button onClick={()=>navigate('/hunt?type=vip')} style={{height:34,padding:'0 14px',background:'transparent',color:'#bb86fc',border:'1px solid #bb86fc',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                      👑 VIP
+                    </button>
+                  )}
+                </div>
                 <a href={`${API}/auth/logout`} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
               </>
             ) : (
@@ -350,7 +363,7 @@ export default function Hub({ user }) {
             <div style={{fontFamily:C.font,fontSize:12,color:C.label,marginBottom:24}}>
               {tab==='live'?'Check back soon or start your own hunt':''}
             </div>
-            <button onClick={()=>navigate('/hunt')} style={{height:40,padding:'0 24px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:14,fontWeight:700,cursor:'pointer'}}>
+            <button onClick={()=>navigate(hasHunt?'/hunt':'/hunt?type=community')} style={{height:40,padding:'0 24px',background:C.gold,color:'#000',border:'none',borderRadius:5,fontFamily:C.font,fontSize:14,fontWeight:700,cursor:'pointer'}}>
               {hasHunt ? '↩ Continue Hunt' : 'Start a Hunt →'}
             </button>
           </div>
