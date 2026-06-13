@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { apiFetch, socket } from '../api';
+import { apiFetch, socket, API } from '../api';
 import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
