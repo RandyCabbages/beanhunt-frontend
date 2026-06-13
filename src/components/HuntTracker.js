@@ -645,8 +645,21 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   // Safe to place here — canEdit is defined above, no TDZ risk
   const injectPreferredSlots = useCallback(async (equityMember, currentCalls) => {
     if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
+    if (!equityMember.name) return;
     try {
-      const data = await apiFetch(`/api/settings/${equityMember.id}`);
+      // Use real Discord ID: either the member already has one (snowflake),
+      // or their name matches the logged-in user (hunt owner adding themselves)
+      let lookupId = equityMember.id;
+      if (!/^\d{17,19}$/.test(lookupId) && user) {
+        const memberNameLower = equityMember.name.toLowerCase().trim();
+        const userNameLower = (user.displayName || user.username || '').toLowerCase().trim();
+        if (memberNameLower === userNameLower) {
+          lookupId = user.id; // use own real Discord ID
+        } else {
+          return; // can't resolve to real ID, skip
+        }
+      }
+      const data = await apiFetch(`/api/settings/${lookupId}`);
       const preferred = data?.preferredSlots || [];
       if (!preferred.length) return;
       upd(h => {
@@ -654,7 +667,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         const newCalls = preferred
           .filter(s => s?.name && !existing.has(s.name.toLowerCase().trim()))
           .map(s => ({
-            id: uid(), userId: equityMember.id, displayName: equityMember.name,
+            id: uid(), userId: lookupId, displayName: equityMember.name,
             avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
             provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
           }));
@@ -662,24 +675,31 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         return { ...h, calls: [...(h.calls||[]), ...newCalls] };
       });
     } catch(e) { /* silently ignore */ }
-  }, [upd]);
+  }, [upd, user]);
 
   const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
+  const prevEquityNamesRef = useRef(new Set((hunt.equity||[]).map(e=>e.name?.toLowerCase().trim()).filter(Boolean)));
   useEffect(() => {
     if (!canEdit) return;
     const current = hunt.equity || [];
     const currentIds = new Set(current.map(e=>e.id).filter(Boolean));
-    const newMembers = current.filter(e =>
-      e.id &&
-      !prevEquityIdsRef.current.has(e.id) &&
-      e.id !== 'bean_auto' &&
-      e.id !== 'creator_auto' &&
-      /^\d{17,19}$/.test(e.id) // only real Discord IDs (17-19 digit snowflakes)
-    );
+    const currentNames = new Set(current.map(e=>e.name?.toLowerCase().trim()).filter(Boolean));
+
+    // Trigger on newly added members OR newly named members (name just appeared)
+    const newMembers = current.filter(e => {
+      if (!e.name) return false;
+      if (e.id === 'bean_auto' || e.id === 'creator_auto') return false;
+      const nameKey = e.name.toLowerCase().trim();
+      const isNewId = !prevEquityIdsRef.current.has(e.id);
+      const isNewName = !prevEquityNamesRef.current.has(nameKey);
+      return isNewId || isNewName;
+    });
+
     if (newMembers.length) {
       newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
     }
     prevEquityIdsRef.current = currentIds;
+    prevEquityNamesRef.current = currentNames;
   }, [hunt.equity, hunt.calls, canEdit, injectPreferredSlots]);
 
   /* ── Modal base style ── */
