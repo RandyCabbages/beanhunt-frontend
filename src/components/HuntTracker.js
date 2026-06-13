@@ -1078,7 +1078,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           )}
 
           {/* Table header */}
-          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
+          <div style={{display:'grid',gridTemplateColumns:'28px 1fr 80px 100px 80px 28px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
             {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
               <div key={i} style={{padding:'7px 8px',fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.1em',fontWeight:700,
                 cursor:h==='BET'&&canEdit?'pointer':'default',
@@ -1112,7 +1112,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     });
                     setDragBonusId(null);
                   }}
-                  style={{display:'grid',gridTemplateColumns:'28px 1fr 70px 90px 70px 28px',
+                  style={{display:'grid',gridTemplateColumns:'28px 1fr 80px 100px 80px 28px',
                     borderBottom:`1px solid ${G.bdr}`,
                     background:isP?`${acDim}`:undefined,
                     opacity:b.win>0?1:.5,
@@ -1125,19 +1125,20 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <div style={{padding:'7px 6px',alignSelf:'center',display:'flex',alignItems:'center',gap:8}}>
                     <SlotThumb slot={b.slot} storedThumb={b.thumb||null} storedSlug={b.slug||null} storedProvider={b.provider||null} width={44} height={33} />
                     {canEdit
-                      ? <SlotInput value={b.slot} onChange={v=>updateBonus(b.id,'slot',v)} style={{flex:1}} />
+                      ? <input value={b.slot} onChange={e=>updateBonus(b.id,'slot',e.target.value)}
+                          style={{flex:1,background:'transparent',border:'none',color:G.t1,fontFamily:G.body,fontSize:14,fontWeight:700,padding:0,outline:'none'}}/>
                       : <span style={{fontFamily:G.body,fontSize:14,fontWeight:700,color:G.t1}}>{b.slot}</span>
                     }
                     {b.scat>3&&<span style={{fontFamily:G.mono,fontSize:8,padding:'1px 4px',borderRadius:2,marginLeft:5,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
                     {b.caller&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t3,marginTop:2,letterSpacing:'0.03em'}}>({b.caller})</div>}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:fmt(b.bet)}
+                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:14,fontWeight:600,color:G.t2,alignSelf:'center'}}>
+                    {canEdit?<input type="number" defaultValue={b.bet||''} onInput={e=>updateBonus(b.id,'bet',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:14,padding:0,outline:'none'}}/>:fmt(b.bet)}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:13,fontWeight:600,color:G.t2,alignSelf:'center'}}>
-                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:12,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
+                  <div style={{padding:'8px 6px',fontFamily:G.mono,fontSize:14,fontWeight:600,color:G.t2,alignSelf:'center'}}>
+                    {canEdit?<input type="number" defaultValue={b.win>0?b.win:''} placeholder="—" onInput={e=>updateBonus(b.id,'win',e.target.value)} style={{width:'100%',background:'transparent',border:'none',color:G.t2,fontFamily:G.mono,fontSize:14,padding:0,outline:'none'}}/>:(b.win>0?fmt(b.win):'—')}
                   </div>
-                  <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.2rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
+                  <div style={{padding:'8px 6px',fontFamily:G.display,fontSize:'1.25rem',fontWeight:700,color:mc,alignSelf:'center',letterSpacing:'0.02em'}}>
                     {mult?mult.toFixed(1)+'x':'—'}
                   </div>
                   <div style={{padding:'8px',alignSelf:'center',textAlign:'center'}}>
