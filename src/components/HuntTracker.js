@@ -348,7 +348,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
 
-
   useEffect(() => {
     if (hunt.huntMode && hunt.huntMode !== huntMode) {
       setHuntMode(hunt.huntMode);
@@ -390,8 +389,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       socket.off('calls:denied',  onDenied);
     };
   }, [user?.id]);
-
-
 
   const upd = useCallback(fn => {
     if (readOnly || !onUpdateHunt) return;
@@ -496,7 +493,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const addPerson      = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:0,isRollWinner:false}]}));
   const addRollWinner  = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:defAmt,isRollWinner:true}]}));
-
 
   const updatePerson = (id,f,v) => upd(h=>({...h,equity:h.equity.map(e=>e.id!==id?e:{...e,[f]:f==='name'?v:parseFloat(v)||0})}));
   const removePerson = id     => upd(h=>({...h,equity:h.equity.filter(e=>e.id!==id)}));
@@ -644,7 +640,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   // ── Preferred slot auto-injection ────────────────────────────────
   // Safe to place here — canEdit is defined above, no TDZ risk
   const injectPreferredSlots = useCallback(async (equityMember, currentCalls) => {
-    console.log('[inject] called for:', equityMember.name, 'id:', equityMember.id);
     if (!equityMember?.id || equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
     if (!equityMember.name) return;
     try {
@@ -652,36 +647,46 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       if (!/^\d{17,19}$/.test(lookupId) && user) {
         const memberNameLower = equityMember.name.toLowerCase().trim();
         const userNameLower = (user.displayName || user.username || '').toLowerCase().trim();
-        console.log('[inject] name match check:', memberNameLower, 'vs', userNameLower);
         if (memberNameLower === userNameLower) {
           lookupId = user.id;
-          console.log('[inject] matched own name, using user.id:', lookupId);
         } else {
-          console.log('[inject] no name match, skipping');
           return;
         }
       }
-      console.log('[inject] fetching settings for id:', lookupId);
       const data = await apiFetch(`/api/settings/${lookupId}`);
-      console.log('[inject] settings response:', data);
-      const preferred = data?.preferredSlots || [];
-      if (!preferred.length) { console.log('[inject] no preferred slots saved'); return; }
-      console.log('[inject] injecting', preferred.length, 'slots');
+      let preferred = (data?.preferredSlots || []).filter(Boolean);
+      if (!preferred.length) return;
+
+      // Filter out slots already in the queue
+      const existing = new Set((currentCalls || []).map(c => (c.slot||'').toLowerCase().trim()));
+      preferred = preferred.filter(s => s?.name && !existing.has(s.name.toLowerCase().trim()));
+      if (!preferred.length) return;
+
+      // If hunt has a call limit, pick randomly up to that limit
+      const limit = hunt.callLimit || 0;
+      if (limit > 0 && preferred.length > limit) {
+        const shuffled = [...preferred];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        preferred = shuffled.slice(0, limit);
+      }
+
       upd(h => {
-        const existing = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
+        const alreadyIn = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
         const newCalls = preferred
-          .filter(s => s?.name && !existing.has(s.name.toLowerCase().trim()))
+          .filter(s => !alreadyIn.has(s.name.toLowerCase().trim()))
           .map(s => ({
             id: uid(), userId: lookupId, displayName: equityMember.name,
             avatar: null, slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
             provider: s.provider||null, status: 'pending', requestedAt: new Date().toISOString(),
           }));
-        if (!newCalls.length) { console.log('[inject] all slots already in queue'); return h; }
-        console.log('[inject] added', newCalls.length, 'new calls');
+        if (!newCalls.length) return h;
         return { ...h, calls: [...(h.calls||[]), ...newCalls] };
       });
-    } catch(e) { console.error('[inject] error:', e); }
-  }, [upd, user]);
+    } catch(e) { /* silently ignore */ }
+  }, [upd, user, hunt.callLimit]);
 
   const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
   const prevEquityNamesRef = useRef(new Set((hunt.equity||[]).map(e=>e.name?.toLowerCase().trim()).filter(Boolean)));
@@ -702,7 +707,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     });
 
     if (newMembers.length) {
-      console.log('[inject] new equity members detected:', newMembers.map(m=>m.name));
       newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
     }
     prevEquityIdsRef.current = currentIds;
@@ -1452,7 +1456,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             </div>
           )}
-
 
         </div>
       </div>

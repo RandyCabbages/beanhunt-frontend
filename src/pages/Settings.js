@@ -17,7 +17,7 @@ const inp = {
   width: '100%', height: 44, outline: 'none', boxSizing: 'border-box',
 };
 
-/* ── Slot autocomplete (reuses the API) ─────────────────────────── */
+/* ── Slot autocomplete ───────────────────────────────────────────── */
 let _settingsSlotsCache = [];
 let _settingsSlotsFetch = null;
 function fetchSettingsSlots() {
@@ -45,10 +45,7 @@ function SlotAutocomplete({ value, onChange, onSelect, placeholder }) {
   const allRef = { current: allSlots };
 
   useEffect(() => {
-    fetchSettingsSlots().then(slots => {
-      setAllSlots(slots);
-      allRef.current = slots;
-    });
+    fetchSettingsSlots().then(slots => { setAllSlots(slots); allRef.current = slots; });
   }, []);
 
   const search = useCallback(v => {
@@ -102,8 +99,8 @@ function SlotAutocomplete({ value, onChange, onSelect, placeholder }) {
 export default function Settings({ user }) {
   const navigate = useNavigate();
   const [rainbetName,    setRainbetName]    = useState('');
-  const [preferredSlots, setPreferredSlots] = useState(Array(8).fill(null)); // [{name,thumb,slug,provider}|null]
-  const [slotInputs,     setSlotInputs]     = useState(Array(8).fill(''));
+  const [preferredSlots, setPreferredSlots] = useState([]); // array of {name,thumb,slug,provider}|null
+  const [slotInputs,     setSlotInputs]     = useState([]); // parallel array of string values
   const [loading,        setLoading]        = useState(true);
   const [saving,         setSaving]         = useState(false);
   const [saved,          setSaved]          = useState(false);
@@ -113,18 +110,21 @@ export default function Settings({ user }) {
     apiFetch('/api/settings')
       .then(data => {
         setRainbetName(data.rainbetName || '');
-        const slots = Array(8).fill(null);
-        const inputs = Array(8).fill('');
-        (data.preferredSlots || []).forEach((s, i) => {
-          if (s && i < 8) {
-            slots[i] = s;
-            inputs[i] = s.name || '';
-          }
+        const saved = data.preferredSlots || [];
+        // Always show at least 8 rows
+        const count = Math.max(8, saved.length);
+        const slots = Array(count).fill(null);
+        const inputs = Array(count).fill('');
+        saved.forEach((s, i) => {
+          if (s) { slots[i] = s; inputs[i] = s.name || ''; }
         });
         setPreferredSlots(slots);
         setSlotInputs(inputs);
       })
-      .catch(() => {})
+      .catch(() => {
+        setPreferredSlots(Array(8).fill(null));
+        setSlotInputs(Array(8).fill(''));
+      })
       .finally(() => setLoading(false));
   }, [user, navigate]);
 
@@ -136,6 +136,16 @@ export default function Settings({ user }) {
     if (!v.trim()) setSlot(i, null);
   };
   const clearSlot = i => { setSlot(i, null); setInput(i, ''); };
+
+  const addRow = () => {
+    setPreferredSlots(prev => [...prev, null]);
+    setSlotInputs(prev => [...prev, '']);
+  };
+
+  const removeRow = i => {
+    setPreferredSlots(prev => prev.filter((_, idx) => idx !== i));
+    setSlotInputs(prev => prev.filter((_, idx) => idx !== i));
+  };
 
   const save = async () => {
     setSaving(true);
@@ -162,6 +172,8 @@ export default function Settings({ user }) {
       Loading settings…
     </div>
   );
+
+  const filledCount = preferredSlots.filter(Boolean).length;
 
   return (
     <div style={{ background:C.bg, minHeight:'100vh', fontFamily:C.font, color:C.txt }}>
@@ -203,36 +215,50 @@ export default function Settings({ user }) {
 
         {/* ── Preferred Slots ── */}
         <section style={{ background:C.card, border:`1px solid ${C.bdr}`, borderRadius:8, padding:24 }}>
-          <div style={{ fontSize:13, fontWeight:700, letterSpacing:'0.1em', color:C.gold, marginBottom:6 }}>PREFERRED SLOT CALLS</div>
+          <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:6 }}>
+            <div style={{ fontSize:13, fontWeight:700, letterSpacing:'0.1em', color:C.gold }}>PREFERRED SLOT CALLS</div>
+            <div style={{ fontSize:11, color:C.faint, letterSpacing:'0.04em' }}>{filledCount} slot{filledCount !== 1 ? 's' : ''} saved</div>
+          </div>
           <div style={{ fontSize:12, color:C.label, marginBottom:16, lineHeight:1.5 }}>
-            Up to 8 slots. Whenever you're added to equity in a hunt, these will automatically be added to the slot call queue (no duplicates).
+            Add as many as you want. If a hunt has a call limit, a random selection will be used. Whenever you're added to equity, these get auto-added to the slot call queue.
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {Array(8).fill(null).map((_, i) => {
-              const slot = preferredSlots[i];
-              return (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:12, color:C.faint, fontWeight:700, width:18, textAlign:'right', flexShrink:0 }}>{i+1}</span>
-                  {slot?.thumb
-                    ? <img src={slot.thumb} width={44} height={33} style={{borderRadius:4,objectFit:'cover',flexShrink:0,border:`1px solid ${C.bdr}`}} onError={e=>e.target.style.display='none'} alt=""/>
-                    : <div style={{width:44,height:33,borderRadius:4,background:C.sur,border:`1px solid ${C.bdr}`,flexShrink:0}}/>}
-                  <div style={{ flex:1 }}>
-                    <SlotAutocomplete
-                      value={slotInputs[i]}
-                      onChange={v => setInput(i, v)}
-                      onSelect={s => setSlot(i, s)}
-                      placeholder={`Slot ${i+1}…`}
-                    />
-                  </div>
-                  {slot && (
-                    <button onClick={() => clearSlot(i)} style={{ background:'transparent', border:'none',
-                      color:C.label, cursor:'pointer', fontSize:16, padding:'0 4px', flexShrink:0 }}
-                      title="Clear">×</button>
-                  )}
+            {preferredSlots.map((slot, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:12, color:C.faint, fontWeight:700, width:18, textAlign:'right', flexShrink:0 }}>{i+1}</span>
+                {slot?.thumb
+                  ? <img src={slot.thumb} width={44} height={33} style={{borderRadius:4,objectFit:'cover',flexShrink:0,border:`1px solid ${C.bdr}`}} onError={e=>e.target.style.display='none'} alt=""/>
+                  : <div style={{width:44,height:33,borderRadius:4,background:C.sur,border:`1px solid ${C.bdr}`,flexShrink:0}}/>}
+                <div style={{ flex:1 }}>
+                  <SlotAutocomplete
+                    value={slotInputs[i] || ''}
+                    onChange={v => setInput(i, v)}
+                    onSelect={s => setSlot(i, s)}
+                    placeholder={`Slot ${i+1}…`}
+                  />
                 </div>
-              );
-            })}
+                {/* Only show remove on rows past 8, or any filled row */}
+                {(i >= 8 || slot) && (
+                  <button onClick={() => i >= 8 ? removeRow(i) : clearSlot(i)}
+                    style={{ background:'transparent', border:'none', color:C.label,
+                      cursor:'pointer', fontSize:16, padding:'0 4px', flexShrink:0,
+                      lineHeight:1 }}
+                    title={i >= 8 ? 'Remove row' : 'Clear'}>×</button>
+                )}
+              </div>
+            ))}
           </div>
+
+          {/* + Add slot button */}
+          <button onClick={addRow}
+            style={{ marginTop:14, display:'flex', alignItems:'center', gap:6,
+              background:'transparent', border:`1px dashed ${C.bdr}`, borderRadius:5,
+              width:'100%', padding:'10px 14px', color:C.label, fontFamily:C.font,
+              fontSize:13, cursor:'pointer', letterSpacing:'0.04em', transition:'all .15s' }}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=C.gold;e.currentTarget.style.color=C.gold;}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.bdr;e.currentTarget.style.color=C.label;}}>
+            <span style={{fontSize:16,lineHeight:1}}>+</span> Add another slot
+          </button>
         </section>
 
         {/* ── Leaderboard ── */}
@@ -253,8 +279,8 @@ export default function Settings({ user }) {
             View My Leaderboard Stats →
           </a>
           {rainbetName && (
-            <div style={{ marginTop:14, display:'flex', alignItems:'center', gap:10 }}>
-              <a href={`https://beantwitch.com/rewards`} target="_blank" rel="noopener noreferrer"
+            <div style={{ marginTop:14 }}>
+              <a href="https://beantwitch.com/rewards" target="_blank" rel="noopener noreferrer"
                 style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px',
                   background:'rgba(26,157,90,0.1)', border:'1px solid rgba(26,157,90,0.5)', borderRadius:5,
                   color:'#4ade80', fontFamily:C.font, fontSize:13, fontWeight:700,
