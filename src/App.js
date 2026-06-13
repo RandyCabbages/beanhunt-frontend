@@ -17,7 +17,8 @@ export default function App() {
       try {
         const userData = JSON.parse(atob(decodeURIComponent(authParam)));
         setUser(userData);
-        window.history.replaceState({}, '', '/');
+        const returnTo = params.get('returnTo');
+        window.history.replaceState({}, '', returnTo || '/');
         socket.connect();
         return;
       } catch(e) {}

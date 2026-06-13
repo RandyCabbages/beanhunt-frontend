@@ -15,7 +15,7 @@ const EMPTY_HUNT = (user, huntType) => {
     : [];
   return {
     user: user || { id:'offline', displayName:'You', avatar:null },
-    isLive: false, huntType, bonuses: [], calls: [], editors: [], equity,
+    isLive: false, huntType, bonuses: [], calls: [], invitedEditors: [], equity,
   };
 };
 
@@ -147,14 +147,18 @@ export default function MyHunt({ user }) {
   };
 
   const endHunt = async () => {
-    if (!offline) await apiFetch('/api/my-hunt/end', { method: 'POST' });
-    setHunt(h => ({ ...h, isLive: false }));
+    try {
+      if (!offline) await apiFetch('/api/my-hunt/end', { method: 'POST' });
+      setHunt(h => ({ ...h, isLive: false }));
+    } catch(e) { alert(e.message || 'Failed to end hunt'); }
   };
 
   const resetHunt = async () => {
     if (!window.confirm('Reset your hunt? This clears everything.')) return;
-    if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
-    setHunt(null); setStarted(false);
+    try {
+      if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
+      setHunt(null); setStarted(false);
+    } catch(e) { alert(e.message || 'Failed to reset hunt'); }
   };
 
   const updateHunt = useCallback((updater) => {
