@@ -32,8 +32,17 @@ const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
 
 /* ── Slot list ───────────────────────────────────────────────────── */
-let _cachedSlots = [];
-let _fetchPromise = null; // shared promise so all SlotInput instances await the same request
+// Cache inside a closure to avoid module-level TDZ issues with circular imports
+const _slotCache = (() => {
+  let slots = [];
+  let promise = null;
+  return {
+    get: () => slots,
+    set: (v) => { slots = v; },
+    getPromise: () => promise,
+    setPromise: (p) => { promise = p; },
+  };
+})();
 
 // Maps slot.report provider slugs → Rainbet URL provider prefix
 const RAINBET_PROVIDER_MAP = {
@@ -52,25 +61,27 @@ function toRainbetUrl(provider, slug, name) {
   return 'https://rainbet.com/casino/slots';
 }
 async function fetchSlots() {
-  if (_cachedSlots.length) return _cachedSlots;
-  if (_fetchPromise) return _fetchPromise; // already in-flight — don't double-fetch
-  _fetchPromise = (async () => {
+  if (_slotCache.get().length) return _slotCache.get();
+  if (_slotCache.getPromise()) return _slotCache.getPromise();
+  const p = (async () => {
     try {
       const res = await apiFetch('/api/slots/search?q=&limit=9999');
       if (Array.isArray(res) && res.length > 0) {
-        _cachedSlots = res.filter(s => s && s.name).map(s => {
+        const slots = res.filter(s => s && s.name).map(s => {
           let thumb = s.thumb || null;
           if (thumb && thumb.startsWith('/api/img-proxy')) {
             thumb = `${API}${thumb}`;
           }
           return { name: s.name, thumb, slug: s.slug || null, provider: s.provider || null };
         });
-        console.log(`[SlotInput] Loaded ${_cachedSlots.length} slots from API`);
+        _slotCache.set(slots);
+        console.log(`[SlotInput] Loaded ${slots.length} slots from API`);
       }
     } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
-    return _cachedSlots;
+    return _slotCache.get();
   })();
-  return _fetchPromise;
+  _slotCache.setPromise(p);
+  return p;
 }
 
 // fetchSlots is called by SlotInput on mount — not at module level
@@ -162,8 +173,8 @@ function buildQueue(calls){
 function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight }) {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen]               = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(!_cachedSlots.length);
-  const [allSlots, setAllSlots]       = useState(_cachedSlots.length ? _cachedSlots : []);
+  const [loadingSlots, setLoadingSlots] = useState(!_slotCache.get().length);
+  const [allSlots, setAllSlots]       = useState(_slotCache.get().length ? _slotCache.get() : []);
   const allSlotsRef = useRef(allSlots);
   const valueRef    = useRef(value);
   const wrapRef     = useRef(null);
@@ -480,7 +491,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   /* ── Actions ── */
   const addBonus = (slot, bet, scat=3, caller=null) => {
     const slotName = slot||slotInput||'Unknown';
-    const slotData = _cachedSlots.find(s => s.name.toLowerCase() === slotName.toLowerCase());
+    const slotData = _slotCache.get().find(s => s.name.toLowerCase() === slotName.toLowerCase());
     const callerName = caller || callerInput || null;
     upd(h=>({...h,bonuses:[...h.bonuses,{
       id:uid(), slot:slotName, bet:parseFloat(bet||betInput)||0, win:0, mult:0, scat, caller:callerName,
@@ -546,7 +557,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       const s = raw.trim(); if (!s) continue;
       if (calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
       // Look up slug+provider for Rainbet link
-      const slotData = _cachedSlots.find(c => c.name.toLowerCase() === s.toLowerCase());
+      const slotData = _slotCache.get().find(c => c.name.toLowerCase() === s.toLowerCase());
       newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending',
         thumb: slotData?.thumb || null,
         slug: slotData?.slug || null,
@@ -597,7 +608,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if(!names.length){alert('Add equity members first');return;}
     const count=parseInt(slotCountInput)||35;
     const existing=new Set(calls.map(c=>c.slot.toLowerCase()));
-    const pool = (_cachedSlots.length ? _cachedSlots : RAINBET_SLOTS_LEGACY).map(s=>s.name);
+    const pool = (_slotCache.get().length ? _slotCache.get() : RAINBET_SLOTS_LEGACY).map(s=>s.name);
     const slots=shuffle(pool).filter(s=>!existing.has(s.toLowerCase())).slice(0,count);
     const newCalls=slots.map((slot,i)=>({id:uid(),slot,user:names[i%names.length],status:'pending'}));
     upd(h=>({...h,calls:[...h.calls,...newCalls]}));
@@ -1504,7 +1515,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const normPunct = s => s.replace(/[,!.]/g, '').replace(/\s+/g, ' ').trim();
                       const qNorm = normPunct(q);
                       const qWords = qNorm.split(/\s+/);
-                      const pool = _cachedSlots;
+                      const pool = _slotCache.get();
                       if (!pool.length) return { name: raw.replace(/\b\w/g, c => c.toUpperCase()), thumb: null };
 
                       // 1. Exact match (with and without punctuation)
@@ -1594,7 +1605,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     const q = raw.toLowerCase().trim();
                     const normPunct = s => s.replace(/[,!.]/g,'').replace(/\s+/g,' ').trim();
                     const qNorm = normPunct(q);
-                    const pool = _cachedSlots;
+                    const pool = _slotCache.get();
                     if (!pool.length) return { name: raw.replace(/\b\w/g,c=>c.toUpperCase()), thumb: null };
                     let m = pool.find(s=>s.name.toLowerCase()===q||normPunct(s.name.toLowerCase())===qNorm); if(m) return {name:m.name,thumb:m.thumb||null};
                     const sw2=pool.filter(s=>normPunct(s.name.toLowerCase()).startsWith(qNorm));
