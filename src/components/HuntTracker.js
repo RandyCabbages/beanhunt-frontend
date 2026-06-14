@@ -30,6 +30,17 @@ const RainbetLogo = ({size=14}) => (
 // Scatter tier icon — clean, distinct shapes per tier
 const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
   const id = `si${scat}${idSuffix}`;
+  // Reusable 5-point star path generator centered on (cx, cy) with given radius
+  const starPath = (cx, cy, r) => {
+    const points = [];
+    for (let i = 0; i < 10; i++) {
+      const angle = (Math.PI * 2 * i) / 10 - Math.PI / 2;
+      const radius = i % 2 === 0 ? r : r * 0.4;
+      points.push(`${cx + Math.cos(angle) * radius},${cy + Math.sin(angle) * radius}`);
+    }
+    return points.join(' ');
+  };
+
   if (scat === 3) {
     // BONUS — gold sun with star
     return (
@@ -52,12 +63,12 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
           <polygon points="62,62 49,49 64,64 50,50"/>
         </g>
         <circle cx="36" cy="36" r="24" fill={`url(#${id})`} stroke="#8a4500" strokeWidth="2"/>
-        <polygon points="36,18 40,32 54,32 43,41 47,54 36,46 25,54 29,41 18,32 32,32" fill="#fff" opacity="0.95" stroke="#8a4500" strokeWidth="0.6"/>
+        <polygon points={starPath(36, 36, 14)} fill="#fff" opacity="0.95" stroke="#8a4500" strokeWidth="0.6"/>
       </svg>
     );
   }
   if (scat === 4) {
-    // SUPER BONUS — purple hexagon with 4 scatter dots
+    // SUPER BONUS — purple hexagon with 4 scatter stars
     return (
       <svg width={size} height={size} viewBox="0 0 72 72">
         <defs>
@@ -74,16 +85,16 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
           <polygon points="69,36 58,38 69,40 58,39"/>
         </g>
         <polygon points="36,8 58,22 58,50 36,64 14,50 14,22" fill={`url(#${id})`} stroke="#3b0764" strokeWidth="2"/>
-        <g fill="#fff" opacity="0.95">
-          <circle cx="26" cy="26" r="3.2"/>
-          <circle cx="46" cy="26" r="3.2"/>
-          <circle cx="26" cy="46" r="3.2"/>
-          <circle cx="46" cy="46" r="3.2"/>
+        <g fill="#fff" opacity="0.95" stroke="#3b0764" strokeWidth="0.5">
+          <polygon points={starPath(26, 26, 5)}/>
+          <polygon points={starPath(46, 26, 5)}/>
+          <polygon points={starPath(26, 46, 5)}/>
+          <polygon points={starPath(46, 46, 5)}/>
         </g>
       </svg>
     );
   }
-  // scat === 5: SUPER SUPER BONUS — cyan diamond with 5 scatter dots
+  // scat === 5: SUPER SUPER BONUS — cyan diamond with 5 scatter stars
   return (
     <svg width={size} height={size} viewBox="0 0 72 72">
       <defs>
@@ -101,12 +112,12 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
       </g>
       <polygon points="36,6 62,24 56,54 36,68 16,54 10,24" fill={`url(#${id})`} stroke="#083344" strokeWidth="2"/>
       <polygon points="36,14 54,26 48,48 36,58 24,48 18,26" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.45"/>
-      <g fill="#fff" opacity="0.95">
-        <circle cx="36" cy="22" r="2.8"/>
-        <circle cx="24" cy="32" r="2.8"/>
-        <circle cx="48" cy="32" r="2.8"/>
-        <circle cx="28" cy="48" r="2.8"/>
-        <circle cx="44" cy="48" r="2.8"/>
+      <g fill="#fff" opacity="0.95" stroke="#083344" strokeWidth="0.5">
+        <polygon points={starPath(36, 22, 4.5)}/>
+        <polygon points={starPath(24, 32, 4.5)}/>
+        <polygon points={starPath(48, 32, 4.5)}/>
+        <polygon points={starPath(28, 48, 4.5)}/>
+        <polygon points={starPath(44, 48, 4.5)}/>
       </g>
     </svg>
   );
