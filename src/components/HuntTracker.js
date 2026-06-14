@@ -30,11 +30,13 @@ const RainbetLogo = ({size=14}) => (
 // Scatter tier icon — clean, distinct shapes per tier
 const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
   const id = `si${scat}${idSuffix}`;
-  // Reusable 5-point star path generator centered on (cx, cy) with given radius
-  const starPath = (cx, cy, r) => {
+  // Reusable 5-point star path generator centered on (cx, cy) with given radius.
+  // rotDeg rotates the star (0 = point straight up).
+  const starPath = (cx, cy, r, rotDeg = 0) => {
+    const rotRad = (rotDeg * Math.PI) / 180;
     const points = [];
     for (let i = 0; i < 10; i++) {
-      const angle = (Math.PI * 2 * i) / 10 - Math.PI / 2;
+      const angle = (Math.PI * 2 * i) / 10 - Math.PI / 2 + rotRad;
       const radius = i % 2 === 0 ? r : r * 0.4;
       points.push(`${cx + Math.cos(angle) * radius},${cy + Math.sin(angle) * radius}`);
     }
@@ -68,28 +70,29 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
     );
   }
   if (scat === 4) {
-    // SUPER BONUS — purple hexagon with 4 scatter stars
+    // SUPER BONUS — purple diamond with 4 symmetrical compass stars
     return (
-      <svg width={size} height={size} viewBox="0 0 72 72">
+      <svg width={size} height={size} viewBox="0 0 80 80">
         <defs>
           <linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#e0b3ff"/>
+            <stop offset="0%" stopColor="#f0d4ff"/>
             <stop offset="50%" stopColor="#a855f7"/>
-            <stop offset="100%" stopColor="#5b21b6"/>
+            <stop offset="100%" stopColor="#4c1d95"/>
           </linearGradient>
         </defs>
         <g fill="#c084fc" opacity="0.4">
-          <polygon points="36,3 38,14 40,3 39,14"/>
-          <polygon points="36,69 38,58 40,69 39,58"/>
-          <polygon points="3,36 14,38 3,40 14,39"/>
-          <polygon points="69,36 58,38 69,40 58,39"/>
+          <polygon points="40,2 42,14 44,2 43,14"/>
+          <polygon points="40,78 42,66 44,78 43,66"/>
+          <polygon points="2,40 14,42 2,44 14,43"/>
+          <polygon points="78,40 66,42 78,44 66,43"/>
         </g>
-        <polygon points="36,8 58,22 58,50 36,64 14,50 14,22" fill={`url(#${id})`} stroke="#3b0764" strokeWidth="2"/>
-        <g fill="#fff" opacity="0.95" stroke="#3b0764" strokeWidth="0.5">
-          <polygon points={starPath(26, 26, 5)}/>
-          <polygon points={starPath(46, 26, 5)}/>
-          <polygon points={starPath(26, 46, 5)}/>
-          <polygon points={starPath(46, 46, 5)}/>
+        <polygon points="40,8 64,40 40,72 16,40" fill={`url(#${id})`} stroke="#3b0764" strokeWidth="2"/>
+        <polygon points="40,16 56,40 40,64 24,40" fill="none" stroke="#fff" strokeWidth="0.6" opacity="0.4"/>
+        <g fill="#fff" opacity="0.95" stroke="#3b0764" strokeWidth="0.6">
+          <polygon points={starPath(40, 28, 6, 0)}/>
+          <polygon points={starPath(40, 52, 6, 180)}/>
+          <polygon points={starPath(28, 40, 6, -90)}/>
+          <polygon points={starPath(52, 40, 6, 90)}/>
         </g>
       </svg>
     );
@@ -112,12 +115,12 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
       </g>
       <polygon points="36,6 62,24 56,54 36,68 16,54 10,24" fill={`url(#${id})`} stroke="#083344" strokeWidth="2"/>
       <polygon points="36,14 54,26 48,48 36,58 24,48 18,26" fill="none" stroke="#fff" strokeWidth="0.8" opacity="0.45"/>
-      <g fill="#fff" opacity="0.95" stroke="#083344" strokeWidth="0.5">
-        <polygon points={starPath(36, 22, 4.5)}/>
-        <polygon points={starPath(24, 32, 4.5)}/>
-        <polygon points={starPath(48, 32, 4.5)}/>
-        <polygon points={starPath(28, 48, 4.5)}/>
-        <polygon points={starPath(44, 48, 4.5)}/>
+      <g fill="#fff" opacity="0.95" stroke="#083344" strokeWidth="0.6">
+        <polygon points={starPath(36, 23, 7)}/>
+        <polygon points={starPath(23, 34, 7)}/>
+        <polygon points={starPath(49, 34, 7)}/>
+        <polygon points={starPath(28, 50, 7)}/>
+        <polygon points={starPath(44, 50, 7)}/>
       </g>
     </svg>
   );
