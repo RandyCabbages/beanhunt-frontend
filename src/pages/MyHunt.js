@@ -16,6 +16,7 @@ const EMPTY_HUNT = (user, huntType) => {
   return {
     user: user || { id:'offline', displayName:'You', avatar:null },
     isLive: false, huntType, bonuses: [], calls: [], invitedEditors: [], equity,
+    roundRobin: true,
   };
 };
 
