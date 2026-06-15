@@ -1,6 +1,6 @@
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { apiFetch, socket, API } from './api';
+import { apiFetch, socket, API, setAuthToken } from './api';
 import Hub from './pages/Hub';
 import MyHunt from './pages/MyHunt';
 import WatchHunt from './pages/WatchHunt';
@@ -14,8 +14,11 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const authParam = params.get('auth');
+    const tokenParam = params.get('t');
     if (authParam) {
       try {
+        // Store the signed token so subsequent API calls work even when cookies are blocked
+        if (tokenParam) setAuthToken(tokenParam);
         const userData = JSON.parse(atob(decodeURIComponent(authParam)));
         setUser(userData);
         const returnTo = params.get('returnTo');
