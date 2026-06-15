@@ -97,7 +97,10 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
     return (
       <a href={href} target="_blank" rel="noopener noreferrer"
         title={`Play ${slot} on Rainbet`}
+        draggable="false"
         onClick={e => e.stopPropagation()}
+        onMouseDown={e => e.stopPropagation()}
+        onDragStart={e => e.preventDefault()}
         style={{ display: 'block', flexShrink: 0, cursor: 'pointer', borderRadius: 3, overflow: 'hidden', textDecoration: 'none' }}>
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}
           style={{ display: 'block', transition: 'opacity .15s', ...style }}
@@ -138,9 +141,13 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
   return (
     <a href={href} target="_blank" rel="noopener noreferrer"
       title={`Play ${slot} on Rainbet`}
+      draggable="false"
       onClick={e => e.stopPropagation()}
+      onMouseDown={e => e.stopPropagation()}
+      onDragStart={e => e.preventDefault()}
       style={{ display: 'block', flexShrink: 0, borderRadius: 3, overflow: 'hidden', cursor: 'pointer' }}>
       <img src={thumb} alt={slot} width={width} height={height}
+        draggable="false"
         style={{ borderRadius: 3, objectFit: 'cover', display: 'block',
           background: '#222226', transition: 'opacity .15s', ...style }}
         onMouseEnter={e => e.target.style.opacity = '0.75'}
