@@ -440,6 +440,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [showDcImport,  setShowDcImport]  = useState(false);
   const [callRequests,  setCallRequests]  = useState([]);
   const [showReqPopup,  setShowReqPopup]  = useState(false);
+  const [showAllCalls,  setShowAllCalls]  = useState(false);
   const [reqStatus,     setReqStatus]     = useState(null); // null | 'pending' | 'granted' | 'denied'
   const [eqTooltip,     setEqTooltip]     = useState(null);
   const saveTimeout = useRef(null);
@@ -990,8 +991,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 </button>
               )}
             </div>
-              {pending.length>8&&huntMode!=='creating'&&(
-                <span style={{fontFamily:G.mono,fontSize:9,color:accent,background:acDim,border:`1px solid ${accent}44`,borderRadius:2,padding:'1px 6px',letterSpacing:'0.06em'}}>+{pending.length-8}</span>
+              {pending.length>10&&(
+                <button onClick={()=>setShowAllCalls(true)} title="Show all slot calls"
+                  style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:accent,background:acDim,border:`1px solid ${accent}44`,borderRadius:3,padding:'2px 8px',letterSpacing:'0.06em',cursor:'pointer',transition:'all .1s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background=`${accent}33`;e.currentTarget.style.borderColor=accent;}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=acDim;e.currentTarget.style.borderColor=`${accent}44`;}}>
+                  +{pending.length-10} more
+                </button>
               )}
             </div>
             <div style={{display:'flex',alignItems:'center',gap:3}}>
@@ -1060,7 +1066,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Calls list */}
           <div style={{flex:1,overflowY:'auto',padding:'6px 8px'}}>
-            {(huntMode==='creating'?pending:pending.slice(0,8)).map((c,i)=>{
+            {pending.slice(0,10).map((c,i)=>{
               const isLocked = huntMode!=='creating' && i<3;
               return (
                 <div key={c.id} className={!isLocked?'call-card':''}
@@ -1584,6 +1590,35 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
 
       {/* ── Call Request Popup ── */}
+      {showAllCalls && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowAllCalls(false)}>
+          <div style={{background:G.card,border:`1px solid ${G.bb}`,borderRadius:10,padding:'1.5rem',width:560,maxWidth:'90vw',maxHeight:'80vh',display:'flex',flexDirection:'column'}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,flexShrink:0}}>
+              <span style={{fontFamily:G.display,fontSize:18,fontWeight:700,color:G.t1,letterSpacing:'0.04em'}}>ALL SLOT CALLS <span style={{color:accent,marginLeft:8}}>({pending.length})</span></span>
+              <button onClick={()=>setShowAllCalls(false)} style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:24,lineHeight:1}}>×</button>
+            </div>
+            <div style={{overflowY:'auto',flex:1,marginRight:-4,paddingRight:4}}>
+              {pending.length===0
+                ? <div style={{fontFamily:G.mono,fontSize:12,color:G.t3,textAlign:'center',padding:'2rem'}}>No pending calls</div>
+                : pending.map((c,i)=>(
+                    <div key={c.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:`1px solid ${G.bdr}`}}>
+                      <span style={{fontFamily:G.mono,fontSize:11,color:G.t3,width:24,textAlign:'right',flexShrink:0}}>{i+1}.</span>
+                      <SlotThumb slot={c.slot} storedThumb={c.thumb||null} storedSlug={c.slug||null} storedProvider={c.provider||null} width={36} height={27} />
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:G.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.slot}</div>
+                        {c.user && <div style={{fontFamily:G.mono,fontSize:10,color:G.t3}}>{c.user}</div>}
+                      </div>
+                      {canEdit && (
+                        <button onClick={()=>removeCall(c.id)} title="Remove" style={{background:'none',border:'none',cursor:'pointer',color:G.t4,fontSize:18,lineHeight:1,padding:'0 6px'}}>×</button>
+                      )}
+                    </div>
+                  ))
+              }
+            </div>
+          </div>
+        </div>
+      )}
+
       {canEdit && showReqPopup && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowReqPopup(false)}>
           <div style={{background:G.card,border:`1px solid rgba(251,146,60,0.4)`,borderRadius:10,padding:'1.5rem',width:420,maxWidth:'90vw'}} onClick={e=>e.stopPropagation()}>
