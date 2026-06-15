@@ -590,7 +590,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const addPerson      = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:0,isRollWinner:false}]}));
   const addRollWinner  = ()        => upd(h=>({...h,equity:[...h.equity,{id:uid(),name:'',amount:defAmt,isRollWinner:true}]}));
 
-  const updatePerson = (id,f,v) => upd(h=>({...h,equity:h.equity.map(e=>e.id!==id?e:{...e,[f]:f==='name'?v:parseFloat(v)||0})}));
+  const updatePerson = (id,f,v) => upd(h => {
+    const equity = h.equity.map(e => e.id !== id ? e : { ...e, [f]: f === 'name' ? v : parseFloat(v) || 0 });
+    // If a name changed, also rename matching calls so they don't keep partial names like "C"
+    if (f === 'name') {
+      const oldName = h.equity.find(e => e.id === id)?.name;
+      const newName = v;
+      if (oldName && newName && oldName !== newName) {
+        const calls = (h.calls || []).map(c => c.user === oldName ? { ...c, user: newName } : c);
+        return { ...h, equity, calls };
+      }
+    }
+    return { ...h, equity };
+  });
   const removePerson = id     => upd(h=>({...h,equity:h.equity.filter(e=>e.id!==id)}));
   const recalc       = (da,ba) => upd(h=>({...h,equity:h.equity.map(e=>({...e,amount:e.name==='Bean'?ba:da}))}));
 
@@ -787,6 +799,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
   const prevEquityNamesRef = useRef(new Set((hunt.equity||[]).map(e=>e.name?.toLowerCase().trim()).filter(Boolean)));
+  // Track pending debounced injection timers per equity member id, so we don't fire mid-typing
+  const injectTimersRef = useRef({});
   useEffect(() => {
     if (!canEdit) return;
     const current = hunt.equity || [];
@@ -804,11 +818,25 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     });
 
     if (newMembers.length) {
-      newMembers.forEach(m => injectPreferredSlots(m, hunt.calls));
+      // Debounce per equity-id: cancel any pending timer for this id, then schedule a new one.
+      // This means we only inject once the user STOPS typing the name (avoids partial names like "C").
+      newMembers.forEach(m => {
+        if (injectTimersRef.current[m.id]) clearTimeout(injectTimersRef.current[m.id]);
+        injectTimersRef.current[m.id] = setTimeout(() => {
+          delete injectTimersRef.current[m.id];
+          injectPreferredSlots(m, hunt.calls);
+        }, 800);
+      });
     }
     prevEquityIdsRef.current = currentIds;
     prevEquityNamesRef.current = currentNames;
   }, [hunt.equity, hunt.calls, canEdit, injectPreferredSlots]);
+
+  // Clean up any pending injection timers on unmount
+  useEffect(() => () => {
+    Object.values(injectTimersRef.current).forEach(t => clearTimeout(t));
+    injectTimersRef.current = {};
+  }, []);
 
   /* ── Modal base style ── */
   const modalBg = { position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeUp .15s ease' };
