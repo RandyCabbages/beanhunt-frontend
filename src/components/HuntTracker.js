@@ -595,18 +595,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const updatePerson = (id,f,v) => upd(h => {
     const equity = h.equity.map(e => e.id !== id ? e : { ...e, [f]: f === 'name' ? v : parseFloat(v) || 0 });
-    // If a name changed, also rename matching calls so they don't keep partial names like "C"
+    // If a name changed, sync any matching calls
     if (f === 'name') {
       const oldName = h.equity.find(e => e.id === id)?.name;
       const newName = v;
-      if (oldName && newName && oldName !== newName) {
-        const calls = (h.calls || []).map(c => c.user === oldName ? { ...c, user: newName } : c);
+      if (oldName && oldName !== newName) {
+        // Name was cleared → remove that user's calls. Otherwise rename them to the new value.
+        const calls = newName
+          ? (h.calls || []).map(c => c.user === oldName ? { ...c, user: newName } : c)
+          : (h.calls || []).filter(c => c.user !== oldName);
         return { ...h, equity, calls };
       }
     }
     return { ...h, equity };
   });
-  const removePerson = id     => upd(h=>({...h,equity:h.equity.filter(e=>e.id!==id)}));
+  const removePerson = id => upd(h => {
+    const removed = h.equity.find(e => e.id === id);
+    const equity = h.equity.filter(e => e.id !== id);
+    // Also strip any calls that belonged to the removed member
+    const calls = removed?.name
+      ? (h.calls || []).filter(c => c.user !== removed.name)
+      : (h.calls || []);
+    return { ...h, equity, calls };
+  });
   const recalc       = (da,ba) => upd(h=>({...h,equity:h.equity.map(e=>({...e,amount:e.name==='Bean'?ba:da}))}));
 
   const openCallModal = () => {
@@ -800,46 +811,35 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     } catch(e) { /* silently ignore */ }
   }, [upd, user, hunt.callLimit]);
 
-  const prevEquityIdsRef = useRef(new Set((hunt.equity||[]).map(e=>e.id).filter(Boolean)));
-  const prevEquityNamesRef = useRef(new Set((hunt.equity||[]).map(e=>e.name?.toLowerCase().trim()).filter(Boolean)));
-  // Track pending debounced injection timers per equity member id, so we don't fire mid-typing
-  const injectTimersRef = useRef({});
+  // Track members that have already been processed for preferred-slot injection.
+  // Injection fires ONLY when the user blurs the name input (moves to amount field, presses Tab, etc.),
+  // never mid-typing. This prevents partial names like "C" from being saved as the caller.
+  const injectedMembersRef = useRef(new Set());
+
+  // Initialize with auto-added members (bean_auto, creator_auto) so they never trigger injection
   useEffect(() => {
-    if (!canEdit) return;
-    const current = hunt.equity || [];
-    const currentIds = new Set(current.map(e=>e.id).filter(Boolean));
-    const currentNames = new Set(current.map(e=>e.name?.toLowerCase().trim()).filter(Boolean));
-
-    // Trigger on newly added members OR newly named members (name just appeared)
-    const newMembers = current.filter(e => {
-      if (!e.name) return false;
-      if (e.id === 'bean_auto' || e.id === 'creator_auto') return false;
-      const nameKey = e.name.toLowerCase().trim();
-      const isNewId = !prevEquityIdsRef.current.has(e.id);
-      const isNewName = !prevEquityNamesRef.current.has(nameKey);
-      return isNewId || isNewName;
+    (hunt.equity || []).forEach(e => {
+      if (e.id === 'bean_auto' || e.id === 'creator_auto') injectedMembersRef.current.add(e.id);
     });
+  }, []); // eslint-disable-line
 
-    if (newMembers.length) {
-      // Debounce per equity-id: cancel any pending timer for this id, then schedule a new one.
-      // This means we only inject once the user STOPS typing the name (avoids partial names like "C").
-      newMembers.forEach(m => {
-        if (injectTimersRef.current[m.id]) clearTimeout(injectTimersRef.current[m.id]);
-        injectTimersRef.current[m.id] = setTimeout(() => {
-          delete injectTimersRef.current[m.id];
-          injectPreferredSlots(m, hunt.calls);
-        }, 800);
-      });
+  // Manually invoked from the name input's onBlur. Once a member is injected (or has no name), skipped.
+  const handleEquityNameBlur = useCallback((equityMember) => {
+    if (!canEdit) return;
+    if (!equityMember?.name?.trim()) return;
+    if (equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
+    if (injectedMembersRef.current.has(equityMember.id)) return;
+    injectedMembersRef.current.add(equityMember.id);
+    injectPreferredSlots(equityMember, hunt.calls);
+  }, [canEdit, hunt.calls, injectPreferredSlots]);
+
+  // If a member is removed, allow re-injection if they come back (clear from the seen-set)
+  useEffect(() => {
+    const currentIds = new Set((hunt.equity || []).map(e => e.id).filter(Boolean));
+    for (const id of injectedMembersRef.current) {
+      if (!currentIds.has(id)) injectedMembersRef.current.delete(id);
     }
-    prevEquityIdsRef.current = currentIds;
-    prevEquityNamesRef.current = currentNames;
-  }, [hunt.equity, hunt.calls, canEdit, injectPreferredSlots]);
-
-  // Clean up any pending injection timers on unmount
-  useEffect(() => () => {
-    Object.values(injectTimersRef.current).forEach(t => clearTimeout(t));
-    injectTimersRef.current = {};
-  }, []);
+  }, [hunt.equity]);
 
   /* ── Modal base style ── */
   const modalBg = { position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',animation:'fadeUp .15s ease' };
@@ -1511,7 +1511,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex',alignItems:'center'}}>
                       {iconFor(e,12)}
                     </span>
