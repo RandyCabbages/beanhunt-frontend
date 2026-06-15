@@ -129,6 +129,8 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
 const uid  = () => Math.random().toString(36).slice(2,8);
+// Normalize slot name for dedup comparison: strip punctuation, normalize spaces, lowercase
+const normalizeSlot = name => (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 /* ── Slot list ───────────────────────────────────────────────────── */
 // Cache inside a closure to avoid module-level TDZ issues with circular imports
@@ -620,7 +622,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     const newCalls = [];
     for (const raw of slots) {
       const s = raw.trim(); if (!s) continue;
-      if (calls.some(c=>c.slot.toLowerCase()===s.toLowerCase())) { alert(`"${s}" is already in the queue`); continue; }
+      if (calls.some(c=>normalizeSlot(c.slot)===normalizeSlot(s))) { alert(`"${s}" is already in the queue`); continue; }
       // Look up slug+provider for Rainbet link
       const slotData = _slotCache.get().find(c => c.name.toLowerCase() === s.toLowerCase());
       newCalls.push({id:uid(), slot:s, user:callName||'', status:'pending',
@@ -766,9 +768,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       let preferred = (data?.preferredSlots || []).filter(Boolean);
       if (!preferred.length) return;
 
-      // Filter out slots already in the queue
-      const existing = new Set((currentCalls || []).map(c => (c.slot||'').toLowerCase().trim()));
-      preferred = preferred.filter(s => s?.name && !existing.has(s.name.toLowerCase().trim()));
+      // Filter out slots already in the queue (normalize for fuzzy match: "CULT" === "CULT.")
+      const existing = new Set((currentCalls || []).map(c => normalizeSlot(c.slot)));
+      preferred = preferred.filter(s => s?.name && !existing.has(normalizeSlot(s.name)));
       if (!preferred.length) return;
 
       // If hunt has a call limit, pick randomly up to that limit
@@ -783,9 +785,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       }
 
       upd(h => {
-        const alreadyIn = new Set((h.calls||[]).map(c => (c.slot||'').toLowerCase().trim()));
+        const alreadyIn = new Set((h.calls||[]).map(c => normalizeSlot(c.slot)));
         const newCalls = preferred
-          .filter(s => !alreadyIn.has(s.name.toLowerCase().trim()))
+          .filter(s => !alreadyIn.has(normalizeSlot(s.name)))
           .map(s => ({
             id: uid(), user: equityMember.name,
             slot: s.name, thumb: s.thumb||null, slug: s.slug||null,
