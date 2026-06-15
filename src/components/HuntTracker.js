@@ -824,11 +824,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   }, []); // eslint-disable-line
 
   // Always have the latest hunt state available inside the blur handler.
-  // Without this, React's batched state updates can leave the onBlur closure with stale
-  // equity data — so even if the user finished typing "Cabbage", the handler might
-  // run with name="Cabb" because the final state update was still pending when blur fired.
-  const huntRef = useRef(hunt);
-  useEffect(() => { huntRef.current = hunt; }, [hunt]);
+  // Reuses huntRef (declared above) — React's batched state updates can otherwise leave
+  // the onBlur closure with stale equity data, capturing partial names like "Cabb".
 
   // Manually invoked from the name input's onBlur. Looks up the current equity by ID from the ref
   // so we always have the latest name, not whatever was in the closure when this render happened.
