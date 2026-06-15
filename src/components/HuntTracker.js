@@ -823,15 +823,26 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     });
   }, []); // eslint-disable-line
 
-  // Manually invoked from the name input's onBlur. Once a member is injected (or has no name), skipped.
-  const handleEquityNameBlur = useCallback((equityMember) => {
+  // Always have the latest hunt state available inside the blur handler.
+  // Without this, React's batched state updates can leave the onBlur closure with stale
+  // equity data — so even if the user finished typing "Cabbage", the handler might
+  // run with name="Cabb" because the final state update was still pending when blur fired.
+  const huntRef = useRef(hunt);
+  useEffect(() => { huntRef.current = hunt; }, [hunt]);
+
+  // Manually invoked from the name input's onBlur. Looks up the current equity by ID from the ref
+  // so we always have the latest name, not whatever was in the closure when this render happened.
+  const handleEquityNameBlur = useCallback((equityId) => {
     if (!canEdit) return;
-    if (!equityMember?.name?.trim()) return;
-    if (equityMember.id === 'bean_auto' || equityMember.id === 'creator_auto') return;
-    if (injectedMembersRef.current.has(equityMember.id)) return;
-    injectedMembersRef.current.add(equityMember.id);
-    injectPreferredSlots(equityMember, hunt.calls);
-  }, [canEdit, hunt.calls, injectPreferredSlots]);
+    if (equityId === 'bean_auto' || equityId === 'creator_auto') return;
+    if (injectedMembersRef.current.has(equityId)) return;
+    // Read the CURRENT name + calls from the ref, not the closure
+    const current = huntRef.current;
+    const member = (current?.equity || []).find(e => e.id === equityId);
+    if (!member?.name?.trim()) return;
+    injectedMembersRef.current.add(equityId);
+    injectPreferredSlots(member, current?.calls || []);
+  }, [canEdit, injectPreferredSlots]);
 
   // If a member is removed, allow re-injection if they come back (clear from the seen-set)
   useEffect(() => {
@@ -1511,7 +1522,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex',alignItems:'center'}}>
                       {iconFor(e,12)}
                     </span>
