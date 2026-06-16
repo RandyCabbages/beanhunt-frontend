@@ -441,6 +441,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [callRequests,  setCallRequests]  = useState([]);
   const [showReqPopup,  setShowReqPopup]  = useState(false);
   const [showAllCalls,  setShowAllCalls]  = useState(false);
+  // List of everyone who's ever logged in, for equity name autocomplete
+  const [knownUsers, setKnownUsers] = useState([]);
+  useEffect(() => {
+    apiFetch('/api/known-users').then(rows => setKnownUsers(Array.isArray(rows) ? rows : [])).catch(() => {});
+  }, []);
   const [reqStatus,     setReqStatus]     = useState(null); // null | 'pending' | 'granted' | 'denied'
   const [eqTooltip,     setEqTooltip]     = useState(null);
   const saveTimeout = useRef(null);
@@ -1291,6 +1296,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
         {/* ── RIGHT: Equity ── */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          {/* Shared datalist for equity-name autocomplete — every name input references id="known-users-list" */}
+          <datalist id="known-users-list">
+            {knownUsers.map(u => (
+              <option key={u.id} value={u.displayName} />
+            ))}
+          </datalist>
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
@@ -1414,7 +1425,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         }
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
-                        position:'relative',cursor:'pointer',minHeight:90,
+                        position:'relative',cursor:'pointer',minHeight:150,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
                       }}>
@@ -1450,17 +1461,17 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         display:'flex',flexDirection:'column',gap:4,
                       }}>
                         {/* Name header */}
-                        <div style={{fontFamily:G.mono,fontSize:8,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase'}}>{e.name||'—'}</div>
+                        <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase'}}>{e.name||'—'}</div>
 
                         {/* Discord + Rainbet row */}
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Discord</div>
-                            <div style={{fontFamily:G.body,fontSize:11,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
+                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Discord</div>
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
                           </div>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Rainbet</div>
-                            <div style={{fontFamily:G.body,fontSize:11,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Rainbet</div>
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                               {!cardInfo ? <span style={{color:G.t4}}>…</span>
                                 : cardInfo.rainbetName || <span style={{color:G.t4}}>not set</span>}
                             </div>
@@ -1472,30 +1483,30 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
                         {/* Current hunt payout — the tip number */}
                         <div>
-                          <div style={{fontFamily:G.mono,fontSize:7,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>Current Hunt Payout</div>
-                          <div style={{fontFamily:G.display,fontSize:'1.45rem',fontWeight:700,letterSpacing:'0.02em',
+                          <div style={{fontFamily:G.mono,fontSize:9,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Current Hunt Payout</div>
+                          <div style={{fontFamily:G.display,fontSize:'1.75rem',fontWeight:700,letterSpacing:'0.02em',
                             color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3}}>
                             {hw&&totalWon>0 ? fmt(share) : '—'}
                           </div>
                           {hw&&totalWon>0&&(
-                            <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:pl>=0?G.green:G.red}}>
+                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:pl>=0?G.green:G.red}}>
                               {fmtS(pl)} ({pct.toFixed(1)}% · in {fmt(e.amount)})
                             </div>
                           )}
                         </div>
 
                         {/* All-time payout — small at bottom */}
-                        <div style={{marginTop:'auto',paddingTop:2,borderTop:`1px solid ${G.bdr}`}}>
-                          <div style={{fontFamily:G.mono,fontSize:7,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:1}}>All-time payout</div>
+                        <div style={{marginTop:'auto',paddingTop:3,borderTop:`1px solid ${G.bdr}`}}>
+                          <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>All-time payout</div>
                           <div style={{display:'flex',alignItems:'baseline',gap:6}}>
-                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?G.t2:G.t4}}>
+                            <div style={{fontFamily:G.mono,fontSize:14,fontWeight:700,color:cardInfo?.totalPayout>0?G.t2:G.t4}}>
                               {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
                             </div>
-                            {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:8,color:G.t4}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
+                            {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:10,color:G.t4}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
                           </div>
                         </div>
 
-                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
+                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
                     </div>
                   );
@@ -1519,7 +1530,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} list="known-users-list" onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex',alignItems:'center'}}>
                       {iconFor(e,12)}
                     </span>
