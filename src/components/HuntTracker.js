@@ -8,10 +8,10 @@ import RandomHashtag from './RandomHashtag';
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
   bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
-  gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.14)',
+  gold:'#9146ff', gold2:'#a970ff', gdim:'rgba(145,70,255,0.14)',
   green:'#4ade80', gndim:'rgba(74,222,128,0.12)',
   red:'#f87171', rdim:'rgba(248,113,113,0.12)',
-  purple:'#c084fc', pdim:'rgba(192,132,252,0.12)',
+  purple:'#f0abfc', pdim:'rgba(240,171,252,0.12)',
   t1:'#ffffff', t2:'#ededed', t3:'#cccccc', t4:'#a8a8a8',
   display:"'Chakra Petch',sans-serif",
   body:"'Inter',system-ui,sans-serif",
@@ -422,10 +422,8 @@ function StatTile({ label, value, color, accent, wide }) {
   const valStr = String(value ?? '');
   return (
     <div style={{ flex: wide ? '2 1 160px' : '1 1 110px', padding:'1rem 1.1rem',
-      borderRight:`1px solid ${G.bdr}`, borderBottom:`1px solid ${G.bdr}`,
+      borderRight:`1px solid rgba(255,255,255,0.05)`,
       position:'relative', overflow:'hidden' }}>
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2,
-        background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
       <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
       <div title={valStr} style={{ fontFamily:G.display, fontSize:'1.5rem', fontWeight:700, color:color||'#ffffff',
@@ -441,7 +439,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const isVip   = hunt.huntType === 'vip';
   const accent  = isVip ? G.purple : G.gold;
   const acDim   = isVip ? G.pdim   : G.gdim;
-  const acStr   = isVip ? 'rgba(187,134,252,.6)' : 'rgba(255,179,0,.6)';
+  const acStr   = isVip ? 'rgba(240,171,252,.6)' : 'rgba(145,70,255,.6)';
 
   const runnerName = (hunt.user?.displayName || hunt.user?.username || '').toLowerCase().trim();
   const iconFor = (e, size=12) => {
@@ -1118,18 +1116,19 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               </div>
             </div>
             {hunt.isLive && (
-              <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(0,230,118,.07)',border:'1px solid rgba(0,230,118,.2)',borderRadius:3,padding:'3px 10px',marginLeft:4}}>
-                <span style={{width:6,height:6,borderRadius:'50%',background:G.green,display:'inline-block',animation:'live-ring 2s infinite'}}/>
-                <span style={{fontFamily:G.mono,fontSize:11,color:G.green,letterSpacing:'0.1em'}}>LIVE</span>
+              <div style={{display:'flex',alignItems:'center',gap:6,background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.3)',borderRadius:3,padding:'3px 10px',marginLeft:4}}>
+                <span style={{width:6,height:6,borderRadius:'50%',background:G.red,display:'inline-block',animation:'live-ring 2s infinite'}}/>
+                <span style={{fontFamily:G.mono,fontSize:11,color:G.red,fontWeight:700,letterSpacing:'0.12em'}}>LIVE</span>
               </div>
             )}
+            <div style={{userSelect:'none',marginLeft:4}}>
+              <RandomHashtag fontSize={14} letterSpacing="0.1em" />
+            </div>
 
           </div>
 
-          {/* Center: announcement */}
-          <div style={{textAlign:'center',userSelect:'none'}}>
-            <RandomHashtag fontSize={15} letterSpacing="0.12em" />
-          </div>
+          {/* Center: reserved for future ticker / left intentionally empty */}
+          <div></div>
 
           {/* Right: controls */}
           <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}>
@@ -1145,9 +1144,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 ↩ Undo
               </button>
             )}
-            {canEdit && <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:30,padding:'0 12px',background:obsCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${obsCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:obsCopied?G.gold:G.t2,cursor:'pointer'}}>{obsCopied?'✓ Copied':'OBS Link'}</button>}
+            {canEdit && <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/overlay/${hunt.user?.id}`);setObsCopied(true);setTimeout(()=>setObsCopied(false),2000);}} style={{height:30,padding:'0 12px',background:obsCopied?'rgba(145,70,255,0.18)':G.card,border:`1px solid ${obsCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:obsCopied?G.gold:G.t2,cursor:'pointer'}}>{obsCopied?'✓ Copied':'OBS Link'}</button>}
             {canEdit && <button onClick={()=>setInviteModal(true)} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t2,cursor:'pointer'}}>+ Co-Edit</button>}
-            <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/hunt/${hunt.user?.id}`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(198,241,53,0.15)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Copied':'⇗ Share'}</button>
+            <button onClick={()=>{navigator.clipboard.writeText(`${window.location.origin}/hunt/${hunt.user?.id}`);setShareCopied(true);setTimeout(()=>setShareCopied(false),2000);}} style={{height:30,padding:'0 12px',background:shareCopied?'rgba(145,70,255,0.18)':G.card,border:`1px solid ${shareCopied?G.gold:G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,fontWeight:600,color:shareCopied?G.gold:G.t2,cursor:'pointer'}}>{shareCopied?'✓ Copied':'⇗ Share'}</button>
             {canEdit && onResetHunt && (
               <button onClick={onResetHunt} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t3,cursor:'pointer'}}>Reset</button>
             )}
@@ -1256,7 +1255,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     const data = await apiFetch(`/api/hunts/${hunt.user?.id}/request-calls`, { method:'POST' });
                     setReqStatus(data.status === 'already_member' ? 'granted' : 'pending');
                   } catch(e) { alert(e.message||'Failed to send request'); }
-                }} style={{height:26,padding:'0 10px',background:reqStatus==='granted'?'rgba(198,241,53,0.15)':reqStatus==='pending'?'rgba(251,146,60,0.12)':'rgba(88,101,242,0.12)',border:`1px solid ${reqStatus==='granted'?'rgba(198,241,53,0.4)':reqStatus==='pending'?'rgba(251,146,60,0.4)':'rgba(88,101,242,0.4)'}`,borderRadius:4,fontFamily:G.mono,fontSize:11,fontWeight:700,color:reqStatus==='granted'?G.gold:reqStatus==='pending'?'#fb923c':'#a5b4fc',cursor:reqStatus?'default':'pointer',whiteSpace:'nowrap'}}>
+                }} style={{height:26,padding:'0 10px',background:reqStatus==='granted'?'rgba(145,70,255,0.18)':reqStatus==='pending'?'rgba(251,146,60,0.12)':'rgba(88,101,242,0.12)',border:`1px solid ${reqStatus==='granted'?'rgba(145,70,255,0.45)':reqStatus==='pending'?'rgba(251,146,60,0.4)':'rgba(88,101,242,0.4)'}`,borderRadius:4,fontFamily:G.mono,fontSize:11,fontWeight:700,color:reqStatus==='granted'?G.gold:reqStatus==='pending'?'#fb923c':'#a5b4fc',cursor:reqStatus?'default':'pointer',whiteSpace:'nowrap'}}>
                   {reqStatus==='granted'?'✓ Access Granted':reqStatus==='pending'?'⏳ Pending…':'🙋 Request to Add Calls'}
                 </button>
               )}
@@ -1347,8 +1346,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         {/* ── MIDDLE: Bonuses ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
-          {/* Stat tiles — centered above bonus tracker */}
-          <div style={{display:'flex',borderBottom:`2px solid ${accent}44`,background:G.bg2,flexShrink:0}}>
+          {/* Stat tiles — one unified bar with a single accent line on top */}
+          <div style={{display:'flex',borderTop:`2px solid ${accent}`,borderBottom:`1px solid ${G.bdr}`,background:G.bg2,flexShrink:0}}>
             {huntMode==='creating'&&<>
               <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
               <StatTile label="People in Hunt" value={equity.filter(e=>e.name||e.amount>0).length} accent={acStr} />
@@ -1534,8 +1533,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               {isVip&&<button
                 onMouseEnter={()=>setEqTooltip('rollwin')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{addRollWinner();setEqTooltip(null);}}
-                style={{height:34,padding:'0 11px',background:'rgba(198,241,53,0.12)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',gap:6,position:'relative'}}>
-                🎲 Roll Win <span style={{fontSize:10,color:'rgba(198,241,53,0.6)',fontWeight:400}}>${defAmt}</span>
+                style={{height:34,padding:'0 11px',background:'rgba(145,70,255,0.14)',border:`1px solid rgba(145,70,255,0.45)`,borderRadius:6,fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.gold,cursor:'pointer',display:'flex',alignItems:'center',gap:6,position:'relative'}}>
+                🎲 Roll Win <span style={{fontSize:10,color:'rgba(145,70,255,0.6)',fontWeight:400}}>${defAmt}</span>
                 {eqTooltip==='rollwin'&&<div style={{position:'absolute',top:'110%',left:0,zIndex:99,background:G.lift,border:`1px solid ${G.bdr}`,borderRadius:6,padding:'8px 12px',minWidth:220,pointerEvents:'none',boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
                   <div style={{fontFamily:G.body,fontSize:12,color:G.t1,fontWeight:600,marginBottom:4}}>Manual Roll Winner</div>
                   <div style={{fontFamily:G.mono,fontSize:10,color:G.t3,lineHeight:1.5}}>Adds a blank roll winner row at the standard ${'{'}defAmt{'}'} per person amount. Enter their name after.</div>
@@ -1607,7 +1606,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         // Defensive: if cardInfo hasn't loaded yet (race with first paint), kick a load.
                         if(!cardInfoMap[e.id]) loadCardInfo(e);
                       }}
-                      style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
+                      style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(145,70,255,0.35)':G.bdr)}`,borderRadius:6,
+                        borderTop:`2px solid ${e.id==='bean_auto'?G.gold:e.id==='creator_auto'?G.gold:e.isRollWinner?G.gold2:'rgba(145,70,255,0.5)'}`,
                         position:'relative',cursor:'pointer',minHeight:150,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
@@ -1869,9 +1869,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       const pp=parseFloat((e.amount/others.length).toFixed(2));
                       upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
                     }} title="Divvy up this person's equity among everyone else"
-                    style={{height:30,width:30,background:'rgba(198,241,53,0.1)',border:`1px solid rgba(198,241,53,0.35)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:16,fontFamily:'serif',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center'}}
-                    onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.18)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.5)';}}
-                    onMouseLeave={ev=>{ev.currentTarget.style.background='rgba(198,241,53,0.08)';ev.currentTarget.style.borderColor='rgba(198,241,53,0.25)';}}>÷</button>
+                    style={{height:30,width:30,background:'rgba(145,70,255,0.12)',border:`1px solid rgba(145,70,255,0.4)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:16,fontFamily:'serif',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center'}}
+                    onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(145,70,255,0.22)';ev.currentTarget.style.borderColor='rgba(145,70,255,0.55)';}}
+                    onMouseLeave={ev=>{ev.currentTarget.style.background='rgba(145,70,255,0.1)';ev.currentTarget.style.borderColor='rgba(145,70,255,0.3)';}}>÷</button>
                     <button onClick={()=>removePerson(e.id)} className="icon-btn-danger" style={{background:'none',border:'none',cursor:'pointer',color:G.t3,fontSize:16,padding:'0 2px',height:30,display:'flex',alignItems:'center'}}>×</button>
                   </div>
                 </div>
@@ -1961,7 +1961,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`, { method:'POST', body: JSON.stringify({ action:'grant' }) });
                         setCallRequests(prev => prev.filter(r => r.id !== req.id));
                       } catch(e) { alert(e.message||'Failed to grant'); }
-                    }} style={{height:28,padding:'0 12px',background:'rgba(198,241,53,0.15)',border:`1px solid rgba(198,241,53,0.4)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>✓ Allow</button>
+                    }} style={{height:28,padding:'0 12px',background:'rgba(145,70,255,0.18)',border:`1px solid rgba(145,70,255,0.45)`,borderRadius:4,fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.gold,cursor:'pointer'}}>✓ Allow</button>
                     <button onClick={async()=>{
                       try {
                         await apiFetch(`/api/hunts/${hunt.user?.id}/call-requests/${req.id}`, { method:'POST', body: JSON.stringify({ action:'deny' }) });
