@@ -1465,24 +1465,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       }}>
                       {/* Front face */}
                       <div style={{
-                        position:'absolute',inset:0,borderRadius:6,padding:'8px 10px',
+                        position:'absolute',inset:0,borderRadius:6,padding:'10px 12px',
                         backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',
                         transition:'transform .35s cubic-bezier(.4,0,.2,1)',
                         transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                         transformStyle:'preserve-3d',
                       }}>
-                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:14,color:'#ffffff',display:'flex',alignItems:'center',gap:5,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:2}}>
-                          {iconFor(e,13)}
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:16,color:'#ffffff',display:'flex',alignItems:'center',gap:6,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:3,lineHeight:1.1}}>
+                          {iconFor(e,15)}
                           <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                         </div>
-                        <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,marginBottom:4}}>
+                        <div style={{fontFamily:G.mono,fontSize:12,color:G.t3,marginBottom:6,lineHeight:1.1}}>
                           {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
                             ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
                             : fmt(e.amount)}
                         </div>
-                        <div style={{fontFamily:G.display,fontSize:'1.3rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
-                        {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1}}>{fmtS(pl)}</div>}
-                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
+                        <div style={{fontFamily:G.display,fontSize:'1.85rem',fontWeight:700,color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3,letterSpacing:'0.02em',lineHeight:1.05,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{hw&&totalWon>0?fmt(share):'—'}</div>
+                        {hw&&totalWon>0&&<div style={{fontFamily:G.mono,fontSize:13,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:2,lineHeight:1.1}}>{fmtS(pl)}</div>}
+                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
                       {/* Back face */}
                       <div style={{
