@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { apiFetch, API } from './api';
 
 export const thumbCache = {};
@@ -62,7 +62,7 @@ export function useSlotThumb(slotName) {
   return result;
 }
 
-export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width = 44, height = 33, style = {} }) {
+export const SlotThumb = memo(function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width = 44, height = 33, style = {} }) {
   const looked = useSlotThumb(storedThumb != null ? null : slot);
   // Normalize any relative /api/img-proxy URLs to absolute
   const normalizeThumb = t => t?.startsWith('/api/img-proxy') ? `${API}${t}` : t || null;
@@ -155,4 +155,4 @@ export function SlotThumb({ slot, storedThumb, storedSlug, storedProvider, width
         onError={() => setImgFailed(true)} />
     </a>
   );
-}
+});

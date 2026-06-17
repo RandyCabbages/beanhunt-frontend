@@ -492,6 +492,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
   const cardInfoTouchedRef  = useRef(new Set());              // ids we've already kicked a fetch for this session
   const archivedCacheRef    = useRef(null);                   // single shared promise for /api/hunts/archived
+  const settingsCacheRef    = useRef(new Map());              // path -> promise, dedupes per-member settings fetches
   const [slotsModalFor, setSlotsModalFor] = useState(null);   // {id, name} of equity member whose preferred slots are being edited
   const [slotsDraft,    setSlotsDraft]    = useState([]);     // working copy while the modal is open
   const [slotsNewInput, setSlotsNewInput] = useState('');     // current text in the "add a slot" input
@@ -617,33 +618,37 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const calls   = hunt.calls||[];
   const callLimit = hunt.callLimit||0;
 
-  const totalPot  = equity.reduce((s,e)=>s+e.amount,0);
-  const totalWon  = bonuses.reduce((s,b)=>s+b.win,0);
-  const xs        = bonuses.filter(b=>b.win>0&&b.bet>0).map(b=>b.win/b.bet);
-  const avgX      = xs.length ? xs.reduce((a,v)=>a+v,0)/xs.length : null;
-  const highX     = xs.length ? Math.max(...xs) : null;
-  const remBets   = bonuses.filter(b=>!b.win).reduce((s,b)=>s+b.bet,0);
-  const reqX      = remBets>0&&totalWon<totalPot ? (totalPot-totalWon)/remBets : null;
-  const bestBonus = bonuses.filter(b=>b.win>0&&b.bet>0).reduce((best,b)=>{const x=b.win/b.bet;return x>(best?best.x:0)?{slot:b.slot,x}:best;},null);
-  // Highest single-spin payout (by win amount, not by multiplier — these can be different slots)
-  const bestWinBonus = bonuses.reduce((best,b)=>(b.win>0&&b.win>(best?best.win:0))?{slot:b.slot,win:b.win}:best,null);
-  // When every bonus has been opened (a non-zero win recorded), Req X is no longer meaningful
-  const allBonusesOpened = bonuses.length>0 && remBets===0;
-  const rollerMap = {};
-  bonuses.forEach(b=>{if(b.caller&&b.win)rollerMap[b.caller]=(rollerMap[b.caller]||0)+b.win;});
-  const bestRoller = Object.entries(rollerMap).sort((a,b)=>b[1]-a[1])[0];
-  const rolledCount = bonuses.filter(b=>b.win>0).length;
-
-  // Top caller: person with most bonuses called (status 'in' calls / bonuses with caller set)
-  const callerMap = {};
-  bonuses.forEach(b=>{ if(b.caller) callerMap[b.caller]=(callerMap[b.caller]||0)+1; });
-  const topCaller = Object.entries(callerMap).sort((a,b)=>b[1]-a[1])[0];
-
-  // Req X display helper
-  const reqXVal = totalWon>=totalPot&&totalPot>0?'PROFIT!':reqX?reqX.toFixed(1)+'x':'—';
-  const reqXColor = totalWon>=totalPot&&totalPot>0?G.green:reqX?(reqX<=100?G.green:G.red):G.t3;
-
-  const equityDisplay = equity.filter(e=>e.name||e.amount>0);
+  const {
+    totalPot, totalWon, xs, avgX, highX, remBets, reqX,
+    bestBonus, bestWinBonus, allBonusesOpened,
+    bestRoller, rolledCount, topCaller,
+    reqXVal, reqXColor, equityDisplay,
+  } = useMemo(() => {
+    const totalPot  = equity.reduce((s,e)=>s+e.amount,0);
+    const totalWon  = bonuses.reduce((s,b)=>s+b.win,0);
+    const xs        = bonuses.filter(b=>b.win>0&&b.bet>0).map(b=>b.win/b.bet);
+    const avgX      = xs.length ? xs.reduce((a,v)=>a+v,0)/xs.length : null;
+    const highX     = xs.length ? Math.max(...xs) : null;
+    const remBets   = bonuses.filter(b=>!b.win).reduce((s,b)=>s+b.bet,0);
+    const reqX      = remBets>0&&totalWon<totalPot ? (totalPot-totalWon)/remBets : null;
+    const bestBonus = bonuses.filter(b=>b.win>0&&b.bet>0).reduce((best,b)=>{const x=b.win/b.bet;return x>(best?best.x:0)?{slot:b.slot,x}:best;},null);
+    // Highest single-spin payout (by win amount, not by multiplier)
+    const bestWinBonus = bonuses.reduce((best,b)=>(b.win>0&&b.win>(best?best.win:0))?{slot:b.slot,win:b.win}:best,null);
+    // When every bonus has been opened Req X is no longer meaningful
+    const allBonusesOpened = bonuses.length>0 && remBets===0;
+    const rollerMap = {};
+    bonuses.forEach(b=>{if(b.caller&&b.win)rollerMap[b.caller]=(rollerMap[b.caller]||0)+b.win;});
+    const bestRoller = Object.entries(rollerMap).sort((a,b)=>b[1]-a[1])[0];
+    const rolledCount = bonuses.filter(b=>b.win>0).length;
+    const callerMap = {};
+    bonuses.forEach(b=>{ if(b.caller) callerMap[b.caller]=(callerMap[b.caller]||0)+1; });
+    const topCaller = Object.entries(callerMap).sort((a,b)=>b[1]-a[1])[0];
+    const reqXVal   = totalWon>=totalPot&&totalPot>0?'PROFIT!':reqX?reqX.toFixed(1)+'x':'—';
+    const reqXColor = totalWon>=totalPot&&totalPot>0?G.green:reqX?(reqX<=100?G.green:G.red):G.t3;
+    const equityDisplay = equity.filter(e=>e.name||e.amount>0);
+    return { totalPot, totalWon, xs, avgX, highX, remBets, reqX, bestBonus, bestWinBonus,
+             allBonusesOpened, bestRoller, rolledCount, topCaller, reqXVal, reqXColor, equityDisplay };
+  }, [bonuses, equity]);
 
   // Eagerly load cardInfo (rainbet + twitch + all-time totals) for every visible equity member
   // so the names appear on the front of the card without requiring a flip. A ref-based "touched"
@@ -665,8 +670,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if (!archivedCacheRef.current) {
       archivedCacheRef.current = apiFetch('/api/hunts/archived').catch(()=>[]);
     }
+    if (!settingsCacheRef.current.has(settingsPath)) {
+      settingsCacheRef.current.set(settingsPath, apiFetch(settingsPath).catch(()=>({})));
+    }
     Promise.all([
-      apiFetch(settingsPath).catch(()=>({})),
+      settingsCacheRef.current.get(settingsPath),
       archivedCacheRef.current,
     ]).then(([settings, archived])=>{
       let totalOut=0, totalIn=0, huntCount=0;
@@ -949,20 +957,20 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     setCopyResult(true); setTimeout(()=>setCopyResult(false), 2000);
   };
 
-  const sortedBonuses = bonuses.slice().sort((a,b)=>{
-    // Primary: scatter tier — Bonus (3) < Super Bonus (4) < Super Super Bonus (5)
+  const sortedBonuses = useMemo(() => bonuses.slice().sort((a,b)=>{
     const pa=a.scat===5?2:a.scat===4?1:0,pb=b.scat===5?2:b.scat===4?1:0;
     if(pa!==pb) return pa-pb;
-    // Secondary: bet size — lower bets ABOVE higher bets within the same tier
     const bb = (a.bet||0) - (b.bet||0);
     if (bb !== 0) return bb;
-    // Tiebreaker: insertion order so equal-bet entries stay stable
     return bonuses.indexOf(a)-bonuses.indexOf(b);
-  });
+  }), [bonuses]);
 
-  const queue   = buildQueue(calls);
-  const pending = queue.filter(c=>c.status==='pending');
-  const done    = queue.filter(c=>c.status==='out');
+  const { queue, pending, done } = useMemo(() => {
+    const queue   = buildQueue(calls);
+    const pending = queue.filter(c=>c.status==='pending');
+    const done    = queue.filter(c=>c.status==='out');
+    return { queue, pending, done };
+  }, [calls]);
   const canEdit = !readOnly && !!onUpdateHunt;
   // Admins can manage user identity fields (rainbet/twitch names) even when the hunt itself
   // is read-only (e.g. viewing an archived snapshot). Hunt runners obviously can while editing.
