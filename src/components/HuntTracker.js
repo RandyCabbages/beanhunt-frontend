@@ -444,9 +444,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
-  const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, twitchName, totalEquity, totalPayout, huntCount}
+  const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, twitchName, preferredSlots, totalEquity, totalPayout, huntCount}
   const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
   const cardInfoTouchedRef = useRef(new Set());               // ids we've already kicked a fetch for this session
+  const [slotsModalFor, setSlotsModalFor] = useState(null);   // {id, name} of equity member whose preferred slots are being edited
+  const [slotsDraft,    setSlotsDraft]    = useState([]);     // working copy while the modal is open
+  const [slotsNewInput, setSlotsNewInput] = useState('');     // current text in the "add a slot" input
   const [huntHistory,   setHuntHistory]   = useState([]);     // undo stack
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcWinners,     setDcWinners]     = useState(false);
@@ -619,12 +622,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         }
       });
       setCardInfoMap(prev=>({...prev,[eq.id]:{
-        rainbetName: settings?.rainbetName||'',
-        twitchName:  settings?.twitchName||'',
-        totalEquity: totalIn,
-        totalPayout: totalOut,
+        rainbetName:    settings?.rainbetName    || '',
+        twitchName:     settings?.twitchName     || '',
+        preferredSlots: Array.isArray(settings?.preferredSlots) ? settings.preferredSlots : [],
+        totalEquity:    totalIn,
+        totalPayout:    totalOut,
         huntCount,
-        loaded:true,
+        loaded:         true,
       }}));
     });
   }, [user]);
@@ -651,6 +655,53 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         : { name: eq.name||'', field, value };
       apiFetch('/api/admin/set-user-field', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
     }
+  };
+
+  // Open the preferred-slots modal for an equity member with a draft seeded from current data.
+  const openSlotsModal = (eq) => {
+    const info = cardInfoMap[eq.id] || {};
+    setSlotsDraft(Array.isArray(info.preferredSlots) ? [...info.preferredSlots] : []);
+    setSlotsNewInput('');
+    setSlotsModalFor({ id: eq.id, name: eq.name || '—' });
+  };
+  const closeSlotsModal = () => { setSlotsModalFor(null); setSlotsDraft([]); setSlotsNewInput(''); };
+
+  // Add a slot to the working draft. Looks up the canonical slot entry from the slot cache so
+  // we get the proper thumb/slug/provider; falls back to a name-only entry if not in cache yet.
+  const addSlotToDraft = (slotName) => {
+    const trimmed = (slotName||'').trim();
+    if (!trimmed) return;
+    const match = _slotCache.get().find(s => s.name.toLowerCase() === trimmed.toLowerCase());
+    const entry = match
+      ? { name: match.name, thumb: match.thumb||null, slug: match.slug||null, provider: match.provider||null }
+      : { name: trimmed, thumb: null, slug: null, provider: null };
+    setSlotsDraft(prev => {
+      if (prev.some(p => p.name.toLowerCase() === entry.name.toLowerCase())) return prev;
+      return [...prev, entry];
+    });
+    setSlotsNewInput('');
+  };
+  const removeSlotFromDraft = (idx) => {
+    setSlotsDraft(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  // Save the draft slot list back. Admins persist to the server; non-admins just keep it local.
+  const saveSlotsDraft = () => {
+    if (!slotsModalFor) return;
+    const eqId = slotsModalFor.id;
+    const eqName = slotsModalFor.name;
+    setCardInfoMap(prev => ({
+      ...prev,
+      [eqId]: { ...(prev[eqId]||{}), preferredSlots: slotsDraft, loaded: true },
+    }));
+    if (user && user.isAdmin) {
+      const isDiscordId = /^\d{17,19}$/.test(eqId||'');
+      const body = isDiscordId
+        ? { userId: eqId, slots: slotsDraft }
+        : { name: eqName, slots: slotsDraft };
+      apiFetch('/api/admin/set-preferred-slots', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
+    }
+    closeSlotsModal();
   };
 
   /* ── Actions ── */
@@ -1516,6 +1567,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                         transformStyle:'preserve-3d',
                       }}>
+                        {/* Preferred-slots count badge — top-right corner, clickable to manage */}
+                        <button
+                          onClick={ev=>{ ev.stopPropagation(); openSlotsModal(e); }}
+                          title={`${e.name||'this member'}'s preferred slots — click to manage`}
+                          style={{
+                            position:'absolute', top:6, right:8,
+                            background:'rgba(74,222,128,0.15)',
+                            border:`1px solid ${G.green}`,
+                            borderRadius:10,
+                            padding:'1px 8px',
+                            minWidth:24,
+                            fontFamily:G.mono, fontSize:11, fontWeight:700,
+                            color:G.green, cursor:'pointer', lineHeight:1.2,
+                            display:'inline-flex', alignItems:'center', gap:3,
+                            transition:'background .12s, transform .12s',
+                          }}
+                          onMouseEnter={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.28)'}
+                          onMouseLeave={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.15)'}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0,opacity:0.85}}>
+                            <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/>
+                          </svg>
+                          {cardInfo?.preferredSlots?.length || 0}
+                        </button>
                         {/* Row 1 — icon + Discord name */}
                         <div style={{fontFamily:G.body,fontWeight:700,fontSize:16,color:'#ffffff',display:'flex',alignItems:'center',gap:6,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:3,lineHeight:1.1}}>
                           {iconFor(e,15)}
@@ -1985,6 +2059,75 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{display:'flex',gap:6}}>
               <button onClick={()=>{const bet=parseFloat(document.getElementById('bet-inp-modal')?.value)||0;addBonus(betPrompt.slot,bet,activeScat,betPrompt.caller);setCallStatus(betPrompt.callId,'in');setBetPrompt(null);}} style={{flex:1,...btnPrimary}}>Add to Tracker</button>
               <button onClick={()=>setBetPrompt(null)} style={btnGhost}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preferred Slots manager — runner can add/remove a member's preferred slots */}
+      {slotsModalFor && (
+        <div style={modalBg} onClick={closeSlotsModal}>
+          <div style={{...modal, width:420, maxHeight:'78vh', display:'flex', flexDirection:'column'}} onClick={ev=>ev.stopPropagation()}>
+            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginBottom:4}}>
+              <div style={{fontFamily:G.display,fontSize:'1.25rem',fontWeight:700,color:G.t1,letterSpacing:'0.04em'}}>
+                PREFERRED SLOTS
+              </div>
+              <div style={{fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.06em'}}>{slotsDraft.length} saved</div>
+            </div>
+            <div style={{fontFamily:G.body,fontSize:13,color:G.t3,marginBottom:12,lineHeight:1.4}}>
+              {slotsModalFor.name}{user && user.isAdmin
+                ? ' — admin: saved to their settings'
+                : ' — local only (not saved to server)'}
+            </div>
+
+            {/* Existing slots */}
+            <div style={{overflowY:'auto',flex:1,marginBottom:10,border:`1px solid ${G.bdr}`,borderRadius:4,background:G.bg2}}>
+              {slotsDraft.length === 0 ? (
+                <div style={{padding:'18px 12px',fontFamily:G.mono,fontSize:11,color:G.t4,textAlign:'center',letterSpacing:'0.06em'}}>
+                  NO SLOTS YET — ADD ONE BELOW
+                </div>
+              ) : slotsDraft.map((s, i) => (
+                <div key={`${s.name}-${i}`} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',borderBottom:i<slotsDraft.length-1?`1px solid ${G.bdr}`:'none'}}>
+                  <SlotThumb slot={s.name} storedThumb={s.thumb||null} storedSlug={s.slug||null} storedProvider={s.provider||null} width={36} height={27} />
+                  <div style={{minWidth:0,flex:1,fontFamily:G.body,fontSize:13,color:G.t1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.name}</div>
+                  <button onClick={()=>removeSlotFromDraft(i)} title="Remove"
+                    style={{background:'rgba(248,113,113,0.12)',border:`1px solid rgba(248,113,113,0.45)`,borderRadius:3,
+                      fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.red,padding:'2px 7px',cursor:'pointer',lineHeight:1}}>×</button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add new */}
+            <div style={{display:'flex',gap:6,marginBottom:14}}>
+              <div style={{flex:1}}>
+                <SlotInput
+                  value={slotsNewInput}
+                  onChange={setSlotsNewInput}
+                  onCommit={()=>addSlotToDraft(slotsNewInput)}
+                  placeholder="Slot name (e.g. Gates of Olympus)"
+                  inputHeight={38}
+                />
+              </div>
+              <button onClick={()=>addSlotToDraft(slotsNewInput)}
+                disabled={!slotsNewInput.trim()}
+                style={{height:38,padding:'0 14px',background:slotsNewInput.trim()?G.green:G.sur,
+                  border:`1px solid ${slotsNewInput.trim()?G.green:G.bdr}`,borderRadius:4,
+                  fontFamily:G.mono,fontSize:12,fontWeight:700,color:slotsNewInput.trim()?'#0a0a0a':G.t4,
+                  cursor:slotsNewInput.trim()?'pointer':'not-allowed',letterSpacing:'0.04em'}}>
+                + ADD
+              </button>
+            </div>
+
+            {/* Footer */}
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={closeSlotsModal}
+                style={{height:36,padding:'0 16px',background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,
+                  fontFamily:G.body,fontSize:13,color:G.t3,cursor:'pointer'}}>Cancel</button>
+              <button onClick={saveSlotsDraft}
+                style={{height:36,padding:'0 18px',background:G.green,border:`1px solid ${G.green}`,borderRadius:4,
+                  fontFamily:G.body,fontSize:13,fontWeight:700,color:'#0a0a0a',cursor:'pointer',letterSpacing:'0.04em'}}>
+                Save
+              </button>
             </div>
           </div>
         </div>
