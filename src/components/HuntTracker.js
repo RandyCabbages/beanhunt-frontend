@@ -1451,7 +1451,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         }
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
-                        position:'relative',cursor:'pointer',minHeight:150,
+                        position:'relative',cursor:'pointer',minHeight:185,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
                       }}>
@@ -1478,25 +1478,25 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       </div>
                       {/* Back face */}
                       <div style={{
-                        position:'absolute',inset:0,borderRadius:6,padding:'8px 10px',
+                        position:'absolute',inset:0,borderRadius:6,padding:'10px 12px',
                         backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',
                         transition:'transform .35s cubic-bezier(.4,0,.2,1)',
                         transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
                         transformStyle:'preserve-3d',
                         background: G.lift,
-                        display:'flex',flexDirection:'column',gap:4,
+                        display:'flex',flexDirection:'column',gap:8,
                       }}>
                         {/* Name header */}
-                        <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase'}}>{e.name||'—'}</div>
+                        <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
 
                         {/* Discord + Rainbet row */}
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Discord</div>
+                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>Discord</div>
                             <div style={{fontFamily:G.body,fontSize:13,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
                           </div>
                           <div>
-                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Rainbet</div>
+                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>Rainbet</div>
                             <div style={{fontFamily:G.body,fontSize:13,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                               {!cardInfo ? <span style={{color:G.t4}}>…</span>
                                 : cardInfo.rainbetName || <span style={{color:G.t4}}>not set</span>}
@@ -1509,21 +1509,21 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
                         {/* Current hunt payout — the tip number */}
                         <div>
-                          <div style={{fontFamily:G.mono,fontSize:9,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>Current Hunt Payout</div>
-                          <div style={{fontFamily:G.display,fontSize:'1.75rem',fontWeight:700,letterSpacing:'0.02em',
+                          <div style={{fontFamily:G.mono,fontSize:9,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>Current Hunt Payout</div>
+                          <div style={{fontFamily:G.display,fontSize:'1.75rem',fontWeight:700,letterSpacing:'0.02em',lineHeight:1.1,
                             color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3}}>
                             {hw&&totalWon>0 ? fmt(share) : '—'}
                           </div>
                           {hw&&totalWon>0&&(
-                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:pl>=0?G.green:G.red}}>
+                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:2}}>
                               {fmtS(pl)} ({pct.toFixed(1)}% · in {fmt(e.amount)})
                             </div>
                           )}
                         </div>
 
                         {/* All-time payout — small at bottom */}
-                        <div style={{marginTop:'auto',paddingTop:3,borderTop:`1px solid ${G.bdr}`}}>
-                          <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2}}>All-time payout</div>
+                        <div style={{marginTop:'auto',paddingTop:6,borderTop:`1px solid ${G.bdr}`}}>
+                          <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3}}>All-time payout</div>
                           <div style={{display:'flex',alignItems:'baseline',gap:6}}>
                             <div style={{fontFamily:G.mono,fontSize:14,fontWeight:700,color:cardInfo?.totalPayout>0?G.t2:G.t4}}>
                               {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
@@ -1531,8 +1531,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                             {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:10,color:G.t4}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
                           </div>
                         </div>
-
-                        <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
                     </div>
                   );
