@@ -1639,13 +1639,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           {cardInfo?.preferredSlots?.length || 0}
                         </button>
                         {/* Row 1 — icon + Discord name */}
-                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:16,color:'#ffffff',display:'flex',alignItems:'center',gap:6,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:3,lineHeight:1.1}}>
-                          {iconFor(e,15)}
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:18,color:'#ffffff',display:'flex',alignItems:'center',gap:7,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:5,lineHeight:1.1}}>
+                          {iconFor(e,17)}
                           <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                         </div>
                         {/* Row 2 — Rainbet name (copy on click; +Add when missing for editors) */}
-                        <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:3,lineHeight:1.1,fontFamily:G.body,fontSize:12}}>
-                          <span style={{color:G.t4,fontWeight:700,letterSpacing:'0.06em'}}>RB</span>
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,lineHeight:1.1,fontFamily:G.body,fontSize:14}}>
+                          <span style={{color:G.t4,fontWeight:700,letterSpacing:'0.06em',fontSize:12}}>RB</span>
                           {!cardInfo ? (
                             <span style={{color:G.t4,fontWeight:600}}>…</span>
                           ) : cardInfo.rainbetName ? (
@@ -1671,22 +1671,22 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           )}
                         </div>
                         {/* Row 3 — equity invested · percent of pool */}
-                        <div style={{fontFamily:G.mono,fontSize:12,color:G.t3,fontWeight:600,marginBottom:6,lineHeight:1.1}}>
+                        <div style={{fontFamily:G.mono,fontSize:14,color:G.t3,fontWeight:600,marginBottom:8,lineHeight:1.1}}>
                           {e.rollAmount>0&&(e.amount-e.rollAmount)>0
                             ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
                             : fmt(e.amount)} · {pct.toFixed(1)}%
                         </div>
                         {/* Row 4 — current winnings (big focal number) */}
-                        <div style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,
+                        <div style={{fontFamily:G.display,fontSize:'1.85rem',fontWeight:700,
                           color: (hw&&totalWon>0) ? (share>=e.amount?G.green:G.red) : G.t3,
-                          letterSpacing:'0.02em',lineHeight:1.05,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          letterSpacing:'0.02em',lineHeight:1.1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                           {(hw&&totalWon>0) ? fmt(share) : fmt(0)}
                         </div>
                         {/* Row 5 — P/L (only meaningful after wins) */}
                         {(hw&&totalWon>0) ? (
-                          <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:pl>=0?G.green:G.red,marginTop:2,lineHeight:1.1}}>{fmtS(pl)}</div>
+                          <div style={{fontFamily:G.mono,fontSize:14,fontWeight:700,color:pl>=0?G.green:G.red,marginTop:4,lineHeight:1.1}}>{fmtS(pl)}</div>
                         ) : (
-                          <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:G.t4,marginTop:2,lineHeight:1.1,letterSpacing:'0.06em'}}>awaiting wins</div>
+                          <div style={{fontFamily:G.mono,fontSize:11,fontWeight:600,color:G.t4,marginTop:4,lineHeight:1.1,letterSpacing:'0.06em'}}>awaiting wins</div>
                         )}
                         <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:10,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
