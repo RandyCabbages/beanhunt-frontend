@@ -685,7 +685,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       upd(h=>{
         const pending=h.calls.filter(c=>c.status==='pending');
         const others=h.calls.filter(c=>c.status!=='pending');
-        const insertAt=Math.min(3,pending.length);
+        // Top 4 are locked once we leave creating — insert new calls AFTER them
+        const insertAt=Math.min(4,pending.length);
         const newP=[...pending.slice(0,insertAt),...newCalls,...pending.slice(insertAt)];
         return{...h,calls:[...newP,...others]};
       });
@@ -1000,7 +1001,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Mode toggle */}
           {canEdit && (
             <div style={{padding:'8px 10px',borderBottom:`1px solid ${G.bdr}`,display:'flex',gap:2}}>
-              {[['creating','📋','CREATING'],['spinning','🎰','SPINNING'],['rolling','🎲','ROLLING']].map(([mode,icon,lbl])=>(
+              {[['creating','📋','CREATING'],['spinning','🎰','SPINNING'],['rolling','🎁','OPENING']].map(([mode,icon,lbl])=>(
                 <button key={mode} onClick={()=>changeMode(mode)} style={{
                   flex:1, height:32, border:`1px solid ${huntMode===mode?accent:G.bdr}`,
                   borderRadius:4, fontFamily:G.mono, fontSize:11, fontWeight:700, cursor:'pointer',
@@ -1101,7 +1102,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Calls list */}
           <div style={{flex:1,overflowY:'auto',padding:'6px 8px'}}>
             {pending.slice(0,10).map((c,i)=>{
-              const isLocked = huntMode!=='creating' && i<3;
+              // Lock the top 4 slot calls during the SPINNING phase so the active queue
+              // can't be reordered or have new calls jump in front while they're being spun.
+              const isLocked = huntMode==='spinning' && i<4;
               return (
                 <div key={c.id} className={!isLocked?'call-card':''}
                   draggable={canEdit&&!isLocked}
@@ -1112,7 +1115,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     upd(h=>{
                       const pend=h.calls.filter(x=>x.status==='pending'),oth=h.calls.filter(x=>x.status!=='pending');
                       const fi=pend.findIndex(x=>x.id===dragCallId),ti=pend.findIndex(x=>x.id===c.id);
-                      if(huntMode!=='creating'&&ti<3)return h;
+                      // Never let any call be dropped into a locked top-4 slot during spinning
+                      if(huntMode==='spinning'&&ti<4)return h;
                       const[m]=pend.splice(fi,1);pend.splice(ti,0,m);
                       return{...h,calls:[...pend,...oth]};
                     });
@@ -1190,7 +1194,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
               <StatTile label="Avg X" value={avgX?avgX.toFixed(1)+'x':'—'} color={G.t2} accent={acStr} />
               <StatTile label="Highest X" value={highX?highX.toFixed(1)+'x':'—'} color={highX?(highX>=100?G.green:G.red):G.t3} accent={acStr} />
               <StatTile label="Best Slot" value={bestBonus?bestBonus.slot:'—'} color={accent} accent={acStr} wide />
-              <StatTile label="Top Roller" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
+              <StatTile label="Top Opener" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
             </>}
           </div>
 
