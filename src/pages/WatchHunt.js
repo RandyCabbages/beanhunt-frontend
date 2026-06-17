@@ -23,7 +23,14 @@ export default function WatchHunt({ user }) {
     setNotFound(false); setHunt(null);
     apiFetch(endpoint)
       .then(data => {
-        setHunt(data);
+        if (!data) { setNotFound(true); return; }
+        // Normalise arrays so HuntTracker never receives null for bonuses/equity/calls
+        setHunt({
+          ...data,
+          bonuses: Array.isArray(data.bonuses) ? data.bonuses : [],
+          equity:  Array.isArray(data.equity)  ? data.equity  : [],
+          calls:   Array.isArray(data.calls)   ? data.calls   : [],
+        });
         setCanEdit(!!data.canEdit);
         setCanAddCalls(!!data.canAddCalls);
       })
@@ -106,8 +113,8 @@ export default function WatchHunt({ user }) {
     navigate('/');
   };
 
-  // Not logged in — show login gate, redirect back to this hunt after auth
-  if (user === null) return (
+  // Archived snapshots are public — no login required to view them
+  if (user === null && !archivedAt) return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:20,background:'#161618',fontFamily:"'Chakra Petch',sans-serif"}}>
       <div style={{fontSize:36,marginBottom:4}}>🎰</div>
       <h2 style={{fontSize:24,fontWeight:700,color:'#ffffff',letterSpacing:'0.04em'}}>Login to view this hunt</h2>
