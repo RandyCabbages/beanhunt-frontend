@@ -5,11 +5,11 @@ import { socket, API, apiFetch } from '../api';
 // ── Design tokens — matches HuntTracker exactly ──────────────────
 const C = {
   bg:'#161618', sur:'#222226', card:'#26262a', lift:'#2c2c32',
-  bdr:'rgba(255,255,255,0.15)', bb:'rgba(255,255,255,0.28)',
+  bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
   gold:'#c6f135', gold2:'#d4f55a',
   green:'#4ade80',
   red:'#f87171', purple:'#c084fc',
-  txt:'#ffffff', txt2:'#e8e8e8', label:'#b0b0b0', faint:'#808080',
+  txt:'#ffffff', txt2:'#ededed', label:'#cccccc', faint:'#a8a8a8',
   font:"'Chakra Petch',sans-serif",
 };
 

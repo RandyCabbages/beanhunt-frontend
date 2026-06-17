@@ -6,12 +6,12 @@ import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32', ridge:'#36363e',
-  bdr:'rgba(255,255,255,0.15)', bb:'rgba(255,255,255,0.28)',
+  bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
   gold:'#c6f135', gold2:'#d4f55a', gdim:'rgba(198,241,53,0.14)',
   green:'#4ade80', gndim:'rgba(74,222,128,0.12)',
   red:'#f87171', rdim:'rgba(248,113,113,0.12)',
   purple:'#c084fc', pdim:'rgba(192,132,252,0.12)',
-  t1:'#ffffff', t2:'#e8e8e8', t3:'#b0b0b0', t4:'#808080',
+  t1:'#ffffff', t2:'#ededed', t3:'#cccccc', t4:'#a8a8a8',
   display:"'Chakra Petch',sans-serif",
   body:"'Chakra Petch',sans-serif",
   mono:"'Chakra Petch',sans-serif",
@@ -1570,11 +1570,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               </div>
                             </div>
                           </div>
-                          {cardInfo?.huntCount>0&&(
-                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,lineHeight:1,marginTop:3}}>
-                              across {cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

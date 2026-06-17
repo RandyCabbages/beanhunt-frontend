@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { socket, apiFetch } from '../api';
+import { SlotThumb } from '../slotThumb';
 
 const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -45,8 +46,9 @@ export default function Overlay() {
           </div>
         </div>
         {bonuses.filter(b=>b.currentlyPlaying).map(b=>(
-          <div key={b.id} style={{background:`${accent}15`,border:`1px solid ${accent}44`,borderRadius:4,padding:'5px 10px',fontSize:11,color:accent,fontWeight:700}}>
-            🎰 Now: {b.slot}
+          <div key={b.id} style={{background:`${accent}15`,border:`1px solid ${accent}44`,borderRadius:4,padding:'5px 10px',fontSize:11,color:accent,fontWeight:700,display:'flex',alignItems:'center',gap:8}}>
+            <SlotThumb slot={b.slot} storedThumb={b.thumb} width={44} height={33} />
+            <span>🎰 Now: {b.slot}</span>
           </div>
         ))}
       </div>

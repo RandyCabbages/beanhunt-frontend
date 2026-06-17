@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../api';
+import { SlotThumb } from '../slotThumb';
 
 const G = {
   bg: '#161618', bg2: '#1c1c1f', sur: '#222226', card: '#26262a', lift: '#2c2c32',
@@ -245,7 +246,9 @@ export default function HuntHistory() {
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
             {getFilteredSlots(slotStats, yourFilter).map((slot, i) => (
               <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
-                <div><div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
+                <div>
+                  <SlotThumb slot={slot.name} width={60} height={45} style={{borderRadius:2,marginBottom:'0.3rem',width:'100%',height:45}} />
+                  <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
                   <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</div>
                   <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0', lineHeight:1}}>🔄</button>
@@ -409,19 +412,25 @@ export default function HuntHistory() {
                   {stats.bestSlot && (
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:'0.5rem', borderBottom:`1px solid ${G.bdr}`}}>
                       <span style={{fontSize:'0.85rem', color:G.t3}}>Best Slot</span>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:'0.8rem', fontWeight:700, color:G.green}}>{stats.bestSlot.name}</div>
-                        <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {stats.bestRatio}</div>
+                      <div style={{textAlign:'right', display:'flex', alignItems:'center', gap:8}}>
+                        <div>
+                          <div style={{fontSize:'0.8rem', fontWeight:700, color:G.green}}>{stats.bestSlot.name}</div>
+                          <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {stats.bestRatio}</div>
+                        </div>
+                        <SlotThumb slot={stats.bestSlot.name} width={36} height={27} />
                       </div>
                     </div>
                   )}
-                  
+
                   {stats.worstSlot && (
                     <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
                       <span style={{fontSize:'0.85rem', color:G.t3}}>Worst Slot</span>
-                      <div style={{textAlign:'right'}}>
-                        <div style={{fontSize:'0.8rem', fontWeight:700, color:G.red}}>{stats.worstSlot.name}</div>
-                        <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {(stats.worstRatio ?? 0).toFixed(4)}</div>
+                      <div style={{textAlign:'right', display:'flex', alignItems:'center', gap:8}}>
+                        <div>
+                          <div style={{fontSize:'0.8rem', fontWeight:700, color:G.red}}>{stats.worstSlot.name}</div>
+                          <div style={{fontSize:'0.75rem', color:G.t3}}>Ratio: {(stats.worstRatio ?? 0).toFixed(4)}</div>
+                        </div>
+                        <SlotThumb slot={stats.worstSlot.name} width={36} height={27} />
                       </div>
                     </div>
                   )}
@@ -442,7 +451,9 @@ export default function HuntHistory() {
           <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'0.4rem'}}>
             {getFilteredSlots(cdewSlotStats, cdewFilter).map((slot, i) => (
               <div key={i} style={{background:G.card, border:`1px solid ${G.bdr}`, borderRadius:3, padding:'0.5rem', display:'flex', flexDirection:'column', justifyContent:'space-between', minHeight:'70px'}}>
-                <div><div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
+                <div>
+                  <SlotThumb slot={slot.name} width={60} height={45} style={{borderRadius:2,marginBottom:'0.3rem',width:'100%',height:45}} />
+                  <div style={{fontWeight:700, marginBottom:'0.3rem', fontSize:'0.8rem', lineHeight:1.1, overflow:'hidden', textOverflow:'ellipsis'}}>{slot.name}</div><div style={{fontSize:'0.75rem', color:G.t3}}>🎯 {slot.bonusCount}</div></div>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'0.3rem'}}>
                   <div style={{fontSize:'0.8rem', color:G.gold, fontWeight:700}}>{slot.multipliers.length > 0 ? (slot.multipliers.reduce((a,b)=>a+b,0)/slot.multipliers.length).toFixed(2) : 'N/A'}x</div>
                   <button onClick={() => alert(`Comparing ${slot.name} to your hunts...`)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1rem', padding:'0', lineHeight:1}}>🔄</button>
