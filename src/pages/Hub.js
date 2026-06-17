@@ -385,15 +385,13 @@ export default function Hub({ user }) {
               {hunts.length ? `● ${hunts.length} hunt${hunts.length!==1?'s':''} live` : '○ No hunts live right now'}
             </div>
           </div>
-          {isAdmin && (
-            <div style={{display:'flex',gap:2,background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:5,padding:2}}>
-              {[['live','Live'],['archived','Archived'],['all','All']].map(([k,l])=>(
-                <button key={k} onClick={()=>setTab(k)} style={{height:28,padding:'0 14px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:12,fontWeight:600,cursor:'pointer',background:tab===k?C.gold:'transparent',color:tab===k?'#000':C.label,transition:'all .1s'}}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          )}
+          <div style={{display:'flex',gap:2,background:C.sur,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:5,padding:2}}>
+            {[['live','Live'],['archived','Archived'],...(isAdmin?[['all','All']]:[])].map(([k,l])=>(
+              <button key={k} onClick={()=>setTab(k)} style={{height:28,padding:'0 14px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:12,fontWeight:600,cursor:'pointer',background:tab===k?C.gold:'transparent',color:tab===k?'#000':C.label,transition:'all .1s'}}>
+                {l}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Archive sub-tabs — only shown when viewing Archived. Lets you filter by person or "All" */}
