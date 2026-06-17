@@ -1494,47 +1494,42 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         {/* Name header */}
                         <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.1}}>{e.name||'—'}</div>
 
-                        {/* Discord + Rainbet row */}
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                          <div>
-                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Discord</div>
-                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>{e.name||'—'}</div>
-                          </div>
-                          <div>
-                            <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Rainbet</div>
-                            {!cardInfo ? (
-                              <div style={{fontFamily:G.body,fontSize:12,color:G.t4,fontWeight:600,lineHeight:1.2}}>…</div>
-                            ) : cardInfo.rainbetName ? (
-                              <div
-                                onClick={ev=>{
-                                  ev.stopPropagation(); // don't flip the card
-                                  navigator.clipboard.writeText(cardInfo.rainbetName).then(()=>{
-                                    setCopiedRainbet(e.id);
-                                    setTimeout(()=>setCopiedRainbet(curr => curr===e.id ? null : curr), 1500);
-                                  }).catch(()=>{});
-                                }}
-                                title={`Click to copy "${cardInfo.rainbetName}"`}
-                                style={{
-                                  fontFamily:G.body,fontSize:12,fontWeight:600,
-                                  color: copiedRainbet===e.id ? G.green : G.t2,
-                                  overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2,
-                                  cursor:'pointer',userSelect:'none',
-                                  display:'inline-flex',alignItems:'center',gap:3,maxWidth:'100%',
-                                  transition:'color .15s',
-                                }}>
-                                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                                  {copiedRainbet===e.id ? '✓ Copied' : cardInfo.rainbetName}
-                                </span>
-                                {copiedRainbet!==e.id && (
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:0.5}}>
-                                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                  </svg>
-                                )}
-                              </div>
-                            ) : (
-                              <div style={{fontFamily:G.body,fontSize:12,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
-                            )}
-                          </div>
+                        {/* Rainbet name — clickable to copy for tipping. Discord name removed since
+                            it already appears as the green name header at the top of the card. */}
+                        <div>
+                          <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Rainbet</div>
+                          {!cardInfo ? (
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>…</div>
+                          ) : cardInfo.rainbetName ? (
+                            <div
+                              onClick={ev=>{
+                                ev.stopPropagation(); // don't flip the card
+                                navigator.clipboard.writeText(cardInfo.rainbetName).then(()=>{
+                                  setCopiedRainbet(e.id);
+                                  setTimeout(()=>setCopiedRainbet(curr => curr===e.id ? null : curr), 1500);
+                                }).catch(()=>{});
+                              }}
+                              title={`Click to copy "${cardInfo.rainbetName}"`}
+                              style={{
+                                fontFamily:G.body,fontSize:13,fontWeight:600,
+                                color: copiedRainbet===e.id ? G.green : G.t2,
+                                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2,
+                                cursor:'pointer',userSelect:'none',
+                                display:'inline-flex',alignItems:'center',gap:5,maxWidth:'100%',
+                                transition:'color .15s',
+                              }}>
+                              <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                {copiedRainbet===e.id ? '✓ Copied' : cardInfo.rainbetName}
+                              </span>
+                              {copiedRainbet!==e.id && (
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:0.55}}>
+                                  <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
+                          )}
                         </div>
 
                         {/* Divider */}
