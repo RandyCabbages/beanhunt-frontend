@@ -530,14 +530,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     tick(); const t = setInterval(tick,30000); return () => clearInterval(t);
   }, [hunt.startedAt]);
 
-  // Track viewport width so the equity grid can reflow at wide displays
-  const [viewportW, setViewportW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1400);
-  useEffect(() => {
-    const onResize = () => setViewportW(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
   useEffect(() => {
     // Bean live status
     apiFetch('/api/bean-live').then(d => setBeanLive(d)).catch(()=>{});
@@ -1173,16 +1165,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         </div>
       </div>
 
-      {/* ── Three-column layout — right column scales with viewport ── */}
-      {(() => {
-        const rightW = viewportW >= 2400 ? 760
-                     : viewportW >= 2000 ? 620
-                     : viewportW >= 1700 ? 540
-                     : 460;
-        const leftW  = viewportW >= 2000 ? 340 : 300;
-        const gt = (huntMode==='rolling' && !canEdit) ? `1fr ${rightW}px` : `${leftW}px 1fr ${rightW}px`;
-        return (
-      <div style={{display:'grid',gridTemplateColumns: gt,height:'calc(100vh - 64px)',overflow:'hidden'}}>
+      {/* ── Three-column layout — fixed column widths, content drives the flex middle ── */}
+      <div style={{display:'grid',gridTemplateColumns: (huntMode==='rolling' && !canEdit) ? `1fr 460px` : `300px 1fr 460px`,height:'calc(100vh - 64px)',overflow:'hidden'}}>
 
         {/* ── LEFT: Slot calls — hidden ONLY for viewers during OPENING. The hunt runner always keeps it. ── */}
         {(huntMode!=='rolling' || canEdit) && (
@@ -1920,8 +1904,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
         </div>
       </div>
-        );
-      })()}
 
 
       {/* ── Call Request Popup ── */}
