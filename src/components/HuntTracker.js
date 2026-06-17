@@ -574,6 +574,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const remBets   = bonuses.filter(b=>!b.win).reduce((s,b)=>s+b.bet,0);
   const reqX      = remBets>0&&totalWon<totalPot ? (totalPot-totalWon)/remBets : null;
   const bestBonus = bonuses.filter(b=>b.win>0&&b.bet>0).reduce((best,b)=>{const x=b.win/b.bet;return x>(best?best.x:0)?{slot:b.slot,x}:best;},null);
+  // Highest single-spin payout (by win amount, not by multiplier — these can be different slots)
+  const bestWinBonus = bonuses.reduce((best,b)=>(b.win>0&&b.win>(best?best.win:0))?{slot:b.slot,win:b.win}:best,null);
+  // When every bonus has been opened (a non-zero win recorded), Req X is no longer meaningful
+  const allBonusesOpened = bonuses.length>0 && remBets===0;
   const rollerMap = {};
   bonuses.forEach(b=>{if(b.caller&&b.win)rollerMap[b.caller]=(rollerMap[b.caller]||0)+b.win;});
   const bestRoller = Object.entries(rollerMap).sort((a,b)=>b[1]-a[1])[0];
@@ -1307,16 +1311,16 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             {huntMode==='spinning'&&<>
               <StatTile label="Starting Balance" value={fmt(totalPot)} color={accent} accent={acStr} wide />
               <StatTile label="Bonuses" value={bonuses.length} accent={acStr} />
-              <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
+              {!allBonusesOpened && <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />}
               <StatTile label="Top Caller" value={topCaller?`${topCaller[0]}  ×${topCaller[1]}`:'—'} color={topCaller?G.green:G.t3} accent={G.green} wide />
             </>}
             {huntMode==='rolling'&&<>
               <StatTile label="Balance" value={`${fmt(totalWon)} / ${fmt(totalPot)}`} color={totalWon>=totalPot?G.green:accent} accent={acStr} wide />
               <StatTile label="Bonuses" value={`${rolledCount}/${bonuses.length}`} color={G.t1} accent={acStr} />
-              <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />
+              {!allBonusesOpened && <StatTile label="Req X" value={reqXVal} color={reqXColor} accent={acStr} />}
               <StatTile label="Avg X" value={avgX?avgX.toFixed(1)+'x':'—'} color={G.t2} accent={acStr} />
-              <StatTile label="Highest X" value={highX?highX.toFixed(1)+'x':'—'} color={highX?(highX>=100?G.green:G.red):G.t3} accent={acStr} />
-              <StatTile label="Best Slot" value={bestBonus?bestBonus.slot:'—'} color={accent} accent={acStr} wide />
+              <StatTile label="Highest X" value={bestBonus?`${bestBonus.slot} ${bestBonus.x.toFixed(1)}x`:'—'} color={bestBonus?(bestBonus.x>=100?G.green:G.red):G.t3} accent={acStr} wide />
+              <StatTile label="Best Slot" value={bestWinBonus?`${bestWinBonus.slot} ${fmt(bestWinBonus.win)}`:'—'} color={accent} accent={acStr} wide />
               <StatTile label="Top Opener" value={bestRoller?`${bestRoller[0]}  ${fmt(bestRoller[1])}`:'—'} color={bestRoller?G.green:G.t3} accent={G.green} wide />
             </>}
           </div>
