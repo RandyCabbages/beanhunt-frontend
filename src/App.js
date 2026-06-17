@@ -42,7 +42,8 @@ export default function App() {
     apiFetch('/auth/me')
       .then(d => {
         setUser(d.user || null);
-        if (!d.user) setAuthUser(null); // backend says session invalid — clear cache
+        if (d.user) setAuthUser(d.user); // cache for optimistic auth on next load
+        else setAuthUser(null);          // session invalid — clear cache
       })
       .catch(() => {
         // Backend unreachable: if we have cached credentials, stay logged in
