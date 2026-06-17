@@ -1586,7 +1586,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 overflowY:'auto',
                 resize:'vertical',
                 minHeight:140,
-                height:'calc(4 * 130px)',
                 maxHeight:'calc(100vh - 220px)',
                 padding:'0 12px 8px',display:'grid',
                 gridTemplateColumns:'repeat(auto-fit, minmax(190px, 1fr))',
