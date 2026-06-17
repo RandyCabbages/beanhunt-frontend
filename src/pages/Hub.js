@@ -183,7 +183,7 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
             </button>
             {isAdmin && <>
               <button onClick={e=>{e.stopPropagation();onEnd(hunt.userId);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid rgba(220,38,38,.35)`,borderRadius:3,fontFamily:C.font,fontSize:10,color:'#ff4444',cursor:'pointer'}}>End</button>
-              <button onClick={e=>{e.stopPropagation();onDelete(hunt.userId);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid rgba(220,38,38,.35)`,borderRadius:3,fontFamily:C.font,fontSize:10,color:'#ff4444',cursor:'pointer'}}>Del</button>
+              <button onClick={e=>{e.stopPropagation();onDelete(hunt);}} style={{height:24,padding:'0 8px',background:'transparent',border:`1px solid rgba(220,38,38,.35)`,borderRadius:3,fontFamily:C.font,fontSize:10,color:'#ff4444',cursor:'pointer'}}>Del</button>
             </>}
           </div>
         </div>
@@ -200,6 +200,8 @@ export default function Hub({ user }) {
   const [tab,      setTab]      = useState('live');
   const [ticket,   setTicket]   = useState(false);
   const [hasHunt,  setHasHunt]  = useState(false);
+  // When in Archived tab, which person's archived hunts are we viewing? 'all' or a userId.
+  const [archiveSubTab, setArchiveSubTab] = useState('all');
   const navigate = useNavigate();
   const isAdmin  = user?.isAdmin;
 
@@ -235,10 +237,36 @@ export default function Hub({ user }) {
   }, [user]);
 
   const endHunt    = async id => { if(!window.confirm('End this hunt?')) return; await apiFetch(`/api/admin/hunts/${id}/end`,{method:'POST'}); };
-  const deleteHunt = async id => { if(!window.confirm('Delete permanently?')) return; await apiFetch(`/api/admin/hunts/${id}`,{method:'DELETE'}); };
+  // Single delete entry point: receives the whole hunt and routes to the live or archived endpoint.
+  // Two archived hunts can share a userId so we need archivedAt to identify the exact entry.
+  // After archived delete, optimistically remove it from local state so the UI updates immediately.
+  const deleteHunt = async hunt => {
+    if (!window.confirm('Delete permanently?')) return;
+    if (hunt.archivedAt) {
+      await apiFetch(`/api/admin/hunts/archived/${hunt.userId}/${encodeURIComponent(hunt.archivedAt)}`,{method:'DELETE'});
+      setAllHunts(prev => prev.filter(h => !(h.userId===hunt.userId && h.archivedAt===hunt.archivedAt)));
+    } else {
+      await apiFetch(`/api/admin/hunts/${hunt.userId}`,{method:'DELETE'});
+    }
+  };
 
   const archived = allHunts.filter(h=>!h.isLive&&h.archivedAt);
-  const display  = tab==='live'?hunts:tab==='archived'?archived:allHunts.filter(h=>h.isLive||h.archivedAt);
+
+  // Build sub-tab list: one per unique person in archived, plus an All tab.
+  // Sorted by hunt count descending so the most active person is first.
+  const archiveByPerson = archived.reduce((acc, h) => {
+    if (!acc[h.userId]) acc[h.userId] = { userId: h.userId, username: h.username || 'Unknown', count: 0 };
+    acc[h.userId].count++;
+    return acc;
+  }, {});
+  const archivePeople = Object.values(archiveByPerson).sort((a,b)=>b.count-a.count);
+
+  // Filter the archived list down to the selected sub-tab.
+  const archivedFiltered = archiveSubTab==='all' ? archived : archived.filter(h => h.userId === archiveSubTab);
+
+  const display  = tab==='live' ? hunts
+                 : tab==='archived' ? archivedFiltered
+                 : allHunts.filter(h=>h.isLive||h.archivedAt);
 
   return (
     <div style={{minHeight:'100vh',background:C.bg,fontFamily:C.font}}>
@@ -359,6 +387,20 @@ export default function Hub({ user }) {
           )}
         </div>
 
+        {/* Archive sub-tabs — only shown when viewing Archived. Lets you filter by person or "All" */}
+        {tab==='archived' && archivePeople.length > 0 && (
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14,padding:'0 2px'}}>
+            <button onClick={()=>setArchiveSubTab('all')} style={{height:28,padding:'0 12px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:11,fontWeight:600,cursor:'pointer',background:archiveSubTab==='all'?C.gold:C.sur,color:archiveSubTab==='all'?'#000':C.txt2,letterSpacing:'0.04em'}}>
+              All <span style={{opacity:0.65,marginLeft:4}}>{archived.length}</span>
+            </button>
+            {archivePeople.map(p=>(
+              <button key={p.userId} onClick={()=>setArchiveSubTab(p.userId)} style={{height:28,padding:'0 12px',border:'none',borderRadius:4,fontFamily:C.font,fontSize:11,fontWeight:600,cursor:'pointer',background:archiveSubTab===p.userId?C.gold:C.sur,color:archiveSubTab===p.userId?'#000':C.txt2,letterSpacing:'0.04em'}}>
+                {p.username} <span style={{opacity:0.65,marginLeft:4}}>{p.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Hunts grid */}
         {loading ? (
           <div style={{fontFamily:C.font,fontSize:13,color:C.label,padding:'3rem 0'}}>Loading…</div>
@@ -378,7 +420,7 @@ export default function Hub({ user }) {
         ) : (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,overflow:'hidden'}}>
             {display.map(hunt=>(
-              <HuntCard key={hunt.userId} hunt={hunt} isOwn={user&&hunt.userId===user.id} isAdmin={isAdmin} onEnd={endHunt} onDelete={deleteHunt} navigate={navigate}/>
+              <HuntCard key={hunt.userId + (hunt.archivedAt||'')} hunt={hunt} isOwn={user&&hunt.userId===user.id} isAdmin={isAdmin} onEnd={endHunt} onDelete={deleteHunt} navigate={navigate}/>
             ))}
           </div>
         )}
