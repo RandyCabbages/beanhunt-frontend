@@ -10,7 +10,8 @@ const C = {
   green:'#4ade80',
   red:'#f87171', purple:'#c084fc',
   txt:'#ffffff', txt2:'#ededed', label:'#cccccc', faint:'#a8a8a8',
-  font:"'Chakra Petch',sans-serif",
+  font:"'Inter',system-ui,sans-serif",
+  display:"'Chakra Petch',sans-serif",
 };
 
 const fmt = v => '$' + Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -131,7 +132,7 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontFamily:C.font,fontWeight:700,fontSize:17,letterSpacing:'0.02em',color:C.txt,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
               {hunt.username}
-              {isOwn && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.12)',padding:'1px 5px',borderRadius:2,letterSpacing:'0.06em'}}>YOU</span>}
+              {isOwn && <span style={{fontFamily:C.font,fontSize:11,color:C.gold,background:'rgba(245,165,0,.12)',padding:'1px 5px',borderRadius:2,letterSpacing:'0.06em'}}>YOU</span>}
             </div>
             <div style={{fontFamily:C.font,fontSize:11,fontWeight:700,color:ac,letterSpacing:'0.06em',textTransform:'uppercase',marginTop:1}}>
               {isVip ? '★ VIP Hunt' : '◆ Community Hunt'}
@@ -144,20 +145,20 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
               const totalBonuses = hunt.bonusCount || 0;
               if (mode === 'rolling') {
                 return (
-                  <span style={{fontFamily:C.font,fontSize:9,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(34,197,94,.1)',color:C.green,border:'1px solid rgba(34,197,94,.3)'}}>
+                  <span style={{fontFamily:C.font,fontSize:11,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(34,197,94,.1)',color:C.green,border:'1px solid rgba(34,197,94,.3)'}}>
                     🎲 Bonus {hunt.rolledCount||0}/{totalBonuses}
                   </span>
                 );
               }
               if (mode === 'spinning') {
                 return (
-                  <span style={{fontFamily:C.font,fontSize:9,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(245,165,0,.1)',color:C.gold,border:'1px solid rgba(245,165,0,.3)'}}>
+                  <span style={{fontFamily:C.font,fontSize:11,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(245,165,0,.1)',color:C.gold,border:'1px solid rgba(245,165,0,.3)'}}>
                     🎰 Spinning
                   </span>
                 );
               }
               return (
-                <span style={{fontFamily:C.font,fontSize:9,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(85,85,122,.15)',color:C.label,border:'1px solid rgba(85,85,122,.25)'}}>
+                <span style={{fontFamily:C.font,fontSize:11,letterSpacing:'0.06em',textTransform:'uppercase',padding:'2px 7px',borderRadius:3,background:'rgba(85,85,122,.15)',color:C.label,border:'1px solid rgba(85,85,122,.25)'}}>
                   📋 Creating
                 </span>
               );
@@ -170,7 +171,7 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:1,background:'rgba(255,255,255,0.07)',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:4,overflow:'hidden',marginBottom:10}}>
           {[['Bonuses',hunt.bonusCount],['Pot',fmt(hunt.pot)],['Won',fmt(hunt.totalWon)]].map(([l,v])=>(
             <div key={l} style={{background:C.sur,padding:'6px 8px'}}>
-              <div style={{fontFamily:C.font,fontSize:9,color:C.label,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:2}}>{l}</div>
+              <div style={{fontFamily:C.font,fontSize:11,color:C.label,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:2}}>{l}</div>
               <div style={{fontFamily:C.font,fontSize:13,fontWeight:500,color:C.txt}}>{v}</div>
             </div>
           ))}
@@ -272,7 +273,7 @@ export default function Hub({ user }) {
 
   return (
     <div style={{minHeight:'100vh',background:C.bg,fontFamily:C.font}}>
-      <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
       <style>{`
         @keyframes live-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}60%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
         @keyframes live-ring{0%,100%{opacity:1}50%{opacity:.4}}
@@ -315,7 +316,7 @@ export default function Hub({ user }) {
                 <div style={{display:'flex',alignItems:'center',gap:8,background:C.card,border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,padding:'4px 10px'}}>
                   {user.avatar && <img src={user.avatar} alt="" style={{width:22,height:22,borderRadius:'50%'}}/>}
                   <span style={{fontFamily:C.font,fontSize:13,fontWeight:500,color:C.txt}}>{user.displayName}</span>
-                  {isAdmin && <span style={{fontFamily:C.font,fontSize:9,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
+                  {isAdmin && <span style={{fontFamily:C.font,fontSize:11,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
                 <div style={{display:'flex',gap:6}}>
                   <button onClick={()=>navigate('/hunt?type=community')} style={{height:34,padding:'0 14px',background:hasHunt?'transparent':'#c6f135',color:hasHunt?'#c6f135':'#000',border:hasHunt?`1px solid #c6f135`:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>
@@ -438,11 +439,11 @@ export default function Hub({ user }) {
               {beanLive.isLive && (
                 <span style={{display:'flex',alignItems:'center',gap:4,marginLeft:4}}>
                   <span style={{width:6,height:6,borderRadius:'50%',background:'#9146ff',display:'inline-block',animation:'live-ring 2s infinite'}}/>
-                  <span style={{fontFamily:C.font,fontSize:9,color:'#9146ff',letterSpacing:'0.1em'}}>LIVE</span>
+                  <span style={{fontFamily:C.font,fontSize:11,color:'#9146ff',letterSpacing:'0.1em'}}>LIVE</span>
                 </span>
               )}
               <a href="https://www.twitch.tv/bean" target="_blank" rel="noopener noreferrer"
-                style={{marginLeft:'auto',fontFamily:C.font,fontSize:9,color:C.label,textDecoration:'none',letterSpacing:'0.06em'}}>
+                style={{marginLeft:'auto',fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none',letterSpacing:'0.06em'}}>
                 OPEN ↗
               </a>
             </div>
@@ -459,7 +460,7 @@ export default function Hub({ user }) {
             <div style={{padding:'8px 12px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',alignItems:'center',justifyContent:'space-between',background:C.bg,flexShrink:0}}>
               <span style={{fontFamily:C.font,fontSize:18,letterSpacing:'0.05em',color:C.txt}}>LEADERBOARD</span>
               <a href="https://beantwitch.com/leaderboard" target="_blank" rel="noopener noreferrer"
-                style={{fontFamily:C.font,fontSize:9,color:C.label,textDecoration:'none',letterSpacing:'0.06em'}}>
+                style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none',letterSpacing:'0.06em'}}>
                 FULL ↗
               </a>
             </div>

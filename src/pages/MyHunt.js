@@ -162,7 +162,7 @@ export default function MyHunt({ user }) {
   }, [save]);
 
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#666666' }}>Loading...</div>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', fontFamily:"'Chakra Petch',sans-serif", fontWeight:600, color:'#cccccc' }}>Loading...</div>
   );
 
   // Start screen
@@ -185,14 +185,14 @@ export default function MyHunt({ user }) {
 
       {/* Online hunts */}
       <div style={{ background:'#222226', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
-        <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'#555555', marginBottom:12 }}>
+        <div style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase', color:'#a8a8a8', marginBottom:12 }}>
           Online — visible on hub, updates live
         </div>
         {user ? (
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
               {user.avatar && <img src={user.avatar} alt="" style={{ width:32, height:32, borderRadius:'50%' }} />}
-              <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:13, color:'#cccccc' }}>{user.displayName}</span>
+              <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, color:'#cccccc' }}>{user.displayName}</span>
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={() => startOnlineHunt('community')}
@@ -212,7 +212,7 @@ export default function MyHunt({ user }) {
           </div>
         ) : (
           <div>
-            <p style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666', marginBottom:14, lineHeight:1.6 }}>
+            <p style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc', marginBottom:14, lineHeight:1.6 }}>
               Login with Discord to start an online hunt and appear on the hub.
             </p>
             <a href={`${API}/auth/discord`} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, height:44, background:'#5865F2', color:'#fff', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, textDecoration:'none' }}>
@@ -225,23 +225,23 @@ export default function MyHunt({ user }) {
 
       {/* Offline hunts */}
       <div style={{ background:'#222226', border:'1px solid rgba(255,255,255,0.09)', borderRadius:6, padding:'1.5rem', width:'100%', maxWidth:440 }}>
-        <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'#555555', marginBottom:8 }}>
+        <div style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:11, fontWeight:700, letterSpacing:'0.15em', textTransform:'uppercase', color:'#a8a8a8', marginBottom:8 }}>
           Offline — local only, not on hub
         </div>
-        <p style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666', marginBottom:14, lineHeight:1.6 }}>
+        <p style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc', marginBottom:14, lineHeight:1.6 }}>
           Use the tracker without logging in. Data stays in your browser only.
         </p>
         <div style={{ display:'flex', gap:10 }}>
-          <button onClick={() => startOfflineHunt('community')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:13, fontWeight:600, color:'#888888', cursor:'pointer' }}>
+          <button onClick={() => startOfflineHunt('community')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:600, color:'#888888', cursor:'pointer' }}>
             🎰 Community
           </button>
-          <button onClick={() => startOfflineHunt('vip')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:13, fontWeight:600, color:'#888888', cursor:'pointer' }}>
+          <button onClick={() => startOfflineHunt('vip')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:600, color:'#888888', cursor:'pointer' }}>
             👑 VIP
           </button>
         </div>
       </div>
 
-      <button onClick={() => navigate('/')} style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#555555', background:'none', border:'none', cursor:'pointer' }}>← Back to Hub</button>
+      <button onClick={() => navigate('/')} style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#a8a8a8', background:'none', border:'none', cursor:'pointer' }}>← Back to Hub</button>
     </div>
   );
 
@@ -249,16 +249,16 @@ export default function MyHunt({ user }) {
     <div>
       {!hunt.isLive && !offline && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:12, color:'#666666' }}>Hunt not live yet — set up your bonuses and equity first</span>
-          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#c6f135', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Chakra Petch',sans-serif", fontSize:13, fontWeight:700, cursor:'pointer' }}>
+          <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc' }}>Hunt not live yet — set up your bonuses and equity first</span>
+          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#c6f135', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:700, cursor:'pointer' }}>
             🚀 Start Hunt — Go Live
           </button>
         </div>
       )}
       {offline && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'10px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:11, color:'#555555' }}>📴 Offline mode — not synced to hub</span>
-          <a href={`${API}/auth/discord`} style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:11, color:'#5865F2', textDecoration:'none' }}>Login to go live →</a>
+          <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:600, color:'#a8a8a8' }}>📴 Offline mode — not synced to hub</span>
+          <a href={`${API}/auth/discord`} style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:12, fontWeight:600, color:'#5865F2', textDecoration:'none' }}>Login to go live →</a>
         </div>
       )}
       <HuntTracker

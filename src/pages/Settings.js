@@ -8,7 +8,8 @@ const C = {
   bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
   gold:'#c6f135', green:'#4ade80', red:'#f87171',
   txt:'#ffffff', txt2:'#ededed', label:'#cccccc', faint:'#a8a8a8',
-  font:"'Chakra Petch',sans-serif",
+  font:"'Inter',system-ui,sans-serif",
+  display:"'Chakra Petch',sans-serif",
 };
 
 const inp = {
@@ -177,7 +178,7 @@ export default function Settings({ user }) {
 
   return (
     <div style={{ background:C.bg, minHeight:'100vh', fontFamily:C.font, color:C.txt }}>
-      <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
       {/* Header */}
       <div style={{ background:C.sur, borderBottom:`1px solid ${C.bdr}`, padding:'14px 24px',
