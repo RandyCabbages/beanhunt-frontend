@@ -760,8 +760,14 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   };
 
   const sortedBonuses = bonuses.slice().sort((a,b)=>{
+    // Primary: scatter tier — Bonus (3) < Super Bonus (4) < Super Super Bonus (5)
     const pa=a.scat===5?2:a.scat===4?1:0,pb=b.scat===5?2:b.scat===4?1:0;
-    if(pa!==pb)return pa-pb; return bonuses.indexOf(a)-bonuses.indexOf(b);
+    if(pa!==pb) return pa-pb;
+    // Secondary: bet size — lower bets ABOVE higher bets within the same tier
+    const bb = (a.bet||0) - (b.bet||0);
+    if (bb !== 0) return bb;
+    // Tiebreaker: insertion order so equal-bet entries stay stable
+    return bonuses.indexOf(a)-bonuses.indexOf(b);
   });
 
   const queue   = buildQueue(calls);
@@ -1272,7 +1278,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       {(b.caller || b.scat>3) && (
                         <div style={{display:'flex',alignItems:'center',gap:6}}>
                           {b.caller && <span style={{fontFamily:G.mono,fontSize:11,color:G.t3,letterSpacing:'0.03em'}}>{b.caller}</span>}
-                          {b.scat>3 && <span style={{fontFamily:G.mono,fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:2,background:b.scat===5?G.gndim:G.gdim,color:b.scat===5?G.green:G.gold,letterSpacing:'0.05em'}}>{b.scat}S</span>}
+                          {b.scat>3 && (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:3,padding:'1px 5px 1px 3px',borderRadius:3,background:b.scat===5?'rgba(34,211,238,0.15)':'rgba(192,132,252,0.15)',border:`1px solid ${b.scat===5?'rgba(34,211,238,0.45)':'rgba(192,132,252,0.45)'}`,fontFamily:G.mono,fontSize:9,fontWeight:700,color:b.scat===5?'#22d3ee':'#c084fc',letterSpacing:'0.06em'}}>
+                              <ScatterIcon scat={b.scat} size={13} idSuffix={`-bdg-${b.id}`}/>
+                              {b.scat===5 ? 'SUPER²' : 'SUPER'}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
