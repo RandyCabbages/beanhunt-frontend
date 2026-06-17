@@ -586,6 +586,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       provider: slotData?.provider || null,
     }]}));
     setSlotInput(''); setBetInput(''); setCallerInput('');
+    // Always default the scat toggles back to BONUS (3) so the next add doesn't inherit
+    // the previous Super/Super-Super choice
+    setScatInput(3); setActiveScat(3);
   };
   const updateBonus = (id,field,val) => upd(h=>({...h,bonuses:h.bonuses.map(b=>{
     if(b.id!==id)return b;const num=parseFloat(val)||0;
