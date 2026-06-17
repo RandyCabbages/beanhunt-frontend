@@ -1551,7 +1551,45 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               )}
                             </div>
                           ) : (
-                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              <span style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</span>
+                              {canEdit && (
+                                <button
+                                  onClick={ev=>{
+                                    ev.stopPropagation(); // don't flip the card
+                                    const entered = window.prompt(`Set Rainbet name for ${e.name||'this member'}:`, '');
+                                    if (!entered) return;
+                                    const trimmed = entered.trim();
+                                    if (!trimmed) return;
+                                    // Optimistic local update — show it immediately on the card
+                                    setCardInfoMap(prev => ({
+                                      ...prev,
+                                      [e.id]: { ...(prev[e.id]||{}), rainbetName: trimmed, loaded:true },
+                                    }));
+                                    // Persist to the server ONLY if the current user is admin.
+                                    // Non-admins get the local-only update — it doesn't leak to others' sessions.
+                                    if (user && user.isAdmin) {
+                                      const isDiscordId = /^\d{17,19}$/.test(e.id||'');
+                                      const body = isDiscordId
+                                        ? { userId: e.id, rainbetName: trimmed }
+                                        : { name: e.name||'', rainbetName: trimmed };
+                                      apiFetch('/api/admin/set-rainbet-name', {
+                                        method: 'POST',
+                                        body: JSON.stringify(body),
+                                      }).catch(()=>{ /* server failure is non-fatal — local copy already showed */ });
+                                    }
+                                  }}
+                                  title="Add this person's Rainbet name"
+                                  style={{
+                                    background:'transparent',border:`1px solid ${accent}`,borderRadius:3,
+                                    fontFamily:G.mono,fontSize:10,fontWeight:700,color:accent,
+                                    padding:'2px 7px',cursor:'pointer',lineHeight:1,
+                                    letterSpacing:'0.04em',
+                                  }}>
+                                  + Add
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
 
