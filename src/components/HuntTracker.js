@@ -1567,25 +1567,21 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                         transformStyle:'preserve-3d',
                       }}>
-                        {/* Preferred-slots count badge — top-right corner, clickable to manage */}
+                        {/* Preferred-slots count — top-right corner, clickable to manage */}
                         <button
                           onClick={ev=>{ ev.stopPropagation(); openSlotsModal(e); }}
                           title={`${e.name||'this member'}'s preferred slots — click to manage`}
                           style={{
                             position:'absolute', top:6, right:8,
-                            background:'rgba(74,222,128,0.15)',
-                            border:`1px solid ${G.green}`,
-                            borderRadius:10,
-                            padding:'1px 8px',
-                            minWidth:24,
-                            fontFamily:G.mono, fontSize:11, fontWeight:700,
-                            color:G.green, cursor:'pointer', lineHeight:1.2,
+                            background:'transparent', border:'none', padding:0,
+                            fontFamily:G.mono, fontSize:13, fontWeight:700,
+                            color:G.green, cursor:'pointer', lineHeight:1,
                             display:'inline-flex', alignItems:'center', gap:3,
-                            transition:'background .12s, transform .12s',
+                            transition:'opacity .12s',
                           }}
-                          onMouseEnter={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.28)'}
-                          onMouseLeave={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.15)'}>
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0,opacity:0.85}}>
+                          onMouseEnter={ev=>ev.currentTarget.style.opacity='0.7'}
+                          onMouseLeave={ev=>ev.currentTarget.style.opacity='1'}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{flexShrink:0,opacity:0.85}}>
                             <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z"/>
                           </svg>
                           {cardInfo?.preferredSlots?.length || 0}
@@ -1619,21 +1615,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               {copiedRainbet===e.id ? '✓ Copied' : cardInfo.rainbetName}
                             </span>
                           ) : (
-                            <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
-                              <span style={{color:G.t4,fontWeight:600}}>not set</span>
-                              {canManageUsers && (
-                                <button
-                                  onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'rainbetName', 'Rainbet name'); }}
-                                  title="Add this person's Rainbet name"
-                                  style={{
-                                    background:'transparent', border:`1px solid ${accent}`, borderRadius:3,
-                                    fontFamily:G.mono, fontSize:9, fontWeight:700, color:accent,
-                                    padding:'1px 5px', cursor:'pointer', lineHeight:1, letterSpacing:'0.04em',
-                                  }}>
-                                  + Add
-                                </button>
-                              )}
-                            </span>
+                            <span style={{color:G.t4,fontWeight:600}}>not set</span>
                           )}
                         </div>
                         {/* Row 3 — equity invested · percent of pool */}
