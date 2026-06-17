@@ -366,6 +366,13 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight 
 
 /* ── Stat tile ───────────────────────────────────────────────────── */
 function StatTile({ label, value, color, accent, wide }) {
+  // Long values (like "$2,133.54 / $3,350.00") shrink so they always fit on one line.
+  // Short values (like "31/31") keep the bold 1.9rem hero size.
+  const valStr = String(value ?? '');
+  const fs = valStr.length > 16 ? '1.15rem'
+           : valStr.length > 12 ? '1.4rem'
+           : valStr.length > 9  ? '1.65rem'
+           : '1.9rem';
   return (
     <div style={{ flex: wide ? '2 1 160px' : '1 1 110px', padding:'1rem 1.1rem',
       borderRight:`1px solid ${G.bdr}`, borderBottom:`1px solid ${G.bdr}`,
@@ -374,8 +381,8 @@ function StatTile({ label, value, color, accent, wide }) {
         background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
       <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:G.display, fontSize:'1.9rem', fontWeight:700, color:color||'#ffffff',
-        letterSpacing:'0.02em', lineHeight:1 }}>{value}</div>
+      <div style={{ fontFamily:G.display, fontSize:fs, fontWeight:700, color:color||'#ffffff',
+        letterSpacing:'0.02em', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{value}</div>
     </div>
   );
 }
