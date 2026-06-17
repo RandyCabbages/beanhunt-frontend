@@ -365,14 +365,141 @@ function SlotInput({ value, onChange, onCommit, placeholder, style, inputHeight 
 }
 
 /* ── Stat tile ───────────────────────────────────────────────────── */
+// Visual scaler for an equity member's contribution. Renders an SVG pile of bills + coins
+// whose size grows with the dollar amount. Tier breakpoints: <$10, $10, $25, $50, $100, $250, $500+.
+function MoneyPileIcon({ amount = 0, size = 12 }) {
+  const t = amount < 10  ? 0
+          : amount < 25  ? 1
+          : amount < 50  ? 2
+          : amount < 100 ? 3
+          : amount < 250 ? 4
+          : amount < 500 ? 5
+          : 6;
+
+  // Reusable color stops — darker bills underneath, lighter on top
+  const billDark    = '#14532d';
+  const billDeep    = '#15803d';
+  const billMid     = '#16a34a';
+  const billGreen   = '#22c55e';
+  const billLight   = '#4ade80';
+  const billPale    = '#86efac';
+  const billCrest   = '#bbf7d0';
+  const coinMain    = '#fbbf24';
+  const coinBright  = '#fcd34d';
+  const coinRim     = '#a16207';
+  const billDetail  = 'rgba(187,247,208,0.55)'; // subtle "portrait oval" hint on bills
+
+  // Oval flourish for the top bill (suggests the engraving on a real banknote)
+  const Flourish = ({ cy }) => (
+    <ellipse cx="12" cy={cy} rx="2.4" ry="1" fill="none" stroke={billDetail} strokeWidth="0.35" />
+  );
+
+  let shapes = null;
+  switch (t) {
+    case 0: // <$10 — a single coin
+      shapes = (
+        <>
+          <circle cx="12" cy="16" r="4.2" fill={coinMain} stroke={coinRim} strokeWidth="0.55" />
+          <circle cx="12" cy="16" r="2.6" fill="none" stroke={coinRim} strokeWidth="0.35" opacity="0.55" />
+        </>
+      );
+      break;
+    case 1: // $10-$24 — a single bill
+      shapes = (
+        <>
+          <rect x="4" y="13" width="16" height="6" rx="0.7" fill={billGreen} stroke={billDark} strokeWidth="0.45" />
+          <Flourish cy="16" />
+        </>
+      );
+      break;
+    case 2: // $25-$49 — two-bill stack
+      shapes = (
+        <>
+          <rect x="4" y="15" width="16" height="4.2" rx="0.6" fill={billMid}   stroke={billDark} strokeWidth="0.4" />
+          <rect x="4" y="11" width="16" height="4.2" rx="0.6" fill={billGreen} stroke={billDark} strokeWidth="0.4" />
+          <Flourish cy="13.1" />
+        </>
+      );
+      break;
+    case 3: // $50-$99 — three-bill stack + a coin
+      shapes = (
+        <>
+          <circle cx="20.4" cy="19" r="2.7" fill={coinMain} stroke={coinRim} strokeWidth="0.4" />
+          <rect x="3" y="16" width="15" height="3.5" rx="0.5" fill={billDeep}  stroke={billDark} strokeWidth="0.35" />
+          <rect x="3" y="12.5" width="15" height="3.5" rx="0.5" fill={billMid}   stroke={billDark} strokeWidth="0.35" />
+          <rect x="3" y="9"   width="15" height="3.5" rx="0.5" fill={billGreen} stroke={billDark} strokeWidth="0.35" />
+          <ellipse cx="10.5" cy="10.75" rx="2.2" ry="0.9" fill="none" stroke={billDetail} strokeWidth="0.3" />
+        </>
+      );
+      break;
+    case 4: // $100-$249 — four-bill stack + two coins
+      shapes = (
+        <>
+          <circle cx="3.2"  cy="20" r="2.6" fill={coinMain} stroke={coinRim} strokeWidth="0.4" />
+          <circle cx="20.8" cy="20" r="2.6" fill={coinMain} stroke={coinRim} strokeWidth="0.4" />
+          <rect x="4" y="16.5" width="16" height="3" rx="0.5" fill={billDark}  />
+          <rect x="4" y="13.7" width="16" height="3" rx="0.5" fill={billDeep}  />
+          <rect x="4" y="10.9" width="16" height="3" rx="0.5" fill={billMid}   />
+          <rect x="4" y="8.1"  width="16" height="3" rx="0.5" fill={billGreen} stroke={billDark} strokeWidth="0.35" />
+          <Flourish cy="9.6" />
+        </>
+      );
+      break;
+    case 5: // $250-$499 — five-bill stack + three coins
+      shapes = (
+        <>
+          <circle cx="3"    cy="20.5" r="2.5" fill={coinMain}   stroke={coinRim} strokeWidth="0.4" />
+          <circle cx="21"   cy="20.5" r="2.5" fill={coinMain}   stroke={coinRim} strokeWidth="0.4" />
+          <circle cx="6.6"  cy="19"   r="1.7" fill={coinBright} stroke={coinRim} strokeWidth="0.35" />
+          <rect x="4" y="16"   width="16" height="2.6" rx="0.5" fill={billDark}  />
+          <rect x="4" y="13.5" width="16" height="2.6" rx="0.5" fill={billDeep}  />
+          <rect x="4" y="11"   width="16" height="2.6" rx="0.5" fill={billMid}   />
+          <rect x="4" y="8.5"  width="16" height="2.6" rx="0.5" fill={billGreen} />
+          <rect x="4" y="6"    width="16" height="2.6" rx="0.5" fill={billLight} stroke={billDark} strokeWidth="0.35" />
+          <Flourish cy="7.3" />
+        </>
+      );
+      break;
+    case 6: // $500+ — huge pile: tall stack, fanned bill behind, multiple coins
+    default:
+      shapes = (
+        <>
+          {/* base coins fanning out */}
+          <circle cx="2.5"  cy="21" r="2.3" fill={coinMain}   stroke={coinRim} strokeWidth="0.4" />
+          <circle cx="21.5" cy="21" r="2.3" fill={coinMain}   stroke={coinRim} strokeWidth="0.4" />
+          <circle cx="6.6"  cy="20" r="1.7" fill={coinBright} stroke={coinRim} strokeWidth="0.35" />
+          <circle cx="17.4" cy="20" r="1.7" fill={coinBright} stroke={coinRim} strokeWidth="0.35" />
+          {/* fanned bill tilted behind the main stack */}
+          <rect x="13" y="9.5" width="12" height="2.8" rx="0.4" fill={billMid} stroke={billDark} strokeWidth="0.3"
+                transform="rotate(20 19 10.9)" opacity="0.85" />
+          {/* main stack — 6 bills */}
+          <rect x="4" y="17"   width="16" height="2.2" rx="0.45" fill={billDark} />
+          <rect x="4" y="14.8" width="16" height="2.2" rx="0.45" fill={billDeep} />
+          <rect x="4" y="12.6" width="16" height="2.2" rx="0.45" fill={billMid}  />
+          <rect x="4" y="10.4" width="16" height="2.2" rx="0.45" fill={billGreen}/>
+          <rect x="4" y="8.2"  width="16" height="2.2" rx="0.45" fill={billLight}/>
+          <rect x="4" y="6"    width="16" height="2.2" rx="0.45" fill={billPale} />
+          <rect x="4" y="3.8"  width="16" height="2.2" rx="0.45" fill={billCrest} stroke={billDark} strokeWidth="0.35" />
+          <ellipse cx="12" cy="4.9" rx="2.1" ry="0.8" fill="none" stroke={billDeep} strokeWidth="0.3" opacity="0.55" />
+        </>
+      );
+  }
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      style={{flexShrink:0,display:'block'}}
+      xmlns="http://www.w3.org/2000/svg" aria-label={`equity tier ${t}`}>
+      {shapes}
+    </svg>
+  );
+}
+
 function StatTile({ label, value, color, accent, wide }) {
-  // Long values (like "$2,133.54 / $3,350.00") shrink so they always fit on one line.
-  // Short values (like "31/31") keep the bold 1.9rem hero size.
+  // Uniform font size across every tile so the row reads as one coherent grid.
+  // Long values like "$2,133.54 / $3,350.00" and "Grug Make Fire 552.8x" fit at this size
+  // when the tile carries the `wide` flag (which doubles its flex basis). Anything that still
+  // overflows gets ellipsed and the full value is available on hover via `title`.
   const valStr = String(value ?? '');
-  const fs = valStr.length > 16 ? '1.15rem'
-           : valStr.length > 12 ? '1.4rem'
-           : valStr.length > 9  ? '1.65rem'
-           : '1.9rem';
   return (
     <div style={{ flex: wide ? '2 1 160px' : '1 1 110px', padding:'1rem 1.1rem',
       borderRight:`1px solid ${G.bdr}`, borderBottom:`1px solid ${G.bdr}`,
@@ -381,7 +508,7 @@ function StatTile({ label, value, color, accent, wide }) {
         background:`linear-gradient(90deg, ${accent||G.gold}44, transparent)` }} />
       <div style={{ fontFamily:G.mono, fontSize:10, fontWeight:700, color:G.t3, letterSpacing:'0.1em',
         textTransform:'uppercase', marginBottom:5 }}>{label}</div>
-      <div style={{ fontFamily:G.display, fontSize:fs, fontWeight:700, color:color||'#ffffff',
+      <div title={valStr} style={{ fontFamily:G.display, fontSize:'1.5rem', fontWeight:700, color:color||'#ffffff',
         letterSpacing:'0.02em', lineHeight:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{value}</div>
     </div>
   );
@@ -408,7 +535,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     if (e.isMod)
       return <svg style={{flexShrink:0}} width={size} height={size} viewBox="0 0 20 20" fill="#9146ff"><path d="M10 0L7 7H0l6 4.5L4 18l6-4 6 4-2-6.5L20 7h-7z"/></svg>;
     if (e.name||e.amount>0)
-      return <span style={{fontSize:size,flexShrink:0,lineHeight:1,opacity:0.6}}>💰</span>;
+      return <MoneyPileIcon amount={e.amount||0} size={size+2} />;
     return null;
   };
 
