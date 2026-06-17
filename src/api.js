@@ -4,6 +4,8 @@ export const API = process.env.REACT_APP_API_URL || 'https://beanhunt-backend-pr
 
 // Token-based auth fallback for browsers that block third-party cookies
 const TOKEN_KEY = 'beanhunt_auth_token';
+const USER_KEY  = 'beanhunt_auth_user';
+
 export function setAuthToken(token) {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);
@@ -12,6 +14,18 @@ export function setAuthToken(token) {
 }
 export function getAuthToken() {
   try { return localStorage.getItem(TOKEN_KEY) || null; } catch(e) { return null; }
+}
+export function setAuthUser(user) {
+  try {
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    else localStorage.removeItem(USER_KEY);
+  } catch(e) {}
+}
+export function getAuthUser() {
+  try { const s = localStorage.getItem(USER_KEY); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+}
+export function clearAuth() {
+  try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); } catch(e) {}
 }
 
 export const socket = io(API, {

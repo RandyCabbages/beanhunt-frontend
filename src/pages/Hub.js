@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket, API, apiFetch } from '../api';
+import { socket, API, apiFetch, clearAuth } from '../api';
 import RandomHashtag from '../components/RandomHashtag';
 
 // ── Design tokens — matches HuntTracker exactly ──────────────────
@@ -334,7 +334,7 @@ export default function Hub({ user }) {
                     </button>
                   )}
                 </div>
-                <a href={`${API}/auth/logout`} onClick={()=>{ try{localStorage.removeItem('beanhunt_auth_token');}catch(e){} }} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
+                <a href={`${API}/auth/logout`} onClick={clearAuth} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
                 <button onClick={()=>navigate('/settings')} title="Settings"
                   style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,cursor:'pointer',color:C.label,transition:'all .12s',flexShrink:0}}
                   onMouseEnter={e=>{e.currentTarget.style.color=C.gold;e.currentTarget.style.borderColor='rgba(145,70,255,0.3)';}}

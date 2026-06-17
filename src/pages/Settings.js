@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch, API } from '../api';
+import { apiFetch, API, clearAuth } from '../api';
 
 // ── Design tokens — matches Hub/HuntTracker ───────────────────────
 const C = {
@@ -197,7 +197,7 @@ export default function Settings({ user }) {
                 width={28} height={28} style={{borderRadius:'50%'}} alt=""/>
             : <div style={{width:28,height:28,borderRadius:'50%',background:C.sur,border:`1px solid ${C.bdr}`}}/>}
           <span style={{ fontSize:13, color:C.label }}>{user.displayName || user.username}</span>
-          <a href={`${API}/auth/logout`} onClick={()=>{ try{localStorage.removeItem('beanhunt_auth_token');}catch(e){} }} style={{ fontFamily:C.font, fontSize:11, color:C.label, textDecoration:'none' }}>Log out</a>
+          <a href={`${API}/auth/logout`} onClick={clearAuth} style={{ fontFamily:C.font, fontSize:11, color:C.label, textDecoration:'none' }}>Log out</a>
           <button onClick={() => navigate('/settings')} title="Settings"
             style={{ width:32, height:32, display:'flex', alignItems:'center', justifyContent:'center', background:'transparent', border:`1px solid rgba(255,255,255,0.07)`, borderRadius:6, cursor:'pointer', color:C.gold, flexShrink:0 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
