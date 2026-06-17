@@ -1461,6 +1461,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                             });
                             setCardInfoMap(prev=>({...prev,[e.id]:{
                               rainbetName: settings?.rainbetName||'',
+                              twitchName:  settings?.twitchName||'',
                               totalEquity: totalIn,
                               totalPayout: totalOut,
                               huntCount,
@@ -1470,7 +1471,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         }
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
-                        position:'relative',cursor:'pointer',minHeight:160,
+                        position:'relative',cursor:'pointer',minHeight:170,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
                       }}>
@@ -1482,51 +1483,130 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
                         transformStyle:'preserve-3d',
                       }}>
-                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:17,color:'#ffffff',display:'flex',alignItems:'center',gap:6,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:3,lineHeight:1.1}}>
-                          {iconFor(e,16)}
+                        {/* Row 1 — icon + Discord name */}
+                        <div style={{fontFamily:G.body,fontWeight:700,fontSize:16,color:'#ffffff',display:'flex',alignItems:'center',gap:6,overflow:'hidden',whiteSpace:'nowrap',textOverflow:'ellipsis',marginBottom:3,lineHeight:1.1}}>
+                          {iconFor(e,15)}
                           <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{e.name||'—'}</span>
                         </div>
-                        <div style={{fontFamily:G.mono,fontSize:13,color:G.t3,fontWeight:600,marginBottom:6,lineHeight:1.1}}>
-                          {pct.toFixed(1)}% · {e.rollAmount>0&&(e.amount-e.rollAmount)>0
-                            ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
-                            : fmt(e.amount)}
+                        {/* Row 2 — Rainbet name (copy on click; +Add when missing for editors) */}
+                        <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:3,lineHeight:1.1,fontFamily:G.body,fontSize:12}}>
+                          <span style={{color:G.t4,fontWeight:700,letterSpacing:'0.06em'}}>RB</span>
+                          {!cardInfo ? (
+                            <span style={{color:G.t4,fontWeight:600}}>…</span>
+                          ) : cardInfo.rainbetName ? (
+                            <span
+                              onClick={ev=>{
+                                ev.stopPropagation();
+                                navigator.clipboard.writeText(cardInfo.rainbetName).then(()=>{
+                                  setCopiedRainbet(e.id);
+                                  setTimeout(()=>setCopiedRainbet(curr => curr===e.id ? null : curr), 1500);
+                                }).catch(()=>{});
+                              }}
+                              title={`Click to copy "${cardInfo.rainbetName}"`}
+                              style={{
+                                color: copiedRainbet===e.id ? G.green : G.t2,
+                                fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                                cursor:'pointer', display:'inline-flex', alignItems:'center', gap:3, maxWidth:'100%',
+                                transition:'color .15s',
+                              }}>
+                              {copiedRainbet===e.id ? '✓ Copied' : cardInfo.rainbetName}
+                            </span>
+                          ) : (
+                            <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
+                              <span style={{color:G.t4,fontWeight:600}}>not set</span>
+                              {canEdit && (
+                                <button
+                                  onClick={ev=>{
+                                    ev.stopPropagation();
+                                    const entered = window.prompt(`Set Rainbet name for ${e.name||'this member'}:`, '');
+                                    if (!entered) return;
+                                    const trimmed = entered.trim();
+                                    if (!trimmed) return;
+                                    setCardInfoMap(prev => ({
+                                      ...prev,
+                                      [e.id]: { ...(prev[e.id]||{}), rainbetName: trimmed, loaded:true },
+                                    }));
+                                    if (user && user.isAdmin) {
+                                      const isDiscordId = /^\d{17,19}$/.test(e.id||'');
+                                      const body = isDiscordId
+                                        ? { userId: e.id, rainbetName: trimmed }
+                                        : { name: e.name||'', rainbetName: trimmed };
+                                      apiFetch('/api/admin/set-rainbet-name', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
+                                    }
+                                  }}
+                                  title="Add this person's Rainbet name"
+                                  style={{
+                                    background:'transparent', border:`1px solid ${accent}`, borderRadius:3,
+                                    fontFamily:G.mono, fontSize:9, fontWeight:700, color:accent,
+                                    padding:'1px 5px', cursor:'pointer', lineHeight:1, letterSpacing:'0.04em',
+                                  }}>
+                                  + Add
+                                </button>
+                              )}
+                            </span>
+                          )}
                         </div>
-                        {hw&&totalWon>0 ? (
-                          <>
-                            <div style={{fontFamily:G.display,fontSize:'1.95rem',fontWeight:700,color:share>=e.amount?G.green:G.red,letterSpacing:'0.02em',lineHeight:1.05,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmt(share)}</div>
-                            <div style={{fontFamily:G.mono,fontSize:13,fontWeight:700,color:pl>=0?G.green:G.red,marginTop:2,lineHeight:1.1}}>{fmtS(pl)}</div>
-                          </>
+                        {/* Row 3 — equity invested · percent of pool */}
+                        <div style={{fontFamily:G.mono,fontSize:12,color:G.t3,fontWeight:600,marginBottom:6,lineHeight:1.1}}>
+                          {e.rollAmount>0&&(e.amount-e.rollAmount)>0
+                            ? <span title={`Base: ${fmt(e.amount-e.rollAmount)} + Roll: ${fmt(e.rollAmount)}`}>{fmt(e.amount-e.rollAmount)} + {fmt(e.rollAmount)}</span>
+                            : fmt(e.amount)} · {pct.toFixed(1)}%
+                        </div>
+                        {/* Row 4 — current winnings (big focal number) */}
+                        <div style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,
+                          color: (hw&&totalWon>0) ? (share>=e.amount?G.green:G.red) : G.t3,
+                          letterSpacing:'0.02em',lineHeight:1.05,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {(hw&&totalWon>0) ? fmt(share) : fmt(0)}
+                        </div>
+                        {/* Row 5 — P/L (only meaningful after wins) */}
+                        {(hw&&totalWon>0) ? (
+                          <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:pl>=0?G.green:G.red,marginTop:2,lineHeight:1.1}}>{fmtS(pl)}</div>
                         ) : (
-                          <>
-                            <div style={{fontFamily:G.display,fontSize:'1.95rem',fontWeight:700,color:G.t2,letterSpacing:'0.02em',lineHeight:1.05,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fmt(e.amount)}</div>
-                            <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:G.t4,marginTop:2,lineHeight:1.1,letterSpacing:'0.1em'}}>INVESTED</div>
-                          </>
+                          <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:G.t4,marginTop:2,lineHeight:1.1,letterSpacing:'0.06em'}}>awaiting wins</div>
                         )}
                         <div style={{position:'absolute',bottom:6,right:8,fontFamily:G.mono,fontSize:10,color:G.t4,letterSpacing:'0.04em'}}>tap to flip</div>
                       </div>
-                      {/* Back face */}
+                      {/* Back face — identity card: Discord, Twitch, Rainbet, plus all-time totals */}
                       <div style={{
-                        position:'absolute',inset:0,borderRadius:6,padding:'8px 10px',
+                        position:'absolute',inset:0,borderRadius:6,padding:'10px 12px',
                         backfaceVisibility:'hidden',WebkitBackfaceVisibility:'hidden',
                         transition:'transform .35s cubic-bezier(.4,0,.2,1)',
                         transform: isFlipped ? 'rotateY(0deg)' : 'rotateY(-180deg)',
                         transformStyle:'preserve-3d',
                         background: G.lift,
-                        display:'flex',flexDirection:'column',gap:5,
+                        display:'flex',flexDirection:'column',gap:6,
                       }}>
-                        {/* Name header */}
-                        <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:accent,letterSpacing:'0.1em',textTransform:'uppercase',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.1}}>{e.name||'—'}</div>
-
-                        {/* Rainbet name — clickable to copy for tipping. Discord name removed since
-                            it already appears as the green name header at the top of the card. */}
+                        {/* DISCORD row */}
                         <div>
-                          <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3,lineHeight:1}}>Rainbet</div>
+                          <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#a5b4fc',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Discord</div>
+                          <div style={{fontFamily:G.body,fontSize:13,fontWeight:600,color:G.t1,lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.name||'—'}</div>
+                        </div>
+                        {/* TWITCH row */}
+                        <div>
+                          <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:'#c084fc',letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Twitch</div>
+                          {!cardInfo ? (
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>…</div>
+                          ) : cardInfo.twitchName ? (
+                            <a href={`https://twitch.tv/${cardInfo.twitchName}`} target="_blank" rel="noopener noreferrer"
+                              onClick={ev=>ev.stopPropagation()}
+                              style={{fontFamily:G.body,fontSize:13,fontWeight:600,color:G.t2,lineHeight:1.2,
+                                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',display:'block',
+                                textDecoration:'none'}}>
+                              {cardInfo.twitchName}
+                            </a>
+                          ) : (
+                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
+                          )}
+                        </div>
+                        {/* RAINBET row — copyable for tipping; + Add when missing for editors */}
+                        <div>
+                          <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.gold,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Rainbet</div>
                           {!cardInfo ? (
                             <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>…</div>
                           ) : cardInfo.rainbetName ? (
                             <div
                               onClick={ev=>{
-                                ev.stopPropagation(); // don't flip the card
+                                ev.stopPropagation();
                                 navigator.clipboard.writeText(cardInfo.rainbetName).then(()=>{
                                   setCopiedRainbet(e.id);
                                   setTimeout(()=>setCopiedRainbet(curr => curr===e.id ? null : curr), 1500);
@@ -1556,35 +1636,28 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               {canEdit && (
                                 <button
                                   onClick={ev=>{
-                                    ev.stopPropagation(); // don't flip the card
+                                    ev.stopPropagation();
                                     const entered = window.prompt(`Set Rainbet name for ${e.name||'this member'}:`, '');
                                     if (!entered) return;
                                     const trimmed = entered.trim();
                                     if (!trimmed) return;
-                                    // Optimistic local update — show it immediately on the card
                                     setCardInfoMap(prev => ({
                                       ...prev,
                                       [e.id]: { ...(prev[e.id]||{}), rainbetName: trimmed, loaded:true },
                                     }));
-                                    // Persist to the server ONLY if the current user is admin.
-                                    // Non-admins get the local-only update — it doesn't leak to others' sessions.
                                     if (user && user.isAdmin) {
                                       const isDiscordId = /^\d{17,19}$/.test(e.id||'');
                                       const body = isDiscordId
                                         ? { userId: e.id, rainbetName: trimmed }
                                         : { name: e.name||'', rainbetName: trimmed };
-                                      apiFetch('/api/admin/set-rainbet-name', {
-                                        method: 'POST',
-                                        body: JSON.stringify(body),
-                                      }).catch(()=>{ /* server failure is non-fatal — local copy already showed */ });
+                                      apiFetch('/api/admin/set-rainbet-name', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
                                     }
                                   }}
                                   title="Add this person's Rainbet name"
                                   style={{
                                     background:'transparent',border:`1px solid ${accent}`,borderRadius:3,
                                     fontFamily:G.mono,fontSize:10,fontWeight:700,color:accent,
-                                    padding:'2px 7px',cursor:'pointer',lineHeight:1,
-                                    letterSpacing:'0.04em',
+                                    padding:'2px 7px',cursor:'pointer',lineHeight:1,letterSpacing:'0.04em',
                                   }}>
                                   + Add
                                 </button>
@@ -1593,36 +1666,17 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           )}
                         </div>
 
-                        {/* Divider */}
-                        <div style={{height:1,background:G.bdr,flexShrink:0}}/>
-
-                        {/* Current hunt payout — the tip number */}
-                        <div>
-                          <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:accent,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3,lineHeight:1}}>Current Hunt Payout</div>
-                          <div style={{fontFamily:G.display,fontSize:'1.4rem',fontWeight:700,letterSpacing:'0.02em',lineHeight:1.05,
-                            color:hw&&totalWon>0?(share>=e.amount?G.green:G.red):G.t3}}>
-                            {hw&&totalWon>0 ? fmt(share) : '—'}
-                          </div>
-                          {hw&&totalWon>0&&(
-                            <div style={{fontFamily:G.mono,fontSize:10,fontWeight:600,color:pl>=0?G.green:G.red,marginTop:1,lineHeight:1.1}}>
-                              {fmtS(pl)} ({pct.toFixed(1)}% · in {fmt(e.amount)})
-                            </div>
-                          )}
-                        </div>
-
-                        {/* All-time totals — equity invested on the left, payout earned on the right */}
-                        <div style={{marginTop:'auto',paddingTop:4,borderTop:`1px solid ${G.bdr}`}}>
+                        {/* All-time totals — pushed to bottom */}
+                        <div style={{marginTop:'auto',paddingTop:5,borderTop:`1px solid ${G.bdr}`}}>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                            {/* Left: total equity invested across all archived hunts */}
                             <div>
-                              <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3,lineHeight:1}}>All-Time Equity</div>
+                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Equity</div>
                               <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalEquity>0?G.t2:G.t4,lineHeight:1}}>
                                 {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalEquity) : '—'}
                               </div>
                             </div>
-                            {/* Right: total payout earned across all archived hunts */}
                             <div>
-                              <div style={{fontFamily:G.mono,fontSize:11,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:3,lineHeight:1}}>All-Time Payout</div>
+                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Payout</div>
                               <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?(cardInfo.totalPayout>=cardInfo.totalEquity?G.green:G.red):G.t4,lineHeight:1}}>
                                 {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
                               </div>

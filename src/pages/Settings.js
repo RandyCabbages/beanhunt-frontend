@@ -100,6 +100,7 @@ function SlotAutocomplete({ value, onChange, onSelect, placeholder }) {
 export default function Settings({ user }) {
   const navigate = useNavigate();
   const [rainbetName,    setRainbetName]    = useState('');
+  const [twitchName,     setTwitchName]     = useState('');
   const [preferredSlots, setPreferredSlots] = useState([]); // array of {name,thumb,slug,provider}|null
   const [slotInputs,     setSlotInputs]     = useState([]); // parallel array of string values
   const [loading,        setLoading]        = useState(true);
@@ -111,6 +112,7 @@ export default function Settings({ user }) {
     apiFetch('/api/settings')
       .then(data => {
         setRainbetName(data.rainbetName || '');
+        setTwitchName(data.twitchName || '');
         const saved = data.preferredSlots || [];
         // Always show at least 8 rows
         const count = Math.max(8, saved.length);
@@ -155,6 +157,7 @@ export default function Settings({ user }) {
         method: 'PUT',
         body: JSON.stringify({
           rainbetName,
+          twitchName,
           preferredSlots: preferredSlots.filter(Boolean),
         }),
       });
@@ -214,6 +217,17 @@ export default function Settings({ user }) {
           </div>
           <input value={rainbetName} onChange={e => setRainbetName(e.target.value)}
             placeholder="Your Rainbet username"
+            style={inp} />
+        </section>
+
+        {/* ── Twitch Name ── */}
+        <section style={{ background:C.card, border:`1px solid ${C.bdr}`, borderRadius:8, padding:24 }}>
+          <div style={{ fontSize:13, fontWeight:700, letterSpacing:'0.1em', color:'#9146ff', marginBottom:6 }}>TWITCH ACCOUNT</div>
+          <div style={{ fontSize:12, color:C.label, marginBottom:14, lineHeight:1.5 }}>
+            Your Twitch username. Visible to hunt runners on your equity card.
+          </div>
+          <input value={twitchName} onChange={e => setTwitchName(e.target.value)}
+            placeholder="Your Twitch username"
             style={inp} />
         </section>
 
@@ -284,7 +298,7 @@ export default function Settings({ user }) {
           </a>
           {rainbetName && (
             <div style={{ marginTop:14 }}>
-              <a href={`https://rainbet.com/user/${rainbetName}`} target="_blank" rel="noopener noreferrer"
+              <a href="https://rainbet.com/?modal=profile&tab=overview" target="_blank" rel="noopener noreferrer"
                 style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px',
                   background:'rgba(26,157,90,0.1)', border:'1px solid rgba(26,157,90,0.5)', borderRadius:5,
                   color:'#4ade80', fontFamily:C.font, fontSize:13, fontWeight:700,
