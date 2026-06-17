@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch, socket, API } from '../api';
 import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
 
@@ -380,6 +381,8 @@ function StatTile({ label, value, color, accent, wide }) {
 
 /* ── Main component ──────────────────────────────────────────────── */
 export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls, onUpdateHunt, onEndHunt, onResetHunt, onBack, onHuntRefresh }) {
+  const navigate = useNavigate();
+  const goHub    = () => { if (onBack) onBack(); else navigate('/'); };
   const isVip   = hunt.huntType === 'vip';
   const accent  = isVip ? G.purple : G.gold;
   const acDim   = isVip ? G.pdim   : G.gdim;
@@ -917,7 +920,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 </a>
               ))}
             </div>
-            <div>
+            <div onClick={goHub} style={{cursor:'pointer',userSelect:'none'}} title="Back to Hub">
               <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t4,letterSpacing:'0.12em',textTransform:'uppercase',lineHeight:1,display:'flex',alignItems:'center',gap:5}}><span>BeanTards on</span><RainbetLogo size={10}/></div>
               <div style={{fontFamily:G.display,fontSize:'1.6rem',fontWeight:700,letterSpacing:'0.06em',lineHeight:1,color:G.t1}}>
                 {isVip
@@ -969,6 +972,15 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             {canEdit && onResetHunt && (
               <button onClick={onResetHunt} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t3,cursor:'pointer'}}>Reset</button>
             )}
+            <button onClick={()=>navigate('/settings')} title="Settings"
+              style={{width:30,height:30,display:'flex',alignItems:'center',justifyContent:'center',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,cursor:'pointer',color:G.t3,transition:'color .12s',flexShrink:0}}
+              onMouseEnter={e=>e.currentTarget.style.color=G.t1}
+              onMouseLeave={e=>e.currentTarget.style.color=G.t3}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+            <a href={`${API}/auth/logout`} onClick={()=>{ try{localStorage.removeItem('beanhunt_auth_token');}catch(e){} }} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t3,cursor:'pointer',textDecoration:'none',display:'inline-flex',alignItems:'center'}}>Log out</a>
             <button onClick={onBack} style={{height:30,padding:'0 12px',background:G.card,border:`1px solid ${G.bdr}`,borderRadius:5,fontFamily:G.mono,fontSize:11,color:G.t2,cursor:'pointer'}}>← Hub</button>
           </div>
         </div>

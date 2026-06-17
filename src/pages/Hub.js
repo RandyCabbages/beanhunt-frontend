@@ -301,7 +301,7 @@ export default function Hub({ user }) {
       {/* Main nav */}
       <div style={{background:C.sur,borderBottom:`1px solid rgba(255,255,255,0.13)`,padding:'0 1.5rem'}}>
         <div style={{padding:'0 1.5rem',height:58,display:'grid',gridTemplateColumns:'auto 1fr auto',alignItems:'center',gap:24}}>
-          <div style={{fontFamily:C.font,fontSize:26,fontWeight:700,letterSpacing:'0.04em',color:C.txt,lineHeight:1}}>
+          <div onClick={()=>navigate('/')} style={{fontFamily:C.font,fontSize:26,fontWeight:700,letterSpacing:'0.04em',color:C.txt,lineHeight:1,cursor:'pointer',userSelect:'none'}}>
             BeanTards <span style={{color:C.gold}}>Hunt Tracker</span>
           </div>
           <div style={{textAlign:'center'}}>
