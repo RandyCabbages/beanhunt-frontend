@@ -446,7 +446,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
   const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, twitchName, totalEquity, totalPayout, huntCount}
   const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
-  const cardInfoLoadingRef = useRef(new Set());               // ids whose cardInfo fetch is currently in-flight
+  const cardInfoTouchedRef = useRef(new Set());               // ids we've already kicked a fetch for this session
   const [huntHistory,   setHuntHistory]   = useState([]);     // undo stack
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcWinners,     setDcWinners]     = useState(false);
@@ -588,13 +588,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const equityDisplay = equity.filter(e=>e.name||e.amount>0);
 
   // Eagerly load cardInfo (rainbet + twitch + all-time totals) for every visible equity member
-  // so the names appear on the front of the card without requiring a flip. Uses a ref-backed
-  // in-flight guard to avoid duplicate fetches on re-render.
+  // so the names appear on the front of the card without requiring a flip. A ref-based "touched"
+  // set ensures we never fetch the same id twice in this session.
   const loadCardInfo = useCallback((eq) => {
     if (!eq || !eq.id || !eq.name) return;
     if (eq.id === 'bean_auto' || eq.id === 'creator_auto') return;
-    if (cardInfoLoadingRef.current.has(eq.id)) return;
-    cardInfoLoadingRef.current.add(eq.id);
+    if (cardInfoTouchedRef.current.has(eq.id)) return;
+    cardInfoTouchedRef.current.add(eq.id);
 
     let settingsPath;
     if (/^\d{17,19}$/.test(eq.id)) {
@@ -626,17 +626,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
         huntCount,
         loaded:true,
       }}));
-    }).finally(() => {
-      cardInfoLoadingRef.current.delete(eq.id);
     });
   }, [user]);
 
-  // Trigger eager loads whenever the visible equity list changes
+  // Trigger eager loads whenever the visible equity list changes.
   useEffect(() => {
-    equityDisplay.forEach(eq => {
-      if (!cardInfoMap[eq.id]) loadCardInfo(eq);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    equityDisplay.forEach(loadCardInfo);
   }, [equityDisplay, loadCardInfo]);
 
   // Helper used by the + Add buttons. Saves to server only when the current user is admin.
