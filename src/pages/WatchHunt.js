@@ -1,7 +1,21 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Component } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { socket, apiFetch, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
+
+class HuntErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) return (
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100vh',gap:12,background:'#161618',fontFamily:"'Chakra Petch',sans-serif"}}>
+        <div style={{fontSize:13,color:'#cccccc'}}>Something went wrong loading this hunt.</div>
+        <button onClick={()=>window.location.href='/'} style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:13,color:'#9146ff',background:'none',border:'none',cursor:'pointer'}}>← Back to Hub</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
 
 export default function WatchHunt({ user }) {
   const { userId } = useParams();
@@ -142,16 +156,18 @@ export default function WatchHunt({ user }) {
   );
 
   return (
-    <HuntTracker
-      hunt={hunt}
-      user={user}
-      readOnly={!canEdit}
-      canAddCalls={canAddCalls}
-      onUpdateHunt={canEdit ? updateHunt : undefined}
-      onEndHunt={canEdit ? endHunt : undefined}
-      onResetHunt={canEdit ? resetHunt : undefined}
-      onBack={() => navigate('/')}
-      onHuntRefresh={setHunt}
-    />
+    <HuntErrorBoundary>
+      <HuntTracker
+        hunt={hunt}
+        user={user}
+        readOnly={!canEdit}
+        canAddCalls={canAddCalls}
+        onUpdateHunt={canEdit ? updateHunt : undefined}
+        onEndHunt={canEdit ? endHunt : undefined}
+        onResetHunt={canEdit ? resetHunt : undefined}
+        onBack={() => navigate('/')}
+        onHuntRefresh={setHunt}
+      />
+    </HuntErrorBoundary>
   );
 }
