@@ -7,7 +7,7 @@ import RandomHashtag from '../components/RandomHashtag';
 const C = {
   bg:'#161618', sur:'#222226', card:'#26262a', lift:'#2c2c32',
   bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
-  gold:'#c6f135', gold2:'#d4f55a',
+  gold:'#9146ff', gold2:'#a970ff',
   green:'#4ade80',
   red:'#f87171', purple:'#c084fc',
   txt:'#ffffff', txt2:'#ededed', label:'#cccccc', faint:'#a8a8a8',
@@ -318,7 +318,7 @@ export default function Hub({ user }) {
                   {isAdmin && <span style={{fontFamily:C.font,fontSize:11,color:C.gold,background:'rgba(245,165,0,.1)',border:`1px solid rgba(245,165,0,.2)`,padding:'1px 5px',borderRadius:2,letterSpacing:'0.08em'}}>ADMIN</span>}
                 </div>
                 <div style={{display:'flex',gap:6}}>
-                  <button onClick={()=>navigate('/hunt?type=community')} style={{height:34,padding:'0 14px',background:hasHunt?'transparent':'#c6f135',color:hasHunt?'#c6f135':'#000',border:hasHunt?`1px solid #c6f135`:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                  <button onClick={()=>navigate('/hunt?type=community')} style={{height:34,padding:'0 14px',background:hasHunt?'transparent':'#9146ff',color:hasHunt?'#9146ff':'#000',border:hasHunt?`1px solid #9146ff`:'none',borderRadius:5,fontFamily:C.font,fontSize:13,fontWeight:700,cursor:'pointer'}}>
                     {hasHunt ? '↩ Continue Hunt' : '🎰 Community'}
                   </button>
                   {(user?.isVipHost||user?.isAdmin)&&!hasHunt&&(
@@ -330,7 +330,7 @@ export default function Hub({ user }) {
                 <a href={`${API}/auth/logout`} onClick={()=>{ try{localStorage.removeItem('beanhunt_auth_token');}catch(e){} }} style={{fontFamily:C.font,fontSize:11,color:C.label,textDecoration:'none'}}>Log out</a>
                 <button onClick={()=>navigate('/settings')} title="Settings"
                   style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid rgba(255,255,255,0.07)`,borderRadius:6,cursor:'pointer',color:C.label,transition:'all .12s',flexShrink:0}}
-                  onMouseEnter={e=>{e.currentTarget.style.color=C.gold;e.currentTarget.style.borderColor='rgba(198,241,53,0.3)';}}
+                  onMouseEnter={e=>{e.currentTarget.style.color=C.gold;e.currentTarget.style.borderColor='rgba(145,70,255,0.3)';}}
                   onMouseLeave={e=>{e.currentTarget.style.color=C.label;e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>

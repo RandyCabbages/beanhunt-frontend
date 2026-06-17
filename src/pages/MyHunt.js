@@ -177,7 +177,7 @@ export default function MyHunt({ user }) {
           </span>
         </div>
         <h1 style={{ fontSize:'clamp(2.4rem,5vw,3.4rem)', fontWeight:700, letterSpacing:'0.04em', lineHeight:1, color:'#ffffff' }}>
-          Start a <span style={{ color:'#c6f135' }}>Hunt</span>
+          Start a <span style={{ color:'#9146ff' }}>Hunt</span>
         </h1>
         <div style={{ marginTop: 10 }}>
           <RandomHashtag fontSize={15} letterSpacing="0.1em" />
@@ -197,9 +197,9 @@ export default function MyHunt({ user }) {
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button onClick={() => startOnlineHunt('community')}
-                style={{ flex:1, height:46, background: urlType==='community' ? 'rgba(198,241,53,0.15)' : 'transparent',
-                  border: urlType==='community' ? '2px solid #c6f135' : '2px solid #c6f135',
-                  borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#c6f135', cursor:'pointer' }}>
+                style={{ flex:1, height:46, background: urlType==='community' ? 'rgba(145,70,255,0.15)' : 'transparent',
+                  border: urlType==='community' ? '2px solid #9146ff' : '2px solid #9146ff',
+                  borderRadius:6, fontFamily:"'Chakra Petch',sans-serif", fontSize:14, fontWeight:700, color:'#9146ff', cursor:'pointer' }}>
                 🎰 Community
               </button>
               {(user.isVipHost || user.isAdmin) && (
@@ -250,8 +250,8 @@ export default function MyHunt({ user }) {
     <div>
       {!hunt.isLive && !offline && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc' }}>Hunt not live yet — set up your bonuses and equity first</span>
-          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#c6f135', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:700, cursor:'pointer' }}>
+          <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc' }}>Hunt Not Live Yet — Setup Equity and Hit Go Live!</span>
+          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#9146ff', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:700, cursor:'pointer' }}>
             🚀 Start Hunt — Go Live
           </button>
         </div>

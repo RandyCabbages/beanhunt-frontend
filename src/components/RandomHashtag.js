@@ -75,7 +75,7 @@ export default function RandomHashtag({
       <span style={{
         fontFamily: "'Chakra Petch',sans-serif",
         fontSize, fontWeight: 700, letterSpacing,
-        background: 'linear-gradient(90deg,#9146ff,#c6f135)',
+        background: 'linear-gradient(90deg,#9146ff,#c4a8ff)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text',

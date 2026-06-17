@@ -6,7 +6,7 @@ import { apiFetch, API } from '../api';
 const C = {
   bg:'#161618', sur:'#222226', card:'#26262a', lift:'#2c2c32',
   bdr:'rgba(255,255,255,0.22)', bb:'rgba(255,255,255,0.34)',
-  gold:'#c6f135', green:'#4ade80', red:'#f87171',
+  gold:'#9146ff', green:'#4ade80', red:'#f87171',
   txt:'#ffffff', txt2:'#ededed', label:'#cccccc', faint:'#a8a8a8',
   font:"'Inter',system-ui,sans-serif",
   display:"'Chakra Petch',sans-serif",
@@ -288,11 +288,11 @@ export default function Settings({ user }) {
           </div>
           <a href="https://beantwitch.com/rewards" target="_blank" rel="noopener noreferrer"
             style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px',
-              background:'rgba(198,241,53,0.1)', border:`1px solid ${C.gold}`, borderRadius:5,
+              background:'rgba(145,70,255,0.1)', border:`1px solid ${C.gold}`, borderRadius:5,
               color:C.gold, fontFamily:C.font, fontSize:13, fontWeight:700,
               textDecoration:'none', letterSpacing:'0.05em', transition:'background .15s' }}
-            onMouseEnter={e=>e.currentTarget.style.background='rgba(198,241,53,0.2)'}
-            onMouseLeave={e=>e.currentTarget.style.background='rgba(198,241,53,0.1)'}>
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(145,70,255,0.2)'}
+            onMouseLeave={e=>e.currentTarget.style.background='rgba(145,70,255,0.1)'}>
             <span>🫘</span>
             View My Leaderboard Stats →
           </a>

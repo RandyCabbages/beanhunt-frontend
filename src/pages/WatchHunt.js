@@ -124,7 +124,7 @@ export default function WatchHunt({ user }) {
   if (notFound) return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:12 }}>
       <div style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:13, color:'#cccccc' }}>This hunt isn't available.</div>
-      <button onClick={() => navigate('/')} style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:13, color:'#c6f135', background:'none', border:'none', cursor:'pointer' }}>← Back to Hub</button>
+      <button onClick={() => navigate('/')} style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:13, color:'#9146ff', background:'none', border:'none', cursor:'pointer' }}>← Back to Hub</button>
     </div>
   );
 
