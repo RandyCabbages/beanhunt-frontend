@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { socket, apiFetch, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
 
 export default function WatchHunt({ user }) {
   const { userId } = useParams();
   const navigate   = useNavigate();
+  const location   = useLocation();
+  // If ?archivedAt=... is in the URL, view a specific archived hunt snapshot instead of live.
+  const archivedAt = new URLSearchParams(location.search).get('archivedAt');
   const [hunt,     setHunt]     = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [canEdit,     setCanEdit]     = useState(false);
@@ -13,13 +16,21 @@ export default function WatchHunt({ user }) {
   const saveTimer = useRef(null);
 
   useEffect(() => {
-    apiFetch(`/api/hunts/${userId}`)
+    // Branch: archive view (readonly snapshot, no socket subs) vs live view.
+    const endpoint = archivedAt
+      ? `/api/hunts/${userId}/archived/${encodeURIComponent(archivedAt)}`
+      : `/api/hunts/${userId}`;
+    setNotFound(false); setHunt(null);
+    apiFetch(endpoint)
       .then(data => {
         setHunt(data);
         setCanEdit(!!data.canEdit);
         setCanAddCalls(!!data.canAddCalls);
       })
       .catch(() => setNotFound(true));
+
+    // Archived hunts are frozen snapshots — no live socket updates needed.
+    if (archivedAt) return;
 
     const joinRoom = () => {
       socket.emit('watch:hunt', userId);
@@ -56,7 +67,7 @@ export default function WatchHunt({ user }) {
       socket.off('hunt:reinvite', onReinvite);
       socket.off('connect', joinRoom);
     };
-  }, [userId]);
+  }, [userId, archivedAt]);
 
   const save = useCallback((newHunt) => {
     clearTimeout(saveTimer.current);

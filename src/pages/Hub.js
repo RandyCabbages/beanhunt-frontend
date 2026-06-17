@@ -114,7 +114,9 @@ function HuntCard({ hunt, isOwn, isAdmin, onEnd, onDelete, navigate }) {
   };
 
   return (
-    <div onClick={()=>navigate(`/hunt/${hunt.userId}`)}
+    <div onClick={()=>navigate(hunt.archivedAt
+      ? `/hunt/${hunt.userId}?archivedAt=${encodeURIComponent(hunt.archivedAt)}`
+      : `/hunt/${hunt.userId}`)}
       style={{background:C.card,border:`1px solid rgba(255,255,255,0.07)`,cursor:'pointer',overflow:'hidden',
         transition:'all .12s',borderLeft:`3px solid ${ac}`}}
       onMouseEnter={e=>{e.currentTarget.style.background=C.lift;e.currentTarget.style.borderColor=ac;}}
