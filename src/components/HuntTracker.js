@@ -437,6 +437,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
   const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, totalPayout, huntCount}
+  const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
   const [huntHistory,   setHuntHistory]   = useState([]);     // undo stack
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcWinners,     setDcWinners]     = useState(false);
@@ -1501,10 +1502,38 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           </div>
                           <div>
                             <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>Rainbet</div>
-                            <div style={{fontFamily:G.body,fontSize:12,color:G.t2,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2}}>
-                              {!cardInfo ? <span style={{color:G.t4}}>…</span>
-                                : cardInfo.rainbetName || <span style={{color:G.t4}}>not set</span>}
-                            </div>
+                            {!cardInfo ? (
+                              <div style={{fontFamily:G.body,fontSize:12,color:G.t4,fontWeight:600,lineHeight:1.2}}>…</div>
+                            ) : cardInfo.rainbetName ? (
+                              <div
+                                onClick={ev=>{
+                                  ev.stopPropagation(); // don't flip the card
+                                  navigator.clipboard.writeText(cardInfo.rainbetName).then(()=>{
+                                    setCopiedRainbet(e.id);
+                                    setTimeout(()=>setCopiedRainbet(curr => curr===e.id ? null : curr), 1500);
+                                  }).catch(()=>{});
+                                }}
+                                title={`Click to copy "${cardInfo.rainbetName}"`}
+                                style={{
+                                  fontFamily:G.body,fontSize:12,fontWeight:600,
+                                  color: copiedRainbet===e.id ? G.green : G.t2,
+                                  overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',lineHeight:1.2,
+                                  cursor:'pointer',userSelect:'none',
+                                  display:'inline-flex',alignItems:'center',gap:3,maxWidth:'100%',
+                                  transition:'color .15s',
+                                }}>
+                                <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                                  {copiedRainbet===e.id ? '✓ Copied' : cardInfo.rainbetName}
+                                </span>
+                                {copiedRainbet!==e.id && (
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,opacity:0.5}}>
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                  </svg>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{fontFamily:G.body,fontSize:12,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
+                            )}
                           </div>
                         </div>
 
