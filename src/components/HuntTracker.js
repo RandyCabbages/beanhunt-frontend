@@ -444,8 +444,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dragEquityId,  setDragEquityId]  = useState(null);
   const [dragBonusId,   setDragBonusId]   = useState(null);
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
-  const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, totalPayout, huntCount}
+  const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, twitchName, totalEquity, totalPayout, huntCount}
   const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
+  const cardInfoLoadingRef = useRef(new Set());               // ids whose cardInfo fetch is currently in-flight
   const [huntHistory,   setHuntHistory]   = useState([]);     // undo stack
   const [beanLive,      setBeanLive]      = useState({isLive:false,title:''});
   const [dcWinners,     setDcWinners]     = useState(false);
@@ -585,6 +586,77 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const reqXColor = totalWon>=totalPot&&totalPot>0?G.green:reqX?(reqX<=100?G.green:G.red):G.t3;
 
   const equityDisplay = equity.filter(e=>e.name||e.amount>0);
+
+  // Eagerly load cardInfo (rainbet + twitch + all-time totals) for every visible equity member
+  // so the names appear on the front of the card without requiring a flip. Uses a ref-backed
+  // in-flight guard to avoid duplicate fetches on re-render.
+  const loadCardInfo = useCallback((eq) => {
+    if (!eq || !eq.id || !eq.name) return;
+    if (eq.id === 'bean_auto' || eq.id === 'creator_auto') return;
+    if (cardInfoLoadingRef.current.has(eq.id)) return;
+    cardInfoLoadingRef.current.add(eq.id);
+
+    let settingsPath;
+    if (/^\d{17,19}$/.test(eq.id)) {
+      settingsPath = `/api/settings/${eq.id}`;
+    } else if (user && (eq.name||'').toLowerCase().trim() === (user.displayName || user.username || '').toLowerCase().trim()) {
+      settingsPath = `/api/settings/${user.id}`;
+    } else {
+      settingsPath = `/api/settings/by-name/${encodeURIComponent(eq.name||'')}`;
+    }
+    Promise.all([
+      apiFetch(settingsPath).catch(()=>({})),
+      apiFetch('/api/hunts/archived').catch(()=>[]),
+    ]).then(([settings, archived])=>{
+      let totalOut=0, totalIn=0, huntCount=0;
+      const memberName=(eq.name||'').toLowerCase().trim();
+      (archived||[]).forEach(h=>{
+        const m=(h.equity||[]).find(x=>(x.id===eq.id)||(x.name||'').toLowerCase().trim()===memberName);
+        if(m && h.pot>0){
+          totalIn  += (m.amount || 0);
+          totalOut += (m.amount / h.pot) * (h.totalWon || 0);
+          huntCount++;
+        }
+      });
+      setCardInfoMap(prev=>({...prev,[eq.id]:{
+        rainbetName: settings?.rainbetName||'',
+        twitchName:  settings?.twitchName||'',
+        totalEquity: totalIn,
+        totalPayout: totalOut,
+        huntCount,
+        loaded:true,
+      }}));
+    }).finally(() => {
+      cardInfoLoadingRef.current.delete(eq.id);
+    });
+  }, [user]);
+
+  // Trigger eager loads whenever the visible equity list changes
+  useEffect(() => {
+    equityDisplay.forEach(eq => {
+      if (!cardInfoMap[eq.id]) loadCardInfo(eq);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equityDisplay, loadCardInfo]);
+
+  // Helper used by the + Add buttons. Saves to server only when the current user is admin.
+  const promptAndSaveUserField = (eq, field, label) => {
+    const entered = window.prompt(`Set ${label} for ${eq.name||'this member'}:`, '');
+    if (!entered) return;
+    const value = entered.trim();
+    if (!value) return;
+    setCardInfoMap(prev => ({
+      ...prev,
+      [eq.id]: { ...(prev[eq.id]||{}), [field]: value, loaded:true },
+    }));
+    if (user && user.isAdmin) {
+      const isDiscordId = /^\d{17,19}$/.test(eq.id||'');
+      const body = isDiscordId
+        ? { userId: eq.id, field, value }
+        : { name: eq.name||'', field, value };
+      apiFetch('/api/admin/set-user-field', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
+    }
+  };
 
   /* ── Actions ── */
   const addBonus = (slot, bet, scat=3, caller=null) => {
@@ -1430,45 +1502,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                       onClick={()=>{
                         if(flippedCard===e.id){setFlippedCard(null);return;}
                         setFlippedCard(e.id);
-                        if(!cardInfoMap[e.id]&&e.id&&e.id!=='bean_auto'&&e.id!=='creator_auto'){
-                          // Use Discord ID lookup if it's a real snowflake.
-                          // If member's name matches the logged-in user, use the user's own ID directly.
-                          // Otherwise look up by name (matches saved Discord username/displayName).
-                          let settingsPath;
-                          if (/^\d{17,19}$/.test(e.id)) {
-                            settingsPath = `/api/settings/${e.id}`;
-                          } else if (user && (e.name||'').toLowerCase().trim() === (user.displayName || user.username || '').toLowerCase().trim()) {
-                            settingsPath = `/api/settings/${user.id}`;
-                          } else {
-                            settingsPath = `/api/settings/by-name/${encodeURIComponent(e.name||'')}`;
-                          }
-                          Promise.all([
-                            apiFetch(settingsPath).catch(()=>({})),
-                            apiFetch('/api/hunts/archived').catch(()=>[]),
-                          ]).then(([settings, archived])=>{
-                            // Walk every archived hunt and sum this member's equity contribution
-                            // AND their share of the winnings. Server includes the equity array on
-                            // archived summaries; pot/totalWon are pre-computed.
-                            let totalOut=0, totalIn=0, huntCount=0;
-                            const memberName=(e.name||'').toLowerCase().trim();
-                            (archived||[]).forEach(h=>{
-                              const eq=(h.equity||[]).find(x=>(x.id===e.id)||(x.name||'').toLowerCase().trim()===memberName);
-                              if(eq && h.pot>0){
-                                totalIn  += (eq.amount || 0);
-                                totalOut += (eq.amount / h.pot) * (h.totalWon || 0);
-                                huntCount++;
-                              }
-                            });
-                            setCardInfoMap(prev=>({...prev,[e.id]:{
-                              rainbetName: settings?.rainbetName||'',
-                              twitchName:  settings?.twitchName||'',
-                              totalEquity: totalIn,
-                              totalPayout: totalOut,
-                              huntCount,
-                              loaded:true,
-                            }}));
-                          });
-                        }
+                        // Defensive: if cardInfo hasn't loaded yet (race with first paint), kick a load.
+                        if(!cardInfoMap[e.id]) loadCardInfo(e);
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
                         position:'relative',cursor:'pointer',minHeight:170,
@@ -1516,24 +1551,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               <span style={{color:G.t4,fontWeight:600}}>not set</span>
                               {canEdit && (
                                 <button
-                                  onClick={ev=>{
-                                    ev.stopPropagation();
-                                    const entered = window.prompt(`Set Rainbet name for ${e.name||'this member'}:`, '');
-                                    if (!entered) return;
-                                    const trimmed = entered.trim();
-                                    if (!trimmed) return;
-                                    setCardInfoMap(prev => ({
-                                      ...prev,
-                                      [e.id]: { ...(prev[e.id]||{}), rainbetName: trimmed, loaded:true },
-                                    }));
-                                    if (user && user.isAdmin) {
-                                      const isDiscordId = /^\d{17,19}$/.test(e.id||'');
-                                      const body = isDiscordId
-                                        ? { userId: e.id, rainbetName: trimmed }
-                                        : { name: e.name||'', rainbetName: trimmed };
-                                      apiFetch('/api/admin/set-rainbet-name', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
-                                    }
-                                  }}
+                                  onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'rainbetName', 'Rainbet name'); }}
                                   title="Add this person's Rainbet name"
                                   style={{
                                     background:'transparent', border:`1px solid ${accent}`, borderRadius:3,
@@ -1595,7 +1613,21 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               {cardInfo.twitchName}
                             </a>
                           ) : (
-                            <div style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</div>
+                            <div style={{display:'flex',alignItems:'center',gap:6}}>
+                              <span style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</span>
+                              {canEdit && (
+                                <button
+                                  onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'twitchName', 'Twitch name'); }}
+                                  title="Add this person's Twitch name"
+                                  style={{
+                                    background:'transparent',border:`1px solid #c084fc`,borderRadius:3,
+                                    fontFamily:G.mono,fontSize:10,fontWeight:700,color:'#c084fc',
+                                    padding:'2px 7px',cursor:'pointer',lineHeight:1,letterSpacing:'0.04em',
+                                  }}>
+                                  + Add
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                         {/* RAINBET row — copyable for tipping; + Add when missing for editors */}
@@ -1635,24 +1667,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                               <span style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</span>
                               {canEdit && (
                                 <button
-                                  onClick={ev=>{
-                                    ev.stopPropagation();
-                                    const entered = window.prompt(`Set Rainbet name for ${e.name||'this member'}:`, '');
-                                    if (!entered) return;
-                                    const trimmed = entered.trim();
-                                    if (!trimmed) return;
-                                    setCardInfoMap(prev => ({
-                                      ...prev,
-                                      [e.id]: { ...(prev[e.id]||{}), rainbetName: trimmed, loaded:true },
-                                    }));
-                                    if (user && user.isAdmin) {
-                                      const isDiscordId = /^\d{17,19}$/.test(e.id||'');
-                                      const body = isDiscordId
-                                        ? { userId: e.id, rainbetName: trimmed }
-                                        : { name: e.name||'', rainbetName: trimmed };
-                                      apiFetch('/api/admin/set-rainbet-name', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
-                                    }
-                                  }}
+                                  onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'rainbetName', 'Rainbet name'); }}
                                   title="Add this person's Rainbet name"
                                   style={{
                                     background:'transparent',border:`1px solid ${accent}`,borderRadius:3,
