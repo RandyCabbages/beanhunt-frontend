@@ -1508,7 +1508,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
           {/* Header */}
           <div style={{padding:'8px 12px',borderBottom:`1px solid ${G.bdr}`,display:'flex',alignItems:'center',justifyContent:'space-between',background:G.bg2,flexShrink:0}}>
             <span style={{fontFamily:G.display,fontSize:16,fontWeight:700,letterSpacing:'0.06em',color:G.t1}}>{isVip?'VIP EQUITY':'EQUITY'}</span>
-            {canEdit&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5,position:'relative'}}>
+            {canEdit&&<div style={{display:'grid',gridTemplateColumns:isVip?'1fr 1fr':'auto',gap:5,position:'relative'}}>
               {isVip && <button
                 onMouseEnter={()=>setEqTooltip('discord')} onMouseLeave={()=>setEqTooltip(null)}
                 onClick={()=>{setShowDcImport(v=>!v);setEqTooltip(null);}}
@@ -1579,7 +1579,6 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                 <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
                 <div style={{display:'flex',alignItems:'center',gap:8}}>
                   <div style={{fontFamily:G.mono,fontSize:10,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
-                  <div title="Drag the bottom-right corner of the cards area to resize" style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.06em'}}>⇕ drag to resize</div>
                 </div>
               </div>
               <div style={{
