@@ -8,6 +8,12 @@ import Overlay from './pages/Overlay';
 import Settings from './pages/Settings';
 
 export default function App() {
+  // Redirect old Vercel domain to the canonical domain
+  if (window.location.hostname === 'twitchbean-hunt.vercel.app') {
+    window.location.replace('https://communityhunts.gg' + window.location.pathname + window.location.search);
+    return null;
+  }
+
   const [user, setUser] = useState(undefined);
   const location = useLocation();
 
