@@ -1435,19 +1435,22 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                             apiFetch(settingsPath).catch(()=>({})),
                             apiFetch('/api/hunts/archived').catch(()=>[]),
                           ]).then(([settings, archived])=>{
-                            // Compute total payout across all archived hunts
-                            let totalOut=0, huntCount=0;
+                            // Walk every archived hunt and sum this member's equity contribution
+                            // AND their share of the winnings. Server includes the equity array on
+                            // archived summaries; pot/totalWon are pre-computed.
+                            let totalOut=0, totalIn=0, huntCount=0;
                             const memberName=(e.name||'').toLowerCase().trim();
                             (archived||[]).forEach(h=>{
                               const eq=(h.equity||[]).find(x=>(x.id===e.id)||(x.name||'').toLowerCase().trim()===memberName);
-                              if(eq){
-                                const pot=(h.equity||[]).reduce((s,x)=>s+x.amount,0);
-                                const won=(h.bonuses||[]).reduce((s,b)=>s+b.win,0);
-                                if(pot>0){ totalOut+=((eq.amount/pot)*won); huntCount++; }
+                              if(eq && h.pot>0){
+                                totalIn  += (eq.amount || 0);
+                                totalOut += (eq.amount / h.pot) * (h.totalWon || 0);
+                                huntCount++;
                               }
                             });
                             setCardInfoMap(prev=>({...prev,[e.id]:{
                               rainbetName: settings?.rainbetName||'',
+                              totalEquity: totalIn,
                               totalPayout: totalOut,
                               huntCount,
                               loaded:true,
@@ -1456,7 +1459,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         }
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
-                        position:'relative',cursor:'pointer',minHeight:150,
+                        position:'relative',cursor:'pointer',minHeight:160,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
                       }}>
@@ -1549,15 +1552,29 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           )}
                         </div>
 
-                        {/* All-time payout — small at bottom */}
+                        {/* All-time totals — equity invested on the left, payout earned on the right */}
                         <div style={{marginTop:'auto',paddingTop:4,borderTop:`1px solid ${G.bdr}`}}>
-                          <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-time payout</div>
-                          <div style={{display:'flex',alignItems:'baseline',gap:6}}>
-                            <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?G.t2:G.t4,lineHeight:1}}>
-                              {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                            {/* Left: total equity invested across all archived hunts */}
+                            <div>
+                              <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Equity</div>
+                              <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalEquity>0?G.t2:G.t4,lineHeight:1}}>
+                                {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalEquity) : '—'}
+                              </div>
                             </div>
-                            {cardInfo?.huntCount>0&&<div style={{fontFamily:G.mono,fontSize:9,color:G.t4,lineHeight:1}}>{cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}</div>}
+                            {/* Right: total payout earned across all archived hunts */}
+                            <div>
+                              <div style={{fontFamily:G.mono,fontSize:8,color:G.t4,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Payout</div>
+                              <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?(cardInfo.totalPayout>=cardInfo.totalEquity?G.green:G.red):G.t4,lineHeight:1}}>
+                                {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
+                              </div>
+                            </div>
                           </div>
+                          {cardInfo?.huntCount>0&&(
+                            <div style={{fontFamily:G.mono,fontSize:9,color:G.t4,lineHeight:1,marginTop:3}}>
+                              across {cardInfo.huntCount} hunt{cardInfo.huntCount!==1?'s':''}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
