@@ -1530,7 +1530,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} list="known-users-list" onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} list="known-users-list" autoComplete="off" name={`equity-name-${e.id}`} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex',alignItems:'center'}}>
                       {iconFor(e,12)}
                     </span>
