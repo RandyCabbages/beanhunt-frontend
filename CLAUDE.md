@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A community/VIP slot bonus hunt tracker for a Twitch streamer (Bean). Built in React, deployed on Vercel. Discord OAuth for auth. Users track slot game bonus hunts with equity splits, live winnings, call queues, and a real-time overlay.
 
 ## Live URLs
-- Frontend: https://twitchbean-hunt.vercel.app
+- Frontend: https://communityhunts.gg
 - Backend: https://beanhunt-backend-production.up.railway.app
 - Frontend repo: https://github.com/RandyCabbages/beanhunt-frontend
 - Backend repo: https://github.com/RandyCabbages/beanhunt-backend
