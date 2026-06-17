@@ -1757,13 +1757,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         <div style={{marginTop:'auto',paddingTop:5,borderTop:`1px solid ${G.bdr}`}}>
                           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
                             <div>
-                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Equity</div>
+                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1,whiteSpace:'nowrap'}}>All-Time Equity</div>
                               <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalEquity>0?G.t2:G.t4,lineHeight:1}}>
                                 {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalEquity) : '—'}
                               </div>
                             </div>
                             <div>
-                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1}}>All-Time Payout</div>
+                              <div style={{fontFamily:G.mono,fontSize:9,fontWeight:700,color:G.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:2,lineHeight:1,whiteSpace:'nowrap'}}>All-Time Payout</div>
                               <div style={{fontFamily:G.mono,fontSize:12,fontWeight:700,color:cardInfo?.totalPayout>0?(cardInfo.totalPayout>=cardInfo.totalEquity?G.green:G.red):G.t4,lineHeight:1}}>
                                 {!cardInfo ? '…' : cardInfo.huntCount>0 ? fmt(cardInfo.totalPayout) : '—'}
                               </div>
