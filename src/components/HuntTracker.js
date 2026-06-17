@@ -130,7 +130,7 @@ const ScatterIcon = ({scat=3, size=48, idSuffix=''}) => {
 
 const fmt  = v => '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmtS = v => (v<0?'-':'+')+fmt(v);
-const uid  = () => Math.random().toString(36).slice(2,8);
+const uid  = () => crypto.randomUUID();
 // Normalize slot name for dedup comparison: strip punctuation, normalize spaces, lowercase
 const normalizeSlot = name => (name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -178,7 +178,6 @@ async function fetchSlots() {
           return { name: s.name, thumb, slug: s.slug || null, provider: s.provider || null };
         });
         _slotCache.set(slots);
-        console.log(`[SlotInput] Loaded ${slots.length} slots from API`);
       }
     } catch(e) { console.error('[SlotInput] fetchSlots failed:', e); }
     return _slotCache.get();
@@ -491,7 +490,8 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [flippedCard,   setFlippedCard]   = useState(null);   // equity member id currently flipped
   const [cardInfoMap,   setCardInfoMap]   = useState({});     // id -> {rainbetName, twitchName, preferredSlots, totalEquity, totalPayout, huntCount}
   const [copiedRainbet, setCopiedRainbet] = useState(null);   // equity member id whose Rainbet name was just copied
-  const cardInfoTouchedRef = useRef(new Set());               // ids we've already kicked a fetch for this session
+  const cardInfoTouchedRef  = useRef(new Set());              // ids we've already kicked a fetch for this session
+  const archivedCacheRef    = useRef(null);                   // single shared promise for /api/hunts/archived
   const [slotsModalFor, setSlotsModalFor] = useState(null);   // {id, name} of equity member whose preferred slots are being edited
   const [slotsDraft,    setSlotsDraft]    = useState([]);     // working copy while the modal is open
   const [slotsNewInput, setSlotsNewInput] = useState('');     // current text in the "add a slot" input
@@ -500,6 +500,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const [dcWinners,     setDcWinners]     = useState(false);
   const [showDcImport,  setShowDcImport]  = useState(false);
   const [callRequests,  setCallRequests]  = useState([]);
+  const [confirmModal,  setConfirmModal]  = useState(null); // { message, onConfirm, danger? }
+  const [promptModal,   setPromptModal]   = useState(null); // { message, defaultValue, type?, onSubmit }
+  const [promptValue,   setPromptValue]   = useState('');
   const [showReqPopup,  setShowReqPopup]  = useState(false);
   const [showAllCalls,  setShowAllCalls]  = useState(false);
   // List of everyone who's ever logged in, for equity name autocomplete
@@ -512,12 +515,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const saveTimeout = useRef(null);
   const huntRef     = useRef(hunt);
   useEffect(() => { huntRef.current = hunt; }, [hunt]);
+  useEffect(() => { if (promptModal) setPromptValue(promptModal.defaultValue||''); }, [promptModal]);
 
   useEffect(() => {
     if (hunt.huntMode && hunt.huntMode !== huntMode) {
       setHuntMode(hunt.huntMode);
     }
-  }, [hunt.huntMode]);
+  }, [hunt.huntMode, huntMode]);
 
   useEffect(() => {
     const tick = () => {
@@ -557,9 +561,11 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   const upd = useCallback(fn => {
     if (readOnly || !onUpdateHunt) return;
-    setHuntHistory(prev => [...prev.slice(-29), huntRef.current]);
     setSaveStatus('saving');
-    onUpdateHunt(fn);
+    onUpdateHunt(prev => {
+      setHuntHistory(h => [...h.slice(-29), prev]);
+      return fn(prev);
+    });
     clearTimeout(saveTimeout.current);
     saveTimeout.current = setTimeout(() => setSaveStatus('saved'), 900);
     setTimeout(() => setSaveStatus(''), 2800);
@@ -656,9 +662,12 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
     } else {
       settingsPath = `/api/settings/by-name/${encodeURIComponent(eq.name||'')}`;
     }
+    if (!archivedCacheRef.current) {
+      archivedCacheRef.current = apiFetch('/api/hunts/archived').catch(()=>[]);
+    }
     Promise.all([
       apiFetch(settingsPath).catch(()=>({})),
-      apiFetch('/api/hunts/archived').catch(()=>[]),
+      archivedCacheRef.current,
     ]).then(([settings, archived])=>{
       let totalOut=0, totalIn=0, huntCount=0;
       const memberName=(eq.name||'').toLowerCase().trim();
@@ -689,21 +698,25 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
   // Helper used by the + Add buttons. Saves to server only when the current user is admin.
   const promptAndSaveUserField = (eq, field, label) => {
-    const entered = window.prompt(`Set ${label} for ${eq.name||'this member'}:`, '');
-    if (!entered) return;
-    const value = entered.trim();
-    if (!value) return;
-    setCardInfoMap(prev => ({
-      ...prev,
-      [eq.id]: { ...(prev[eq.id]||{}), [field]: value, loaded:true },
-    }));
-    if (user && user.isAdmin) {
-      const isDiscordId = /^\d{17,19}$/.test(eq.id||'');
-      const body = isDiscordId
-        ? { userId: eq.id, field, value }
-        : { name: eq.name||'', field, value };
-      apiFetch('/api/admin/set-user-field', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
-    }
+    setPromptModal({
+      message: `Set ${label} for ${eq.name||'this member'}:`,
+      defaultValue: '',
+      onSubmit: entered => {
+        const value = entered.trim();
+        if (!value) return;
+        setCardInfoMap(prev => ({
+          ...prev,
+          [eq.id]: { ...(prev[eq.id]||{}), [field]: value, loaded:true },
+        }));
+        if (user && user.isAdmin) {
+          const isDiscordId = /^\d{17,19}$/.test(eq.id||'');
+          const body = isDiscordId
+            ? { userId: eq.id, field, value }
+            : { name: eq.name||'', field, value };
+          apiFetch('/api/admin/set-user-field', { method:'POST', body: JSON.stringify(body) }).catch(()=>{});
+        }
+      },
+    });
   };
 
   // Open the preferred-slots modal for an equity member with a draft seeded from current data.
@@ -1224,7 +1237,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M16 3h5v5l-1.5-1.5-4.5 4.5-3-3-6 6-1.5-1.5 6-6 3 3 3-3L16 3zm5 13l-5 5-1.41-1.41 2.58-2.59H3v-2h14.17l-2.58-2.59L16 11l5 5z"/></svg>
                 </button>
                 {/* Clear */}
-                <button onClick={()=>{if(window.confirm('Clear all slot calls?'))upd(h=>({...h,calls:[]}));}} title="Clear all calls"
+                <button onClick={()=>setConfirmModal({message:'Clear all slot calls?',danger:true,onConfirm:()=>upd(h=>({...h,calls:[]}))})} title="Clear all calls"
                   style={{height:26,width:26,background:'transparent',border:`1px solid ${G.bdr}`,borderRadius:4,cursor:'pointer',color:G.t3,display:'flex',alignItems:'center',justifyContent:'center',transition:'all .1s'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(248,113,113,0.5)';e.currentTarget.style.color=G.red;}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor=G.bdr;e.currentTarget.style.color=G.t3;}}>
@@ -1399,13 +1412,13 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Table header */}
           <div style={{display:'grid',gridTemplateColumns:'28px minmax(0,1fr) 140px 160px 120px 32px',background:G.sur,borderBottom:`2px solid ${accent}`,flexShrink:0}}>
-            {['','SLOT','BET','WIN','MULT',''].map((h,i)=>(
+            {['','SLOT','BET','WIN','MULT',''].map((col,i)=>(
               <div key={i} style={{padding:'10px 12px',fontFamily:G.mono,fontSize:12,color:G.t3,letterSpacing:'0.12em',fontWeight:700,
                 textAlign: i>=2 && i<=4 ? 'center' : 'left',
-                cursor:h==='BET'&&canEdit?'pointer':'default',
-                borderBottom:h==='BET'&&canEdit?`1px dashed ${G.t3}`:'none'}}
-                onClick={()=>{if(h==='BET'&&canEdit){const v=prompt('Set bet for all:');if(v!=null){const b=parseFloat(v);if(!isNaN(b))upd(h=>({...h,bonuses:h.bonuses.map(x=>({...x,bet:b}))}));}}}}>
-                {h}
+                cursor:col==='BET'&&canEdit?'pointer':'default',
+                borderBottom:col==='BET'&&canEdit?`1px dashed ${G.t3}`:'none'}}
+                onClick={()=>{if(col==='BET'&&canEdit)setPromptModal({message:'Set bet for all:',defaultValue:'',type:'number',onSubmit:v=>{const b=parseFloat(v);if(!isNaN(b))upd(h=>({...h,bonuses:h.bonuses.map(x=>({...x,bet:b}))}));}})}}>
+                {col}
               </div>
             ))}
           </div>
@@ -1826,7 +1839,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                   style={{display:'grid',gridTemplateColumns:'14px 1fr 70px auto',gap:4,alignItems:'center',marginBottom:5,cursor:'grab'}}>
                   <span style={{fontFamily:G.mono,color:G.t4,fontSize:11,textAlign:'center',userSelect:'none'}}>⋮</span>
                   <div style={{position:'relative'}}>
-                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} defaultValue={e.name} list="known-users-list" autoComplete="off" name={`equity-name-${e.id}`} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
+                    <input placeholder={e.isRollWinner?'Roll winner name':e.amount>0?'Name or Discord username':'Discord username'} value={e.name||''} list="known-users-list" autoComplete="off" name={`equity-name-${e.id}`} onChange={ev=>updatePerson(e.id,'name',ev.target.value)} onBlur={()=>handleEquityNameBlur(e.id)} style={{...inp,height:30,fontSize:12,fontWeight:500,paddingLeft:(e.id==='bean_auto'||e.id==='creator_auto'||(runnerName&&(e.name||'').toLowerCase().trim()===runnerName)||e.isRollWinner||e.isMod||e.name||e.amount>0)?26:10}} />
                     <span style={{position:'absolute',left:7,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',display:'flex',alignItems:'center'}}>
                       {iconFor(e,12)}
                     </span>
@@ -1852,20 +1865,18 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                     <input key={e.id} type="number" defaultValue={e.amount>0?e.amount:''} onChange={ev=>updatePerson(e.id,'amount',ev.target.value)} style={{...inp,height:30,fontSize:12,fontWeight:600}} />
                   )}
                   <div style={{display:'flex',gap:2,alignItems:'center'}}>
-                    <button onClick={()=>{
-                      const add=parseFloat(window.prompt(`Add equity to ${e.name||'this person'} (current: ${fmt(e.amount)}):`, ''));
-                      if(!add||isNaN(add)||add<=0)return;
-                      upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,amount:parseFloat((x.amount+add).toFixed(2)),rollAmount:parseFloat(((x.rollAmount||0)+add).toFixed(2))}:x)}));
-                    }} title="Add more equity to this person"
+                    <button onClick={()=>setPromptModal({
+                      message:`Add equity to ${e.name||'this person'} (current: ${fmt(e.amount)}):`,
+                      defaultValue:'',type:'number',
+                      onSubmit:v=>{const add=parseFloat(v);if(!add||isNaN(add)||add<=0)return;upd(h=>({...h,equity:h.equity.map(x=>x.id===e.id?{...x,amount:parseFloat((x.amount+add).toFixed(2)),rollAmount:parseFloat(((x.rollAmount||0)+add).toFixed(2))}:x)}));}
+                    })} title="Add more equity to this person"
                     style={{height:30,width:26,background:'rgba(74,222,128,0.1)',border:`1px solid rgba(74,222,128,0.35)`,borderRadius:4,cursor:'pointer',color:G.green,fontSize:16,fontFamily:G.mono,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}
                     onMouseEnter={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.22)'}
                     onMouseLeave={ev=>ev.currentTarget.style.background='rgba(74,222,128,0.1)'}>+</button>
                     <button onClick={()=>{
                       const others=equity.filter(x=>x.id!==e.id&&x.name);
                       if(!others.length){alert('No other members to split to.');return;}
-                      if(!window.confirm(`Divvy up ${e.name||'this person'}'s ${fmt(e.amount)} equally among ${others.length} others?`))return;
-                      const pp=parseFloat((e.amount/others.length).toFixed(2));
-                      upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));
+                      setConfirmModal({message:`Divvy up ${e.name||'this person'}'s ${fmt(e.amount)} equally among ${others.length} others?`,onConfirm:()=>{const pp=parseFloat((e.amount/others.length).toFixed(2));upd(h=>({...h,equity:h.equity.filter(x=>x.id!==e.id).map(x=>others.find(o=>o.id===x.id)?{...x,amount:parseFloat((x.amount+pp).toFixed(2))}:x)}));}});
                     }} title="Divvy up this person's equity among everyone else"
                     style={{height:30,width:30,background:'rgba(145,70,255,0.12)',border:`1px solid rgba(145,70,255,0.4)`,borderRadius:4,cursor:'pointer',color:G.gold,fontSize:16,fontFamily:'serif',fontWeight:900,display:'flex',alignItems:'center',justifyContent:'center'}}
                     onMouseEnter={ev=>{ev.currentTarget.style.background='rgba(145,70,255,0.22)';ev.currentTarget.style.borderColor='rgba(145,70,255,0.55)';}}
@@ -2263,6 +2274,40 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             <div style={{display:'flex',gap:6}}>
               <button onClick={sendInvite} style={{flex:1,...btnPrimary}}>Invite</button>
               <button onClick={()=>setInviteModal(false)} style={btnGhost}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Inline confirm modal ── */}
+      {confirmModal && (
+        <div style={modalBg} onClick={()=>setConfirmModal(null)}>
+          <div style={{...modal,width:340}} onClick={e=>e.stopPropagation()}>
+            <p style={{fontFamily:G.body,fontSize:14,color:G.t1,margin:'0 0 1.25rem',lineHeight:1.5}}>{confirmModal.message}</p>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setConfirmModal(null)} style={btnGhost}>Cancel</button>
+              <button onClick={()=>{confirmModal.onConfirm();setConfirmModal(null);}}
+                style={{...btnPrimary,background:confirmModal.danger?G.red:accent}}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Inline prompt modal ── */}
+      {promptModal && (
+        <div style={modalBg} onClick={()=>setPromptModal(null)}>
+          <div style={{...modal,width:340}} onClick={e=>e.stopPropagation()}>
+            <p style={{fontFamily:G.body,fontSize:14,color:G.t1,margin:'0 0 0.75rem',lineHeight:1.5}}>{promptModal.message}</p>
+            <input autoFocus type={promptModal.type||'text'} value={promptValue}
+              onChange={e=>setPromptValue(e.target.value)}
+              onKeyDown={e=>{
+                if(e.key==='Enter'){promptModal.onSubmit(promptValue);setPromptModal(null);}
+                if(e.key==='Escape')setPromptModal(null);
+              }}
+              style={{...inp,marginBottom:'0.75rem'}} />
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setPromptModal(null)} style={btnGhost}>Cancel</button>
+              <button onClick={()=>{promptModal.onSubmit(promptValue);setPromptModal(null);}} style={btnPrimary}>OK</button>
             </div>
           </div>
         </div>

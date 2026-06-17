@@ -204,6 +204,7 @@ export default function Hub({ user }) {
   const [tab,      setTab]      = useState('live');
   const [ticket,   setTicket]   = useState(false);
   const [hasHunt,  setHasHunt]  = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
   // When in Archived tab, which person's archived hunts are we viewing? 'all' or a userId.
   const [archiveSubTab, setArchiveSubTab] = useState('all');
   const navigate = useNavigate();
@@ -240,19 +241,25 @@ export default function Hub({ user }) {
     }).catch(()=>{});
   }, [user]);
 
-  const endHunt    = async id => { if(!window.confirm('End this hunt?')) return; await apiFetch(`/api/admin/hunts/${id}/end`,{method:'POST'}); };
+  const endHunt = id => setConfirmModal({
+    message: 'End this hunt?',
+    onConfirm: () => apiFetch(`/api/admin/hunts/${id}/end`,{method:'POST'}).catch(()=>{}),
+  });
   // Single delete entry point: receives the whole hunt and routes to the live or archived endpoint.
   // Two archived hunts can share a userId so we need archivedAt to identify the exact entry.
   // After archived delete, optimistically remove it from local state so the UI updates immediately.
-  const deleteHunt = async hunt => {
-    if (!window.confirm('Delete permanently?')) return;
-    if (hunt.archivedAt) {
-      await apiFetch(`/api/admin/hunts/archived/${hunt.userId}/${encodeURIComponent(hunt.archivedAt)}`,{method:'DELETE'});
-      setAllHunts(prev => prev.filter(h => !(h.userId===hunt.userId && h.archivedAt===hunt.archivedAt)));
-    } else {
-      await apiFetch(`/api/admin/hunts/${hunt.userId}`,{method:'DELETE'});
-    }
-  };
+  const deleteHunt = hunt => setConfirmModal({
+    message: 'Delete permanently?',
+    danger: true,
+    onConfirm: async () => {
+      if (hunt.archivedAt) {
+        await apiFetch(`/api/admin/hunts/archived/${hunt.userId}/${encodeURIComponent(hunt.archivedAt)}`,{method:'DELETE'});
+        setAllHunts(prev => prev.filter(h => !(h.userId===hunt.userId && h.archivedAt===hunt.archivedAt)));
+      } else {
+        await apiFetch(`/api/admin/hunts/${hunt.userId}`,{method:'DELETE'});
+      }
+    },
+  });
 
   const archived = allHunts.filter(h=>!h.isLive&&h.archivedAt);
 
@@ -466,6 +473,7 @@ export default function Hub({ user }) {
             <iframe
               src="https://beantwitch.com/leaderboard"
               title="Bean Leaderboard"
+              sandbox="allow-scripts allow-same-origin allow-popups"
               style={{flex:1,border:'none',height:420,width:'100%',colorScheme:'dark'}}
               scrolling="yes"
             />
@@ -476,6 +484,21 @@ export default function Hub({ user }) {
       </div>
 
       {ticket && <TicketModal user={user} onClose={()=>setTicket(false)}/>}
+      {confirmModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={()=>setConfirmModal(null)}>
+          <div style={{background:C.card,border:`1px solid ${C.bb}`,borderRadius:6,padding:'1.75rem',width:340,fontFamily:C.font}}
+            onClick={e=>e.stopPropagation()}>
+            <p style={{fontSize:14,color:C.txt,margin:'0 0 1.25rem',lineHeight:1.5}}>{confirmModal.message}</p>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setConfirmModal(null)}
+                style={{height:36,padding:'0 14px',background:'transparent',border:`1px solid ${C.bdr}`,borderRadius:3,fontSize:13,color:C.faint,cursor:'pointer',fontFamily:C.font}}>Cancel</button>
+              <button onClick={()=>{confirmModal.onConfirm();setConfirmModal(null);}}
+                style={{height:36,padding:'0 20px',background:confirmModal.danger?C.red:C.gold,color:'#000',border:'none',borderRadius:3,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:C.font}}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

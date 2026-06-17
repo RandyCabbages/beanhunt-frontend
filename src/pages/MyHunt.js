@@ -29,13 +29,19 @@ export default function MyHunt({ user }) {
   const [started,  setStarted]  = useState(false);
   const [offline,  setOffline]  = useState(false);
   const [loading,  setLoading]  = useState(true);
+  const [confirmModal, setConfirmModal] = useState(null);
   const saveTimer = useRef(null);
 
   // Load existing online hunt if logged in
   useEffect(() => {
     if (!user) { setLoading(false); return; }
+
+    let mounted = true;
+    const cleanupFns = [];
+
     apiFetch('/api/my-hunt')
-      .then(data => {
+      .then(async data => {
+        if (!mounted) return;
         if (data && data.huntType) {
           if (data.huntType === 'vip') {
             let changed = false;
@@ -50,45 +56,59 @@ export default function MyHunt({ user }) {
               data.equity = [...(data.equity||[]), { id:'creator_auto', name:creatorName, amount:100, isRollWinner:true }];
               changed = true;
             }
+            // Await the PUT so socket subscription starts only after the server
+            // has the merged equity — prevents watchers receiving stale state (#2)
             if (changed) {
-              apiFetch('/api/my-hunt', {
+              await apiFetch('/api/my-hunt', {
                 method: 'PUT',
                 body: JSON.stringify({ equity: data.equity, bonuses: data.bonuses, calls: data.calls, huntType: data.huntType })
               }).catch(()=>{});
             }
           }
+          if (!mounted) return;
           setHunt(data); setStarted(true); setOffline(false);
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
 
-    const joinRoom = () => {
-      socket.emit('watch:hunt', user.id);
-      socket.emit('identify', user.id);
-    };
-    joinRoom();
-    socket.on('connect', joinRoom);
-
-    const onHuntUpdate = (data) => {
-      setHunt(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          bonuses:    data.bonuses    ?? prev.bonuses,
-          calls:      data.calls      ?? prev.calls,
-          equity:     data.equity     ?? prev.equity,
-          huntMode:   data.huntMode   ?? prev.huntMode,
-          callLimit:  data.callLimit  ?? prev.callLimit,
-          roundRobin: data.roundRobin ?? prev.roundRobin,
-          isLive:     data.isLive     ?? prev.isLive,
+        // Subscribe only after REST (and any PUT) resolves — hunt state is
+        // guaranteed non-null when the first hunt:update arrives (#1)
+        const joinRoom = () => {
+          socket.emit('watch:hunt', user.id);
+          socket.emit('identify', user.id);
         };
+        joinRoom();
+        socket.on('connect', joinRoom);
+
+        const onHuntUpdate = (data) => {
+          setHunt(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              bonuses:    data.bonuses    ?? prev.bonuses,
+              calls:      data.calls      ?? prev.calls,
+              equity:     data.equity     ?? prev.equity,
+              huntMode:   data.huntMode   ?? prev.huntMode,
+              callLimit:  data.callLimit  ?? prev.callLimit,
+              roundRobin: data.roundRobin ?? prev.roundRobin,
+              isLive:     data.isLive     ?? prev.isLive,
+            };
+          });
+        };
+        socket.on('hunt:update', onHuntUpdate);
+
+        cleanupFns.push(
+          () => socket.off('hunt:update', onHuntUpdate),
+          () => socket.off('connect', joinRoom),
+        );
       });
-    };
-    socket.on('hunt:update', onHuntUpdate);
+
     return () => {
-      socket.off('hunt:update', onHuntUpdate);
-      socket.off('connect', joinRoom);
+      mounted = false;
+      cleanupFns.forEach(fn => fn());
     };
   }, [user]);
 
@@ -146,12 +166,17 @@ export default function MyHunt({ user }) {
     } catch(e) { alert(e.message || 'Failed to end hunt'); }
   };
 
-  const resetHunt = async () => {
-    if (!window.confirm('Reset your hunt? This clears everything.')) return;
-    try {
-      if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
-      setHunt(null); setStarted(false);
-    } catch(e) { alert(e.message || 'Failed to reset hunt'); }
+  const resetHunt = () => {
+    setConfirmModal({
+      message: 'Reset your hunt? This clears everything.',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          if (!offline) await apiFetch('/api/my-hunt/reset', { method: 'POST' });
+          setHunt(null); setStarted(false);
+        } catch(e) { alert(e.message || 'Failed to reset hunt'); }
+      },
+    });
   };
 
   const updateHunt = useCallback((updater) => {
@@ -233,10 +258,10 @@ export default function MyHunt({ user }) {
           Use the tracker without logging in. Data stays in your browser only.
         </p>
         <div style={{ display:'flex', gap:10 }}>
-          <button onClick={() => startOfflineHunt('community')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:600, color:'#888888', cursor:'pointer' }}>
+          <button onClick={() => startOfflineHunt('community')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:600, color:'#888888', cursor:'pointer' }}>
             🎰 Community
           </button>
-          <button onClick={() => startOfflineHunt('vip')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:600, color:'#888888', cursor:'pointer' }}>
+          <button onClick={() => startOfflineHunt('vip')} style={{ flex:1, height:42, background:'transparent', border:'1px solid rgba(255,255,255,0.15)', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:600, color:'#888888', cursor:'pointer' }}>
             👑 VIP
           </button>
         </div>
@@ -251,7 +276,7 @@ export default function MyHunt({ user }) {
       {!hunt.isLive && !offline && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, zIndex:50, background:'rgba(10,10,15,.92)', backdropFilter:'blur(8px)', borderTop:'1px solid rgba(255,255,255,0.09)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontFamily:"'Inter',system-ui,sans-serif", fontSize:13, fontWeight:500, color:'#cccccc' }}>Hunt Not Live Yet — Setup Equity and Hit Go Live!</span>
-          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#9146ff', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:500, fontWeight:700, cursor:'pointer' }}>
+          <button onClick={goLive} style={{ height:38, padding:'0 24px', background:'#9146ff', color:'#111111', border:'none', borderRadius:4, fontFamily:"'Inter',system-ui,sans-serif", fontSize:14, fontWeight:700, cursor:'pointer' }}>
             🚀 Start Hunt — Go Live
           </button>
         </div>
@@ -272,6 +297,21 @@ export default function MyHunt({ user }) {
         onResetHunt={resetHunt}
         onBack={() => navigate('/')}
       />
+      {confirmModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center'}}
+          onClick={()=>setConfirmModal(null)}>
+          <div style={{background:'#26262a',border:'1px solid rgba(255,255,255,0.34)',borderRadius:6,padding:'1.75rem',width:340}}
+            onClick={e=>e.stopPropagation()}>
+            <p style={{fontFamily:"'Inter',system-ui,sans-serif",fontSize:14,color:'#fff',margin:'0 0 1.25rem',lineHeight:1.5}}>{confirmModal.message}</p>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setConfirmModal(null)}
+                style={{height:36,padding:'0 14px',background:'transparent',border:'1px solid rgba(255,255,255,0.22)',borderRadius:3,fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,color:'#b0b0b0',cursor:'pointer'}}>Cancel</button>
+              <button onClick={()=>{confirmModal.onConfirm();setConfirmModal(null);}}
+                style={{height:36,padding:'0 20px',background:confirmModal.danger?'#f87171':'#c6f135',color:'#000',border:'none',borderRadius:3,fontFamily:"'Inter',system-ui,sans-serif",fontSize:13,fontWeight:700,cursor:'pointer'}}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

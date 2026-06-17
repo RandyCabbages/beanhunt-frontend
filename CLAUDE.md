@@ -23,45 +23,69 @@ npm run build    # Production build
 # Vercel auto-deploys on push to main
 ```
 
+## Dependencies
+- React 18, react-router-dom v6, socket.io-client v4
+
 ## Project Structure
 ```
 src/
   components/
-    HuntTracker.js   ← MAIN FILE — all hunt UI logic (~1350 lines)
+    HuntTracker.js   ← MAIN FILE — all hunt UI logic (~2273 lines)
+    RandomHashtag.js ← rotating tagline displayed on Hub
+    slotThumb.js     ← slot image handler (thumbnail lookup)
   pages/
-    MyHunt.js        ← renders HuntTracker for VIP + Community hunts
-    WatchHunt.js     ← viewer/spectator page
-    Hub.js           ← landing/lobby page
-    Overlay.js       ← OBS browser source overlay
-    HuntHistory.js   ← analytics: per-slot stats, multipliers, ROI
-  App.js
-  api.js
+    MyHunt.js        ← renders HuntTracker for VIP + Community hunts (online/offline)
+    WatchHunt.js     ← viewer/spectator page; supports ?archivedAt=<ISO8601> for snapshots
+    Hub.js           ← landing/lobby page; hunt cards grid, Twitch embed, leaderboard
+    Overlay.js       ← OBS browser source overlay (transparent bg, auto-updates via socket)
+    HuntHistory.js   ← analytics: per-slot stats, multipliers, ROI; admin Mitch/Cdew imports
+    Settings.js      ← user settings page
+  App.js             ← router, auth param parsing, Socket.IO init
+  api.js             ← API client, Socket.IO config, token-based auth fallback
   index.js
-  styles.css
+  styles.css         ← only scrollbars, selection, global resets; all other styling is inline
 ```
 
 ## Key Architecture
 - `HuntTracker.js` is one large component used for both VIP and Community hunts; `MyHunt.js` passes `huntMode` prop to differentiate
 - Real-time updates via Socket.IO (`api.js` exports `socket`); `WatchHunt` subscribes to individual hunt + reinvite events
-- State debounces to backend every 500ms; backend is source of truth for logged-in users; offline hunts stored in browser only
-- Slot autocomplete hits `/api/slots/search?q=` (slot.report API cache); `allSlots` loaded on mount from `/api/slots` (5000+ names)
+- State debounces to backend every 500ms (`upd()` helper); backend is source of truth for logged-in users; offline hunts stored in browser only
+- Slot autocomplete hits `/api/slots/search?q=`; `allSlots` loaded on mount from `/api/slots` (5000+ names); cached in module-level `_slotCache` closure
 - Undo history: last 30 states tracked in `huntHistory` ref
+- `MyHunt.js` supports offline mode (no persistence, "📴 Offline mode" footer bar) with a "Login to go live" prompt
+
+## Auth Flow
+- Discord OAuth redirect flow managed by backend at `${API}/auth/discord`
+- On return: URL params `?auth=<base64(userData)>&t=<token>&returnTo=/...` parsed in `App.js`
+- Token stored in `localStorage` key `beanhunt_auth_token` as fallback for cookie-blocking browsers
+- On load without params: `GET /auth/me` checks existing session
+
+## Socket.IO Events
+**Emit (client → server):** `watch:hunt`, `identify` (sends user.id), `leave:hunt`
+
+**Listen (server → client):** `hunt:update` (full state refresh), `hunt:reinvite` (refetch perms), `bean:live` (Bean went live on Twitch), `calls:request:new`, `calls:request:update`, `calls:granted`, `calls:denied`
+
+Always `.off()` handlers in `useEffect` cleanup to prevent duplicate listeners.
 
 ## Design System
 All tokens live in the `G` object at the top of `HuntTracker.js`:
 ```javascript
 const G = {
   bg:'#161618', bg2:'#1c1c1f', sur:'#222226', card:'#26262a', lift:'#2c2c32',
+  ridge:'#36363e',
   gold:'#c6f135',   // primary accent, community hunts
+  gold2:'#a970ff',  // roll winner accent
   green:'#4ade80',  // gains/positive
   red:'#f87171',    // losses/negative
   purple:'#c084fc', // VIP accent
   t1:'#ffffff', t2:'#e8e8e8', t3:'#b0b0b0', t4:'#808080',
-  bdr:'rgba(255,255,255,0.15)',
-  // Font: Chakra Petch everywhere (display/body/mono all same)
+  bdr:'rgba(255,255,255,0.22)',
+  bb:'rgba(255,255,255,0.34)',  // bright border
+  // gdim/gndim/rdim/pdim — dim color overlays at 0.12–0.14 opacity
+  // Font: Chakra Petch (display), Inter (body/mono)
 }
 ```
-Styling is inline throughout — `styles.css` only covers scrollbars, selection, and global resets.
+`Hub.js` has its own parallel `C` object with the same color values under different key names — keep them in sync if changing accent colors.
 
 ## Layout — 3 Column (DO NOT BREAK THIS)
 ```
@@ -80,17 +104,22 @@ Never use CSS `data-active` rules that hide columns — this was done once and b
 7. **Footer** — Start Hunt button
 
 ## Special Users
-- **Bean** = the streamer/owner, gets 👑 crown icon; Discord ID `135203806676779008` (permanent, used for VIP/admin auth — never rely on display name)
-- **Hunt creator** gets ⚔️ sword icon
+- **Bean** = the streamer/owner, gets 👑 crown icon; identified in code by `id === 'bean_auto'` or case-insensitive name match `'bean'`. Discord ID `135203806676779008` is used for backend VIP/admin auth — never rely on display name for backend checks.
+- **Hunt creator** gets ⚔️ sword icon; identified by `id === 'creator_auto'`
+- VIP hunts auto-inject Bean (`id:'bean_auto'`) + Creator (`id:'creator_auto'`) into equity on init; `injectedMembersRef` prevents duplicate merges on subsequent socket updates
 - Priority order: Bean → Mod/Creator → Regular → Roll Winner
 
 ## Hunt Modes & Equity
-- Hunt modes: `creating` → `rolling` → `spinning`
+- Hunt modes: `creating` → `spinning` → `rolling` (one-way, no restart mid-hunt)
+- `spinning`: top 4 calls locked, can't reorder or jump to front of queue
 - VIP hunts auto-include Bean + creator in equity; community hunts start empty
 - Call queue uses round-robin fairness rotation by caller (`buildQueue()` helper)
 
+## Slot Name Normalization
+Applied identically in HuntTracker, HuntHistory, and Overlay — must stay in sync:
+- Lowercase, replace `&` with ` and `, remove punctuation, normalize spaces, strip trailing `s` from last word (plural dedup)
+
 ## Known Issues
-- `showPasteCalls` state must exist or app crashes on render
 - Mobile CSS attempts have broken desktop twice — be very careful with responsive changes
 
 ## Pending Items

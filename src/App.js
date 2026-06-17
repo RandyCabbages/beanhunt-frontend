@@ -24,7 +24,7 @@ export default function App() {
         const returnTo = params.get('returnTo');
         window.history.replaceState({}, '', returnTo || '/');
         socket.connect();
-        return;
+        return () => socket.disconnect();
       } catch(e) {}
     }
     apiFetch('/auth/me')
