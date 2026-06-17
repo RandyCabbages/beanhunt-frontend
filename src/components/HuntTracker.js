@@ -995,9 +995,10 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
       </div>
 
       {/* ── Three-column layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:`300px 1fr 460px`,height:'calc(100vh - 46px)',overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns: (huntMode==='rolling' && !canEdit) ? `1fr 460px` : `300px 1fr 460px`,height:'calc(100vh - 46px)',overflow:'hidden'}}>
 
-        {/* ── LEFT: Slot calls — hidden for viewers in rolling mode ── */}
+        {/* ── LEFT: Slot calls — hidden ONLY for viewers during OPENING. The hunt runner always keeps it. ── */}
+        {(huntMode!=='rolling' || canEdit) && (
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden',}}>
           {/* Mode toggle */}
           {canEdit && (
@@ -1170,6 +1171,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             )}
           </div>
         </div>
+        )}
 
         {/* ── MIDDLE: Bonuses ── */}
         <div style={{borderRight:`1px solid ${G.bdr}`,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -1400,14 +1402,24 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
             </div>
           )}
 
-          {/* Live winnings — scrollable, all together */}
+          {/* Live winnings — scrollable, vertically RESIZABLE (drag bottom-right corner to see more cards) */}
           {equityDisplay.filter(e=>e.name||e.amount>0).length>0&&totalPot>0&&(
             <div style={{borderBottom:`1px solid ${G.bdr}`,flexShrink:0,display:'flex',flexDirection:'column'}}>
               <div style={{padding:'6px 12px 4px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                 <div style={{fontFamily:G.mono,fontSize:10,fontWeight:700,color:G.t3,letterSpacing:'0.1em',textTransform:'uppercase'}}>LIVE WINNINGS</div>
-                <div style={{fontFamily:G.mono,fontSize:10,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{fontFamily:G.mono,fontSize:10,color:G.t4}}>{equityDisplay.filter(e=>e.name||e.amount>0).length} members</div>
+                  <div title="Drag the bottom-right corner of the cards area to resize" style={{fontFamily:G.mono,fontSize:9,color:G.t4,letterSpacing:'0.06em'}}>⇕ drag to resize</div>
+                </div>
               </div>
-              <div style={{overflowY:'auto',minHeight:0,maxHeight:'calc(4 * 130px)',padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start'}}>
+              <div style={{
+                overflowY:'auto',
+                resize:'vertical',
+                minHeight:140,
+                height:'calc(4 * 130px)',
+                maxHeight:'calc(100vh - 220px)',
+                padding:'0 12px 8px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:4,alignContent:'start',
+              }}>
                 {equityDisplay.filter(e=>e.name||e.amount>0).map(e=>{
                   const pct=totalPot>0?(e.amount/totalPot)*100:0;
                   const share=totalPot>0?(e.amount/totalPot)*totalWon:0;
