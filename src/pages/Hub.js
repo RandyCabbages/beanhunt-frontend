@@ -213,7 +213,7 @@ export default function Hub({ user }) {
   useEffect(() => {
     apiFetch('/api/hunts').then(setHunts).catch(()=>{}).finally(()=>setLoading(false));
     apiFetch('/api/bean-live').then(setBeanLive).catch(()=>{});
-    apiFetch('/api/hunts/archived').then(setAllHunts).catch(()=>{});
+    apiFetch('/api/hunts/archived').then(d => setAllHunts(Array.isArray(d) ? d : [])).catch(()=>{});
     const joinHub = () => socket.emit('watch:hub');
     joinHub();
     socket.on('connect', joinHub);
@@ -261,7 +261,7 @@ export default function Hub({ user }) {
     },
   });
 
-  const archived = allHunts.filter(h=>!h.isLive&&h.archivedAt);
+  const archived = (Array.isArray(allHunts) ? allHunts : []).filter(h=>!h.isLive&&h.archivedAt);
 
   // Build sub-tab list: one per unique person in archived, plus an All tab.
   // Sorted by hunt count descending so the most active person is first.
