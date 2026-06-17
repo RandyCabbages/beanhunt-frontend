@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch, socket, API } from '../api';
 import HuntTracker from '../components/HuntTracker';
+import RandomHashtag from '../components/RandomHashtag';
 
 const BEAN_EQUITY = { id:'bean_auto', name:'Bean', amount:1000, isRollWinner:false };
 
@@ -178,9 +179,9 @@ export default function MyHunt({ user }) {
         <h1 style={{ fontSize:'clamp(2.4rem,5vw,3.4rem)', fontWeight:700, letterSpacing:'0.04em', lineHeight:1, color:'#ffffff' }}>
           Start a <span style={{ color:'#c6f135' }}>Hunt</span>
         </h1>
-        <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{ textDecoration:'none', display:'block', marginTop:10 }}>
-          <span style={{ fontFamily:"'Chakra Petch',sans-serif", fontSize:15, fontWeight:700, letterSpacing:'0.1em', background:'linear-gradient(90deg,#9146ff,#c6f135)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>#joinbeancore</span>
-        </a>
+        <div style={{ marginTop: 10 }}>
+          <RandomHashtag fontSize={15} letterSpacing="0.1em" />
+        </div>
       </div>
 
       {/* Online hunts */}

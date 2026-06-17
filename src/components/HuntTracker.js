@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch, socket, API } from '../api';
 import { SlotThumb, useSlotThumb, thumbCache } from '../slotThumb';
+import RandomHashtag from './RandomHashtag';
 
 /* ── Design tokens ───────────────────────────────────────────────── */
 const G = {
@@ -948,13 +949,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
 
           {/* Center: announcement */}
           <div style={{textAlign:'center',userSelect:'none'}}>
-            <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
-              <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:15,fontWeight:700,letterSpacing:'0.12em',
-                background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
-                backgroundClip:'text'}}>
-                #joinbeancore
-              </span>
-            </a>
+            <RandomHashtag fontSize={15} letterSpacing="0.12em" />
           </div>
 
           {/* Right: controls */}

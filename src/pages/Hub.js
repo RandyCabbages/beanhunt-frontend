@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socket, API, apiFetch } from '../api';
+import RandomHashtag from '../components/RandomHashtag';
 
 // ── Design tokens — matches HuntTracker exactly ──────────────────
 const C = {
@@ -306,9 +307,7 @@ export default function Hub({ user }) {
             BeanTards <span style={{color:C.gold}}>Hunt Tracker</span>
           </div>
           <div style={{textAlign:'center'}}>
-            <a href="https://discord.com/invite/beantwitch" target="_blank" rel="noopener noreferrer" style={{textDecoration:'none'}}>
-              <span style={{fontFamily:"'Chakra Petch',sans-serif",fontSize:16,fontWeight:700,letterSpacing:'0.1em',background:'linear-gradient(90deg,#9146ff,#c6f135)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',backgroundClip:'text'}}>#joinbeancore</span>
-            </a>
+            <RandomHashtag fontSize={16} letterSpacing="0.1em" />
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             {user ? (
