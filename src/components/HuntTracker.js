@@ -851,6 +851,9 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
   const pending = queue.filter(c=>c.status==='pending');
   const done    = queue.filter(c=>c.status==='out');
   const canEdit = !readOnly && !!onUpdateHunt;
+  // Admins can manage user identity fields (rainbet/twitch names) even when the hunt itself
+  // is read-only (e.g. viewing an archived snapshot). Hunt runners obviously can while editing.
+  const canManageUsers = canEdit || !!(user && user.isAdmin);
   const canCall = canEdit || (canAddCalls && huntMode !== 'rolling');
 
   // ── Preferred slot auto-injection ────────────────────────────────
@@ -1501,7 +1504,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                         if(!cardInfoMap[e.id]) loadCardInfo(e);
                       }}
                       style={{background:G.card,border:`1px solid ${isFlipped?accent:(e.isRollWinner?'rgba(198,241,53,0.3)':G.bdr)}`,borderRadius:6,
-                        position:'relative',cursor:'pointer',minHeight:170,
+                        position:'relative',cursor:'pointer',minHeight:150,
                         transition:'border-color .15s',userSelect:'none',
                         perspective:600,
                       }}>
@@ -1544,7 +1547,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           ) : (
                             <span style={{display:'inline-flex',alignItems:'center',gap:5}}>
                               <span style={{color:G.t4,fontWeight:600}}>not set</span>
-                              {canEdit && (
+                              {canManageUsers && (
                                 <button
                                   onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'rainbetName', 'Rainbet name'); }}
                                   title="Add this person's Rainbet name"
@@ -1610,7 +1613,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           ) : (
                             <div style={{display:'flex',alignItems:'center',gap:6}}>
                               <span style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</span>
-                              {canEdit && (
+                              {canManageUsers && (
                                 <button
                                   onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'twitchName', 'Twitch name'); }}
                                   title="Add this person's Twitch name"
@@ -1660,7 +1663,7 @@ export default function HuntTracker({ hunt, user, readOnly, offline, canAddCalls
                           ) : (
                             <div style={{display:'flex',alignItems:'center',gap:6}}>
                               <span style={{fontFamily:G.body,fontSize:13,color:G.t4,fontWeight:600,lineHeight:1.2}}>not set</span>
-                              {canEdit && (
+                              {canManageUsers && (
                                 <button
                                   onClick={ev=>{ ev.stopPropagation(); promptAndSaveUserField(e, 'rainbetName', 'Rainbet name'); }}
                                   title="Add this person's Rainbet name"
